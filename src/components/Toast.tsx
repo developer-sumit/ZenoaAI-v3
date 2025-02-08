@@ -65,15 +65,16 @@ export const ToastProvider: React.FC<{children: React.ReactNode}> = ({
   return (
     <ToastContext.Provider value={{show, success, error, dismiss}}>
       {children}
-      <SafeAreaView style={styles.container}>
-        {toasts.map(toast => (
-          <ToastComponent
-            key={toast.id}
-            {...toast}
-            onDismiss={() => dismiss(toast.id)}
-          />
-        ))}
-      </SafeAreaView>
+      
+        <SafeAreaView style={styles.container}>
+          {toasts.map(toast => (
+            <ToastComponent
+              key={toast.id}
+              {...toast}
+              onDismiss={() => dismiss(toast.id)}
+            />
+          ))}
+        </SafeAreaView>
     </ToastContext.Provider>
   );
 };
@@ -111,7 +112,7 @@ const ToastComponent: React.FC<Toast & {onDismiss: () => void}> = ({
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <Icon name="check-circle" size={24} color="#4BB543" />;
+        return <Icon name="check-circle" size={24} color="#FFF" />;
       case 'error':
         return <Icon name="error" size={24} color="#ff4444" />;
       case 'loading':
