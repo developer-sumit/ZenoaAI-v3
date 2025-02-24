@@ -3,6 +3,6 @@
   "compilerOptions": {
     "jsx": "react",
     "baseUrl": ".",
-    "paths": {"@zenoa/*": ["./src/*"]}
+    "paths": {"@src/*": ["./src/*"]}
   }
 }

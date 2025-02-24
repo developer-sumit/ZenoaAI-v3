@@ -1,4 +1,3 @@
-// types.ts
 export interface AspectRatioType {
   ratio: string;
   sizes: {

@@ -6,17 +6,22 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import AdvancedSettings from '../components/AdvancedSettings';
-import {aspectRatios} from '../data/ratio';
-import {AspectRatioType, QualityPresetType} from '../types';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import appConfig from '@zenoa/config/app.config';
 import {FlashList} from '@shopify/flash-list';
-import ImageViewer from '@zenoa/components/ImageViewer';
-import ImageCard from '@zenoa/components/ImageCard';
-import {generateImage} from '@zenoa/config/api.config';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
+import {theme} from '@src/theme/Theme';
+import {aspectRatios} from '@src/data/ratio';
+import appConfig from '@src/config/app.config';
+import ImageCard from '@src/components/ImageCard';
+import ImageViewer from '@src/components/ImageViewer';
+import {useThemeStore} from '@src/store/themeStore';
+import {generateImage} from '@src/config/api.config';
+import {AspectRatioType, QualityPresetType} from '../types';
+import AdvancedSettings from '@src/components/AdvancedSettings';
 
 const HomeScreen = () => {
+  const {isDark} = useThemeStore();
+  const colors = isDark ? theme.dark : theme.light;
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
@@ -102,22 +107,27 @@ const HomeScreen = () => {
   );
 
   return (
-    <View className="flex-1 bg-slate-50 dark:bg-gray-900 p-4 gap-4">
+    <View
+      style={{backgroundColor: colors.background}}
+      className="flex-1 p-4 gap-4">
       {/* Header */}
       <View>
-        <Text className="text-3xl font-bold text-slate-900 dark:text-white">
+        <Text className="text-3xl font-bold" style={{color: colors.text}}>
           {appConfig.name}
         </Text>
       </View>
 
       {/* Prompt Input */}
-      <View className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl h-44 px-4 overflow-hidden">
+      <View
+        style={{backgroundColor: colors.surface}}
+        className="rounded-2xl shadow-2xl h-44 px-4 overflow-hidden">
         <TextInput
           value={prompt}
           onChangeText={setPrompt}
           placeholder="Describe your vision..."
           placeholderTextColor="#94a3b8"
-          className="text-lg text-slate-900 dark:text-white h-full w-full text-start"
+          style={{color: colors.text}}
+          className="text-lg h-full w-full text-start"
           multiline
           numberOfLines={6}
         />
@@ -126,18 +136,19 @@ const HomeScreen = () => {
       {/* Selected Styles Preview */}
       {selectedStyles.length > 0 && (
         <View>
-          <Text className="text-slate-600 dark:text-slate-300 text-sm mb-2">
+          <Text style={{color: colors.secondaryText}} className="text-sm mb-2">
             Selected Styles:
           </Text>
           <FlashList
             horizontal
+            estimatedItemSize={100}
             data={selectedStyles}
             keyExtractor={item => item}
             renderItem={({item}) => (
-              <View className="bg-light-primary/20 dark:border-dark-primary/20 px-3 py-1 rounded-full mr-2">
-                <Text className="text-light-primary dark:text-dark-primary">
-                  {item}
-                </Text>
+              <View
+                style={{backgroundColor: colors.primary + '20'}}
+                className="px-3 py-1 rounded-full mr-2">
+                <Text style={{color: colors.primary}}>{item}</Text>
               </View>
             )}
           />
@@ -150,9 +161,10 @@ const HomeScreen = () => {
           activeOpacity={0.8}
           onPress={handleImageGeneration}
           disabled={loading}
-          className={`flex-1 p-5 rounded-2xl ${
-            loading ? 'bg-light-primary/30' : 'bg-light-primary'
-          } items-center justify-center`}>
+          className="flex-1 p-5 rounded-2xl items-center justify-center"
+          style={{
+            backgroundColor: loading ? colors.primary + '20' : colors.primary,
+          }}>
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
@@ -163,8 +175,9 @@ const HomeScreen = () => {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setShowAdvanced(true)}
-          className="p-4 bg-white dark:bg-gray-800 rounded-3xl justify-center items-center shadow-2xl aspect-square">
-          <Icon name="settings" size={24} color="#4f46e5" />
+          style={{backgroundColor: colors.surface}}
+          className="p-4 rounded-3xl justify-center items-center shadow-2xl aspect-square">
+          <Icon name="settings" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -172,11 +185,12 @@ const HomeScreen = () => {
       <FlashList
         data={generatedImages}
         numColumns={2}
+        estimatedItemSize={100}
         contentContainerStyle={{paddingBottom: 100}}
         renderItem={renderItem}
         ListEmptyComponent={
           <View className="items-center justify-center py-20">
-            <Text className="text-slate-400 dark:text-slate-500">
+            <Text style={{color: colors.secondaryText}}>
               No images generated yet
             </Text>
           </View>

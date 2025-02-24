@@ -65,16 +65,16 @@ export const ToastProvider: React.FC<{children: React.ReactNode}> = ({
   return (
     <ToastContext.Provider value={{show, success, error, dismiss}}>
       {children}
-      
-        <SafeAreaView style={styles.container}>
-          {toasts.map(toast => (
-            <ToastComponent
-              key={toast.id}
-              {...toast}
-              onDismiss={() => dismiss(toast.id)}
-            />
-          ))}
-        </SafeAreaView>
+
+      <SafeAreaView style={styles.container}>
+        {toasts.map(toast => (
+          <ToastComponent
+            key={toast.id}
+            {...toast}
+            onDismiss={() => dismiss(toast.id)}
+          />
+        ))}
+      </SafeAreaView>
     </ToastContext.Provider>
   );
 };

@@ -1,4 +1,4 @@
-import { AspectRatioType } from "@zenoa/types";
+import {AspectRatioType} from '@src/types';
 
 export const aspectRatios: AspectRatioType[] = [
   {
