@@ -1,37 +1,32 @@
 import React from 'react';
 import RNFS from 'react-native-fs';
-import {
-  Image,
-  Modal,
-  Platform,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {Image, Modal, Platform, Text, TouchableOpacity} from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useToast} from '@zenoa/components/Toast';
-import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import {useToast} from '@src/components/Toast';
 
 import {
   RewardedAd,
   TestIds,
   RewardedAdEventType,
 } from 'react-native-google-mobile-ads';
-import appConfig from '@zenoa/config/app.config';
+import appConfig from '@src/config/app.config';
+import {useThemeStore} from '@src/store/themeStore';
+import {theme} from '@src/theme/Theme';
 
 const rewarded = RewardedAd.createForAdRequest(TestIds.REWARDED);
 
 const ImageViewer = ({
   uri,
   onPress,
-  onClose,
 }: {
   uri: string | null;
   onPress?: () => void;
   onClose?: () => void;
 }) => {
   const toast = useToast();
+  const {isDark} = useThemeStore();
+  const colors = isDark ? theme.dark : theme.light;
 
   const [downloading, setDownloading] = React.useState(false);
   const [isAdLoaded, setIsAdLoaded] = React.useState(false);
@@ -79,45 +74,9 @@ const ImageViewer = ({
     }
   };
 
-  // const checkPermission = async () => {
-  //   if (Platform.OS === 'ios') {
-  //     return true; // iOS handles permissions differently
-  //   }
-
-  //   if (Number(Platform.Version) >= 33) {
-  //     // Android 13+
-  //     const permission = PERMISSIONS.ANDROID.READ_MEDIA_IMAGES;
-  //     const result = await check(permission);
-
-  //     if (result === RESULTS.DENIED) {
-  //       const permissionRequest = await request(permission);
-  //       return permissionRequest === RESULTS.GRANTED;
-  //     }
-  //     return result === RESULTS.GRANTED;
-  //   } else {
-  //     const permission = PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE;
-  //     const result = await check(permission);
-
-  //     if (result === RESULTS.DENIED) {
-  //       const permissionRequest = await request(permission);
-  //       return permissionRequest === RESULTS.GRANTED;
-  //     }
-  //     return result === RESULTS.GRANTED;
-  //   }
-  // };
-
   // Add download handler
   const downloadImage = async (base64: string) => {
     try {
-      // const hasPermission = await checkPermission();
-      // if (!hasPermission) {
-      //   toast.error(`Please grant storage permission to download images!`, {
-      //     duration: 2000,
-      //     position: 'top',
-      //   });
-      //   return;
-      // }
-
       setDownloading(true);
 
       const fileName = `${appConfig.name.replace(
@@ -146,7 +105,7 @@ const ImageViewer = ({
           });
       }
 
-      toast.success(`Download Complete!`, {
+      toast.success('Download Complete!', {
         duration: 2000,
         position: 'top',
       });
@@ -181,7 +140,8 @@ const ImageViewer = ({
             activeOpacity={0.8}
             onPress={handleDownloadPress}
             disabled={downloading}
-            className="absolute bottom-6 w-[70%] h-16 bg-light-primary dark:bg-dark-primary rounded-2xl flex-row items-center justify-center self-center">
+            style={{backgroundColor: colors.primary}}
+            className="absolute bottom-6 w-[70%] h-16 rounded-2xl flex-row items-center justify-center self-center">
             <Icon
               name={downloading ? 'cloud-download' : 'download-outline'}
               size={24}
@@ -190,9 +150,10 @@ const ImageViewer = ({
             <Text className="ml-2 font-semibold text-white">Download</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="absolute top-4 right-4 bg-white/90 p-2 rounded-full"
+            style={{backgroundColor: colors.surface}}
+            className="absolute top-4 right-4 p-2 rounded-full"
             onPress={onPress}>
-            <Icon name="close" size={24} color="#4f46e5" />
+            <Icon name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </TouchableOpacity>
       </BlurView>

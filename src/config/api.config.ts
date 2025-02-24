@@ -2,7 +2,6 @@ export const generateImage = async ({
   prompt,
   width,
   height,
-  negativePrompt,
   quality,
   sampler,
   currentSeed,

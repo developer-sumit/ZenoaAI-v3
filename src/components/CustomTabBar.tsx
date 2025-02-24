@@ -1,7 +1,10 @@
-import React, {Text, TouchableOpacity, View} from 'react-native';
 import {BlurView} from '@react-native-community/blur';
+import React, {Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Routes from '@zenoa/constants/routes';
+
+import {theme} from '@src/theme/Theme';
+import Routes from '@src/constants/routes';
+import {useThemeStore} from '@src/store/themeStore';
 
 const getIconName = (routeName: string, focused: boolean) => {
   switch (routeName) {
@@ -17,8 +20,13 @@ const getIconName = (routeName: string, focused: boolean) => {
 };
 
 export default function CustomTabBar({state, navigation}: any) {
+  const {isDark} = useThemeStore();
+  const colors = isDark ? theme.dark : theme.light;
+
   return (
-    <View className="absolute bottom-5 rounded-[100px] overflow-hidden w-[80%] self-center bg-light-secondary">
+    <View
+      className="absolute bottom-5 rounded-[100px] overflow-hidden w-[80%] self-center"
+      style={{backgroundColor: colors.surface}}>
       <BlurView
         style={{flex: 1, position: 'absolute', height: '100%', width: '100%'}}
         blurType="light"
@@ -46,17 +54,18 @@ export default function CustomTabBar({state, navigation}: any) {
               onPress={onPress}
               className="flex-1 p-3 items-center justify-center h-full">
               <View
-                className={`${
-                  isFocused ? 'bg-white/80 p-3 rounded-full' : ''
-                }`}>
+                style={{backgroundColor: isFocused ? colors.surface : ''}}
+                className="p-3 rounded-[999px]">
                 <Icon
                   name={getIconName(route.name, isFocused)}
                   size={28}
-                  color={isFocused ? '#4f46e5' : '#64748b'}
+                  color={isFocused ? colors.primary : '#64748b'}
                 />
               </View>
               {isFocused && (
-                <Text className="text-light-text dark:text-dark-text text-xs mt-1 font-medium">
+                <Text
+                  style={{color: colors.text}}
+                  className="text-xs mt-1 font-medium">
                   {route.name}
                 </Text>
               )}
