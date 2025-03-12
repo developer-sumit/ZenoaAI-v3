@@ -4,7 +4,7 @@ export const generateImage = async ({
   height,
   quality,
   sampler,
-  currentSeed,
+  seed,
 }: {
   prompt: string;
   width: number | string;
@@ -12,13 +12,13 @@ export const generateImage = async ({
   negativePrompt: string;
   quality: number;
   sampler: string;
-  currentSeed: number;
+  seed: number;
 }) => {
   return await fetch(
     `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
       `?width=${width}` +
       `&height=${height}` +
       `&steps=${quality}&sampler=${sampler}` +
-      `&seed=${currentSeed}&nologo=true`,
+      `&seed=${seed}&nologo=true`,
   );
 };

@@ -7,6 +7,11 @@
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Save AI generated images</string>
 
+		<key>CFBundleLocalizations</key>
+		<array>
+			<string>en</string>
+		</array>
+
 		<key>CFBundleDevelopmentRegion</key>
 		<string>en</string>
 		<key>CFBundleDisplayName</key>

@@ -1,3 +1,26 @@
+import Routes from '@src/constants/routes';
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  photo?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  lastUpdated?: string;
+  lastLogin?: string;
+}
+
+export interface UserProfile {
+  name?: string;
+  photo?: string;
+  preferences?: {
+    theme?: 'light' | 'dark';
+    language?: string;
+    notifications?: boolean;
+  };
+}
+
 export interface AspectRatioType {
   ratio: string;
   sizes: {
@@ -5,7 +28,7 @@ export interface AspectRatioType {
     medium: string;
     large: string;
   };
-  size?: 'small' | 'medium' | 'large'; // Add size property
+  size?: 'small' | 'medium' | 'large';
 }
 
 export interface ArtStyleType {
@@ -23,7 +46,7 @@ export interface AdvancedSettingsProps {
   visible: boolean;
   onClose: () => void;
   selectedStyles: string[];
-  setSelectedStyles: (styles: string[]) => void;
+  setSelectedStyles: React.Dispatch<React.SetStateAction<string[]>>;
   aspectRatio: AspectRatioType;
   setAspectRatio: (ratio: AspectRatioType) => void;
   numberOfImages: number;
@@ -39,3 +62,31 @@ export interface AdvancedSettingsProps {
   qualityPresets: QualityPresetType[];
   samplers: string[];
 }
+
+export interface GeneratedImage {
+  uri: string;
+  prompt: string;
+  styles: string[];
+  aspectRatio: AspectRatioType;
+  quality: number;
+  sampler: string;
+  seed: number;
+  timestamp: number;
+  firestoreId?: string;
+  synced?: boolean;
+  loading?: boolean;
+  error?: boolean;
+  index?: number;
+}
+
+export type RootStackParamList = {
+  [Routes.SPLASH]: undefined;
+  [Routes.AUTH]: undefined;
+  [Routes.MAIN]: undefined;
+  [Routes.SIGN_IN]: undefined;
+};
+
+export type MainTabParamList = {
+  [Routes.HOME]: undefined;
+  [Routes.SETTINGS]: undefined;
+};

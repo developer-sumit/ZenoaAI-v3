@@ -45,14 +45,109 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   const [showQualityPicker, setShowQualityPicker] = useState(false);
   const [showSamplerPicker, setShowSamplerPicker] = useState(false);
 
+  const keyExtractor = React.useCallback((item: any) => item.name, []);
+
   const toggleStyle = (styleName: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-    setSelectedStyles(
-      selectedStyles.includes(styleName)
-        ? selectedStyles.filter(s => s !== styleName)
-        : [...selectedStyles, styleName],
-    );
+    setSelectedStyles(prevStyles => {
+      const newStyles = prevStyles.includes(styleName)
+        ? prevStyles.filter(s => s !== styleName)
+        : [...prevStyles, styleName];
+      return newStyles;
+    });
   };
+
+  const renderStyleItem = React.useCallback(
+    ({item}: {item: any; index: number}) => (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        className="w-full h-full mb-2 p-1"
+        onPress={() => toggleStyle(item.name)}>
+        <View className="w-full aspect-square">
+          <View
+            className="w-full h-full rounded-[20px] overflow-hidden"
+            style={{
+              borderWidth: selectedStyles.includes(item.name) ? 4 : 0,
+              borderColor: colors.primary,
+            }}>
+            <Image
+              source={item.image}
+              className="w-full h-full"
+              style={{
+                borderRadius: selectedStyles.includes(item.name) ? 16 : 20,
+              }}
+            />
+          </View>
+          {selectedStyles.includes(item.name) && (
+            <View
+              style={{backgroundColor: colors.primary}}
+              className="absolute top-2 right-2 p-1 rounded-full">
+              <Icon name="checkmark" size={16} color="white" />
+            </View>
+          )}
+        </View>
+        <Text className="font-medium mt-1" style={{color: colors.text}}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    ),
+    [selectedStyles, colors],
+  );
+
+  const styleGridItems = React.useMemo(
+    () => (
+      <FlashList
+        data={artStyles}
+        estimatedItemSize={151}
+        renderItem={renderStyleItem}
+        keyExtractor={keyExtractor}
+        extraData={selectedStyles}
+        numColumns={3}
+        removeClippedSubviews={true}
+      />
+    ),
+    [artStyles, renderStyleItem, keyExtractor, selectedStyles],
+  );
+
+  const aspectRatioOptions = React.useMemo(
+    () => (
+      <View className="flex-row flex-wrap gap-3">
+        {aspectRatios.map((ratio, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => {
+              LayoutAnimation.spring();
+              setAspectRatio({...ratio, size: 'medium'});
+              setSelectedRatio(ratio);
+            }}
+            style={{
+              shadowColor: colors.primary,
+              backgroundColor:
+                aspectRatio.ratio === ratio.ratio
+                  ? colors.primary
+                  : colors.surface,
+            }}
+            className={`px-5 py-3 rounded-2xl ${
+              aspectRatio.ratio === ratio.ratio ? 'elevation-xl' : ''
+            }`}>
+            <Text
+              style={{
+                color:
+                  aspectRatio.ratio === ratio.ratio
+                    ? isDark
+                      ? colors.text
+                      : 'white'
+                    : colors.secondaryText,
+              }}
+              className="text-lg font-medium">
+              {ratio.ratio}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    ),
+    [aspectRatios, aspectRatio, colors, isDark, setAspectRatio],
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -81,7 +176,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           className="flex-1 m-4 rounded-3xl"
           style={{elevation: 100}}
           contentContainerStyle={{backgroundColor: colors.background}}
-          contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl">
+          contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl"
+          removeClippedSubviews={true}
+          scrollEventThrottle={16}
+          overScrollMode="never">
           {/* Style Grid */}
           <View className="gap-4">
             <Text
@@ -89,48 +187,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               className="text-lg font-medium">
               Art Styles
             </Text>
-            <FlashList
-              data={artStyles}
-              estimatedItemSize={151}
-              renderItem={({item, index}) => (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  className="w-full h-full mb-2 p-1"
-                  onPress={() => toggleStyle(item.name)}>
-                  <View key={index} className="w-full aspect-square">
-                    <View
-                      style={{borderRadius: 20, borderColor: colors.primary}}
-                      className={
-                        selectedStyles.includes(item.name)
-                          ? 'elevation-xl border-4'
-                          : ''
-                      }>
-                      <Image
-                        source={item.image}
-                        style={{
-                          borderRadius: 20,
-                          width: '100%',
-                          height: '100%',
-                        }}
-                      />
-                    </View>
-                    {selectedStyles.includes(item.name) && (
-                      <View
-                        style={{backgroundColor: colors.primary}}
-                        className="absolute top-2 right-2 p-1 rounded-full">
-                        <Icon name="checkmark" size={16} color="white" />
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    className="font-medium mt-1"
-                    style={{color: colors.text}}>
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              numColumns={3}
-            />
+            {styleGridItems}
           </View>
 
           {/* Aspect Ratio Section */}
@@ -140,40 +197,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               className="text-lg font-medium mb-4">
               Aspect Ratio
             </Text>
-            <View className="flex-row flex-wrap gap-3">
-              {aspectRatios.map((ratio, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => {
-                    LayoutAnimation.spring();
-                    setAspectRatio({...ratio, size: 'medium'});
-                    setSelectedRatio(ratio);
-                  }}
-                  style={{
-                    shadowColor: colors.primary,
-                    backgroundColor:
-                      aspectRatio.ratio === ratio.ratio
-                        ? colors.primary
-                        : colors.surface,
-                  }}
-                  className={`px-5 py-3 rounded-2xl ${
-                    aspectRatio.ratio === ratio.ratio ? 'elevation-xl' : ''
-                  }`}>
-                  <Text
-                    style={{
-                      color:
-                        aspectRatio.ratio === ratio.ratio
-                          ? isDark
-                            ? colors.text
-                            : 'white'
-                          : colors.secondaryText,
-                    }}
-                    className="text-lg font-medium">
-                    {ratio.ratio}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {aspectRatioOptions}
           </View>
 
           {/* Size Selection */}
@@ -406,4 +430,4 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   );
 };
 
-export default AdvancedSettings;
+export default React.memo(AdvancedSettings);

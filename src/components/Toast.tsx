@@ -1,12 +1,7 @@
 import React, {createContext, useContext, useState, useEffect} from 'react';
-import {
-  Text,
-  StyleSheet,
-  Animated,
-  SafeAreaView,
-  TouchableOpacity,
-} from 'react-native';
+import {Text, Animated, TouchableOpacity, Dimensions} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {Portal, PortalHost, PortalProvider} from '@gorhom/portal';
 
 type ToastType = 'success' | 'error' | 'loading' | 'blank';
 type ToastPosition = 'top' | 'bottom';
@@ -63,19 +58,28 @@ export const ToastProvider: React.FC<{children: React.ReactNode}> = ({
   };
 
   return (
-    <ToastContext.Provider value={{show, success, error, dismiss}}>
-      {children}
-
-      <SafeAreaView style={styles.container}>
-        {toasts.map(toast => (
-          <ToastComponent
-            key={toast.id}
-            {...toast}
-            onDismiss={() => dismiss(toast.id)}
-          />
-        ))}
-      </SafeAreaView>
-    </ToastContext.Provider>
+    <PortalProvider>
+      <ToastContext.Provider value={{show, success, error, dismiss}}>
+        {children}
+        <PortalHost name="toast-portal" />
+        <Portal>
+          <Animated.View
+            className="absolute top-0 left-0 right-0 items-center"
+            style={{
+              zIndex: 999999,
+              elevation: 999999,
+            }}>
+            {toasts.map(toast => (
+              <ToastComponent
+                key={toast.id}
+                {...toast}
+                onDismiss={() => dismiss(toast.id)}
+              />
+            ))}
+          </Animated.View>
+        </Portal>
+      </ToastContext.Provider>
+    </PortalProvider>
   );
 };
 
@@ -88,6 +92,7 @@ const ToastComponent: React.FC<Toast & {onDismiss: () => void}> = ({
 }) => {
   const opacity = new Animated.Value(0);
   const translateY = new Animated.Value(position === 'top' ? -100 : 100);
+  const {width} = Dimensions.get('window');
 
   useEffect(() => {
     Animated.parallel([
@@ -124,72 +129,36 @@ const ToastComponent: React.FC<Toast & {onDismiss: () => void}> = ({
 
   return (
     <Animated.View
-      style={[
-        styles.toast,
-        styles[type],
-        {
-          opacity,
-          transform: [{translateY}],
-          marginTop: position === 'top' ? 16 : 0,
-          marginBottom: position === 'bottom' ? 16 : 0,
-        },
-      ]}>
+      className={`
+        flex-row items-center px-4 py-3 rounded-2xl mx-4 my-1 max-w-[90%]
+        ${type === 'success' ? 'bg-green-500' : ''}
+        ${type === 'error' ? 'bg-red-500' : ''}
+        ${type === 'loading' ? 'bg-gray-800' : ''}
+        ${type === 'blank' ? 'bg-gray-800' : ''}
+      `}
+      style={{
+        opacity,
+        transform: [{translateY}],
+        marginTop: position === 'top' ? 48 : 0,
+        marginBottom: position === 'bottom' ? 16 : 0,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 999999,
+      }}>
       {getIcon()}
-      <Text style={styles.text}>{message}</Text>
-      <TouchableOpacity onPress={onDismiss} style={styles.closeButton}>
+      <Text className="text-white text-base ml-3 mr-6 flex-shrink-1">
+        {message}
+      </Text>
+      <TouchableOpacity
+        onPress={onDismiss}
+        className="absolute right-2 top-2 p-1">
         <Icon name="close" size={20} color="#fff" />
       </TouchableOpacity>
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    width: '100%',
-    alignItems: 'center',
-    zIndex: 9999,
-  },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 4,
-    maxWidth: '90%',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  success: {
-    backgroundColor: '#4BB543',
-  },
-  error: {
-    backgroundColor: '#ff4444',
-  },
-  loading: {
-    backgroundColor: '#2d3748',
-  },
-  blank: {
-    backgroundColor: '#2d3748',
-  },
-  text: {
-    color: '#fff',
-    fontSize: 14,
-    marginLeft: 12,
-    marginRight: 24,
-    flexShrink: 1,
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 8,
-    top: 8,
-    padding: 4,
-  },
-});
 
 export const useToast = () => {
   const context = useContext(ToastContext);
