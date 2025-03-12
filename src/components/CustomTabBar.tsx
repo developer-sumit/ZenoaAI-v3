@@ -1,5 +1,6 @@
+import React from 'react';
 import {BlurView} from '@react-native-community/blur';
-import React, {Text, TouchableOpacity, View} from 'react-native';
+import {Text, TouchableOpacity, View, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {theme} from '@src/theme/Theme';
@@ -12,7 +13,7 @@ const getIconName = (routeName: string, focused: boolean) => {
       return focused ? 'robot' : 'robot-outline';
     case Routes.GALLERY:
       return focused ? 'image-multiple' : 'image-multiple-outline';
-    case Routes.PROFILE:
+    case Routes.SETTINGS:
       return focused ? 'account' : 'account-outline';
     default:
       return 'circle';
@@ -24,16 +25,14 @@ export default function CustomTabBar({state, navigation}: any) {
   const colors = isDark ? theme.dark : theme.light;
 
   return (
-    <View
-      className="absolute bottom-5 rounded-[100px] overflow-hidden w-[80%] self-center"
-      style={{backgroundColor: colors.surface}}>
+    <View style={[styles.tabBarContainer, {backgroundColor: colors.surface}]}>
       <BlurView
-        style={{flex: 1, position: 'absolute', height: '100%', width: '100%'}}
+        style={styles.blurView}
         blurType="light"
         blurAmount={20}
         overlayColor="transparent"
       />
-      <View style={{flex: 1, flexDirection: 'row', width: '100%'}}>
+      <View style={styles.tabsWrapper}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
           const onPress = () => {
@@ -52,10 +51,16 @@ export default function CustomTabBar({state, navigation}: any) {
             <TouchableOpacity
               key={route.name}
               onPress={onPress}
-              className="flex-1 p-3 items-center justify-center h-full">
+              style={styles.tabButton}>
               <View
-                style={{backgroundColor: isFocused ? colors.surface : ''}}
-                className="p-3 rounded-[999px]">
+                style={[
+                  styles.iconContainer,
+                  {
+                    backgroundColor: isFocused
+                      ? colors.primary + '15'
+                      : 'transparent',
+                  },
+                ]}>
                 <Icon
                   name={getIconName(route.name, isFocused)}
                   size={28}
@@ -63,9 +68,7 @@ export default function CustomTabBar({state, navigation}: any) {
                 />
               </View>
               {isFocused && (
-                <Text
-                  style={{color: colors.text}}
-                  className="text-xs mt-1 font-medium">
+                <Text style={[styles.tabLabel, {color: colors.text}]}>
                   {route.name}
                 </Text>
               )}
@@ -76,3 +79,47 @@ export default function CustomTabBar({state, navigation}: any) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 10,
+  },
+  blurView: {
+    position: 'absolute',
+    height: '100%',
+    width: '100%',
+  },
+  tabsWrapper: {
+    flexDirection: 'row',
+    width: '100%',
+    paddingVertical: 8,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+});

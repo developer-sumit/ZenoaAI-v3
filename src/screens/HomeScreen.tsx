@@ -1,13 +1,20 @@
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 import {
   View,
   Text,
   TextInput,
   ActivityIndicator,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  StyleSheet,
+  Dimensions,
 } from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {theme} from '@src/theme/Theme';
 import {aspectRatios} from '@src/data/ratio';
@@ -15,14 +22,27 @@ import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
 import {useThemeStore} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
 import {generateImage} from '@src/config/api.config';
-import {AspectRatioType, QualityPresetType} from '../types';
+import {imageService} from '@src/services/imageService';
+import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
 import AdvancedSettings from '@src/components/AdvancedSettings';
+import {useToast} from '@src/components/Toast';
+import LoadingAnimation from '@src/components/LoadingAnimation';
+import PromptSuggestions from '@src/components/PromptSuggestion';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const PADDING = 24; // Total horizontal padding
+const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
+  const toast = useToast();
   const {isDark} = useThemeStore();
+  const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
   const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [showPromptSuggestions, setShowPromptSuggestions] =
+    React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [selectedStyles, setSelectedStyles] = React.useState<string[]>([]);
@@ -36,8 +56,13 @@ const HomeScreen = () => {
   const [seed, setSeed] = React.useState('');
   const [sampler, setSampler] = React.useState('k_euler_ancestral');
   const [negativePrompt, setNegativePrompt] = React.useState('');
-  const [generatedImages, setGeneratedImages] = React.useState<string[]>([]);
-  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = React.useState<
+    GeneratedImage[]
+  >([]);
+  const [selectedImage, setSelectedImage] =
+    React.useState<GeneratedImage | null>(null);
+
+  const flashListRef = useRef(null);
 
   const qualityPresets: QualityPresetType[] = [
     {label: 'Fast', value: 15},
@@ -47,186 +72,577 @@ const HomeScreen = () => {
 
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
 
-  const blobToBase64 = (blob: Blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => {
-        resolve(reader.result);
-      };
-      reader.readAsDataURL(blob);
-    });
+  // Load user's images when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      loadUserImages();
+    }
+  }, [user?.id]);
+
+  const loadUserImages = async () => {
+    if (!user?.id) return;
+
+    try {
+      const images = await imageService.getUserImages(user.id);
+      setGeneratedImages(images);
+    } catch (error) {
+      console.error('Failed to load images:', error);
+      toast.error('Failed to load your images');
+    }
+  };
+
+  const getAspectRatio = (image: GeneratedImage): number => {
+    // Default to 1:1 if there's an issue
+    if (!image?.aspectRatio?.ratio) return 1;
+
+    const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
+    return width / height;
+  };
+
+  // Get the height for an image based on its aspect ratio
+  const getImageHeight = (image: GeneratedImage): number => {
+    const aspectRatio = getAspectRatio(image);
+    return COLUMN_WIDTH / aspectRatio;
+  };
+
+  const handleSelectPrompt = (selectedPrompt: string) => {
+    setPrompt(selectedPrompt);
   };
 
   const handleImageGeneration = async () => {
+    if (!prompt.trim()) {
+      toast.error('Please enter a prompt');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Please sign in to save your creations');
+      return;
+    }
+
     setLoading(true);
+    const tempImages: GeneratedImage[] = [];
+
     try {
-      const newImages: string[] = [];
+      const newImages: GeneratedImage[] = [];
       const baseSeed = seed
         ? parseInt(seed, 10)
         : Math.floor(Math.random() * 1000000);
+      const generationTimestamp = Date.now();
 
+      // Create placeholder images first
       for (let i = 0; i < numberOfImages; i++) {
-        const currentSeed = seed
-          ? baseSeed + i
-          : Math.floor(Math.random() * 1000000);
+        const currentSeed = baseSeed + i;
         const styleString = selectedStyles.join(', ');
-        const fullPrompt = `${prompt} ${styleString} ${
-          negativePrompt ? `negative: ${negativePrompt}` : ''
-        }`;
+        const fullPrompt = `${prompt}${styleString ? ' ' + styleString : ''}`;
 
-        const response = await generateImage({
+        const tempImage: GeneratedImage = {
+          uri: 'placeholder',
           prompt: fullPrompt,
-          width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
-          height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
-          negativePrompt,
+          styles: selectedStyles,
+          aspectRatio,
           quality,
           sampler,
-          currentSeed,
-        });
+          seed: currentSeed,
+          timestamp: generationTimestamp,
+          loading: true,
+          index: i,
+        };
 
-        const blob = await response.blob();
-        const base64 = await blobToBase64(blob);
-        newImages.push(base64 as string); // Remove the manual data URL prefix
+        tempImages.push(tempImage);
       }
-      setGeneratedImages(prev => [...newImages, ...prev]);
+
+      // Add placeholders at the beginning
+      setGeneratedImages(prev => [...tempImages, ...prev]);
+
+      // Then generate each image and update one by one
+      for (let i = 0; i < numberOfImages; i++) {
+        const currentSeed = baseSeed + i;
+        const styleString = selectedStyles.join(', ');
+        const fullPrompt = `${prompt}${styleString ? ' ' + styleString : ''}`;
+
+        try {
+          const response = await generateImage({
+            prompt: fullPrompt,
+            width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
+            height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
+            negativePrompt,
+            quality,
+            sampler,
+            seed: currentSeed,
+          });
+
+          const generatedImage: GeneratedImage = {
+            uri: response.url,
+            prompt: fullPrompt,
+            styles: selectedStyles,
+            aspectRatio,
+            quality,
+            sampler,
+            seed: currentSeed,
+            timestamp: generationTimestamp,
+            loading: false,
+            index: i,
+          };
+
+          // Save to Firestore and local storage
+          if (user?.id) {
+            await imageService.saveImage(user.id, generatedImage);
+          }
+
+          // Update the generated image in state by replacing the placeholder
+          setGeneratedImages(prev =>
+            prev.map(img =>
+              img.timestamp === generationTimestamp && img.index === i
+                ? generatedImage
+                : img,
+            ),
+          );
+
+          newImages.push(generatedImage);
+        } catch (error) {
+          console.error(`Error generating image ${i}:`, error);
+
+          // Update the error state for this image
+          setGeneratedImages(prev =>
+            prev.map(img =>
+              img.timestamp === generationTimestamp && img.index === i
+                ? {...img, loading: false, error: true}
+                : img,
+            ),
+          );
+
+          toast.error(`Failed to generate image ${i + 1}`);
+        }
+      }
+
+      if (newImages.length > 0) {
+        toast.success(`Generated ${newImages.length} images`);
+      }
     } catch (error) {
       console.error('Generation error:', error);
+      toast.error('Failed to generate images');
+
+      // Remove all placeholder images
+      setGeneratedImages(prev =>
+        prev.filter(
+          img => !tempImages.some(temp => temp.timestamp === img.timestamp),
+        ),
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Modified image grid render item
-  const renderItem = ({item, index}: {item: string; index: number}) => (
-    <ImageCard
-      uri={item}
-      index={index}
-      onPress={() => setSelectedImage(item)}
-    />
+  const groupImagesByParameters = (images: GeneratedImage[]) => {
+    const groups: {[key: string]: GeneratedImage[]} = {};
+
+    images.forEach(image => {
+      // Group by timestamp to keep generation batches separate
+      const groupKey = [
+        image.prompt,
+        image.styles.join(','),
+        image.aspectRatio.ratio,
+        image.quality,
+        image.timestamp,
+      ].join('|');
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(image);
+    });
+
+    return Object.entries(groups).map(([key, items]) => ({
+      key,
+      items,
+      parameters: {
+        prompt: items[0].prompt,
+        styles: items[0].styles,
+        aspectRatio: items[0].aspectRatio,
+        quality: items[0].quality,
+        timestamp: items[0].timestamp,
+      },
+    }));
+  };
+
+  // Render a placeholder or loading image
+  const renderImageContent = (image: GeneratedImage) => {
+    const imageHeight = getImageHeight(image);
+
+    if (image.loading) {
+      return (
+        <View
+          className="rounded-2xl overflow-hidden items-center justify-center"
+          style={{
+            backgroundColor: colors.surface,
+            width: '100%',
+            height: imageHeight,
+          }}>
+          <LoadingAnimation color={colors.primary} />
+        </View>
+      );
+    } else if (image.error) {
+      return (
+        <View
+          className="rounded-2xl overflow-hidden items-center justify-center"
+          style={{
+            backgroundColor: colors.surface,
+            width: '100%',
+            height: imageHeight,
+          }}>
+          <Icon name="error-outline" size={40} color="#ef4444" />
+          <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
+            Generation failed
+          </Text>
+        </View>
+      );
+    } else {
+      return (
+        <ImageCard
+          image={image}
+          onPress={() => setSelectedImage(image)}
+          style={{
+            width: '100%',
+            height: imageHeight,
+          }}
+        />
+      );
+    }
+  };
+
+  const renderGroup = ({
+    item,
+  }: {
+    item: ReturnType<typeof groupImagesByParameters>[number];
+  }) => (
+    <View className="flex-1 mb-8">
+      <View className="px-4 mb-4">
+        <View className="flex-row items-center justify-between mb-2">
+          <Text
+            style={{color: colors.text}}
+            className="text-lg font-semibold"
+            numberOfLines={1}
+            ellipsizeMode="tail">
+            {item.parameters.prompt}
+          </Text>
+        </View>
+
+        <View className="flex-row flex-wrap gap-2">
+          {item.parameters.styles.map(style => (
+            <View
+              key={style}
+              style={{backgroundColor: colors.primary + '20'}}
+              className="px-2 py-1 rounded-full">
+              <Text style={{color: colors.primary}} className="text-xs">
+                {style}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Grid Layout with proper aspect ratio */}
+      <View className="px-4">
+        <View style={styles.imagesGrid}>
+          {item.items.map(image => (
+            <View
+              key={`${image.uri}_${image.index}_${image.timestamp}`}
+              style={styles.imageWrapper}>
+              {renderImageContent(image)}
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  const EmptyState = () => (
+    <View className="items-center justify-center py-20 flex-1 h-full">
+      <View className="relative w-[120px] h-[120px] items-center justify-center">
+        <IconMC
+          name="robot-excited"
+          size={80}
+          color={colors.primary}
+          style={{
+            textShadowColor: 'rgba(0, 0, 0, 0.1)',
+            textShadowOffset: {width: 1, height: 1},
+            textShadowRadius: 10,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 15,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: colors.primary + '40',
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 15,
+            left: 10,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: colors.primary + '40',
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: 30,
+            left: 5,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: colors.primary + '40',
+          }}
+        />
+      </View>
+
+      <Text
+        style={{color: colors.text}}
+        className="text-2xl font-semibold mt-6 mb-3">
+        Create your first AI image
+      </Text>
+      <Text
+        style={{color: colors.secondaryText}}
+        className="text-center mx-10 mb-6 text-base">
+        Describe what you'd like to see, then tap the Generate button below
+      </Text>
+
+      <View className="mt-4 w-full px-8">
+        <View
+          style={{
+            backgroundColor: colors.surface + '80',
+            borderWidth: 1,
+            borderColor: colors.primary + '30',
+          }}
+          className="p-4 rounded-xl mb-3">
+          <Text style={{color: colors.text}}>
+            <Text style={{color: colors.primary}}>Tip:</Text> Try adding styles
+            like "digital art", "watercolor", "oil painting" or "photorealistic"
+          </Text>
+        </View>
+      </View>
+    </View>
   );
 
   return (
-    <View
-      style={{backgroundColor: colors.background}}
-      className="flex-1 p-4 gap-4">
-      {/* Header */}
-      <View>
-        <Text className="text-3xl font-bold" style={{color: colors.text}}>
-          {appConfig.name}
-        </Text>
-      </View>
-
-      {/* Prompt Input */}
-      <View
-        style={{backgroundColor: colors.surface}}
-        className="rounded-2xl shadow-2xl h-44 px-4 overflow-hidden">
-        <TextInput
-          value={prompt}
-          onChangeText={setPrompt}
-          placeholder="Describe your vision..."
-          placeholderTextColor="#94a3b8"
-          style={{color: colors.text}}
-          className="text-lg h-full w-full text-start"
-          multiline
-          numberOfLines={6}
-        />
-      </View>
-
-      {/* Selected Styles Preview */}
-      {selectedStyles.length > 0 && (
-        <View>
-          <Text style={{color: colors.secondaryText}} className="text-sm mb-2">
-            Selected Styles:
-          </Text>
-          <FlashList
-            horizontal
-            estimatedItemSize={100}
-            data={selectedStyles}
-            keyExtractor={item => item}
-            renderItem={({item}) => (
-              <View
-                style={{backgroundColor: colors.primary + '20'}}
-                className="px-3 py-1 rounded-full mr-2">
-                <Text style={{color: colors.primary}}>{item}</Text>
-              </View>
-            )}
-          />
-        </View>
-      )}
-
-      {/* Controls */}
-      <View className="flex-row gap-4">
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleImageGeneration}
-          disabled={loading}
-          className="flex-1 p-5 rounded-2xl items-center justify-center"
-          style={{
-            backgroundColor: loading ? colors.primary + '20' : colors.primary,
-          }}>
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white font-semibold text-lg">Generate</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setShowAdvanced(true)}
-          style={{backgroundColor: colors.surface}}
-          className="p-4 rounded-3xl justify-center items-center shadow-2xl aspect-square">
-          <Icon name="settings" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Generated Images Grid */}
-      <FlashList
-        data={generatedImages}
-        numColumns={2}
-        estimatedItemSize={100}
-        contentContainerStyle={{paddingBottom: 100}}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          <View className="items-center justify-center py-20">
-            <Text style={{color: colors.secondaryText}}>
-              No images generated yet
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[styles.container, {backgroundColor: colors.background}]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          {/* Header with Settings */}
+          <View className="flex-row justify-between items-center p-4">
+            <Text className="text-3xl font-bold" style={{color: colors.text}}>
+              {appConfig.name}
             </Text>
           </View>
-        }
-      />
 
-      {/* Advanced Settings Modal */}
-      <AdvancedSettings
-        visible={showAdvanced}
-        onClose={() => setShowAdvanced(false)}
-        selectedStyles={selectedStyles}
-        setSelectedStyles={setSelectedStyles}
-        aspectRatio={aspectRatio}
-        setAspectRatio={setAspectRatio}
-        numberOfImages={numberOfImages}
-        setNumberOfImages={setNumberOfImages}
-        quality={quality}
-        setQuality={setQuality}
-        seed={seed}
-        setSeed={setSeed}
-        sampler={sampler}
-        setSampler={setSampler}
-        negativePrompt={negativePrompt}
-        setNegativePrompt={setNegativePrompt}
-        qualityPresets={qualityPresets}
-        samplers={samplers}
-      />
+          {/* Selected Styles Preview */}
+          {selectedStyles.length > 0 && (
+            <View className="px-4 mb-4">
+              <Text
+                style={{color: colors.secondaryText}}
+                className="text-sm mb-2">
+                Selected Styles:
+              </Text>
+              <FlashList
+                horizontal
+                estimatedItemSize={100}
+                data={selectedStyles}
+                keyExtractor={item => item}
+                renderItem={({item}) => (
+                  <View
+                    style={{backgroundColor: colors.primary + '20'}}
+                    className="px-3 py-1 rounded-full mr-2">
+                    <Text style={{color: colors.primary}}>{item}</Text>
+                  </View>
+                )}
+              />
+            </View>
+          )}
 
-      {selectedImage && (
-        <ImageViewer
-          uri={selectedImage}
-          onPress={() => setSelectedImage(null)}
-        />
-      )}
-    </View>
+          {/* Generated Images Grid */}
+          <View style={styles.listContainer}>
+            <FlashList
+              ref={flashListRef}
+              data={groupImagesByParameters(generatedImages)}
+              estimatedItemSize={300}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.listContentContainer}
+              renderItem={renderGroup}
+              ListEmptyComponent={<EmptyState />}
+            />
+          </View>
+
+          {/* Bottom Input Area */}
+          <View style={styles.inputContainer}>
+            <View style={[styles.inputBox, {backgroundColor: colors.surface}]}>
+              <View className="flex-row items-center">
+                <TextInput
+                  value={prompt}
+                  onChangeText={setPrompt}
+                  placeholder="Describe your vision..."
+                  placeholderTextColor="#94a3b8"
+                  style={[styles.textInput, {color: colors.text}]}
+                  multiline
+                  numberOfLines={3}
+                />
+                {prompt.length === 0 && (
+                  <TouchableOpacity
+                    onPress={() => setShowPromptSuggestions(true)}
+                    className="pr-4">
+                    <IconMC
+                      name="lightbulb-outline"
+                      size={24}
+                      color={colors.secondaryText}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View
+                className="flex-row justify-end p-2 border-t gap-2"
+                style={{borderColor: colors.surface}}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setShowAdvanced(true)}
+                  style={[
+                    styles.advancedButton,
+                    {backgroundColor: colors.primary + '20'},
+                  ]}>
+                  <Icon name="settings" size={24} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleImageGeneration}
+                  disabled={loading}
+                  style={[
+                    styles.generateButton,
+                    {
+                      backgroundColor: loading
+                        ? colors.primary + '20'
+                        : colors.primary,
+                    },
+                  ]}>
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text className="text-white mr-2 font-medium">
+                        Generate
+                      </Text>
+                      <Icon name="auto-fix-high" size={20} color="white" />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Prompt Suggestions */}
+          <PromptSuggestions
+            visible={showPromptSuggestions}
+            setVisible={setShowPromptSuggestions}
+            onSelectPrompt={handleSelectPrompt}
+            colors={colors}
+          />
+
+          {/* Modals */}
+          <AdvancedSettings
+            visible={showAdvanced}
+            onClose={() => setShowAdvanced(false)}
+            selectedStyles={selectedStyles}
+            setSelectedStyles={setSelectedStyles}
+            aspectRatio={aspectRatio}
+            setAspectRatio={setAspectRatio}
+            numberOfImages={numberOfImages}
+            setNumberOfImages={setNumberOfImages}
+            quality={quality}
+            setQuality={setQuality}
+            seed={seed}
+            setSeed={setSeed}
+            sampler={sampler}
+            setSampler={setSampler}
+            negativePrompt={negativePrompt}
+            setNegativePrompt={setNegativePrompt}
+            qualityPresets={qualityPresets}
+            samplers={samplers}
+          />
+
+          {selectedImage && (
+            <ImageViewer
+              image={selectedImage}
+              onClose={() => setSelectedImage(null)}
+            />
+          )}
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  listContainer: {
+    flex: 1,
+    paddingBottom: 180,
+  },
+  listContentContainer: {
+    paddingBottom: 200,
+  },
+  inputContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    zIndex: 10,
+  },
+  inputBox: {
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 12,
+  },
+  textInput: {
+    fontSize: 18,
+    padding: 16,
+    maxHeight: 120,
+    flex: 1,
+  },
+  advancedButton: {
+    padding: 12,
+    borderRadius: 16,
+  },
+  generateButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  imageWrapper: {
+    width: '50%',
+    padding: 6,
+  },
+});
 
 export default HomeScreen;

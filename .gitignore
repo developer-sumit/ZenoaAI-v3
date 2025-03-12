@@ -37,6 +37,7 @@ local.properties
 # node.js
 .env
 .env.local
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
@@ -76,3 +77,13 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+
+# Keystore files
+*.keystore
+*.jks
+android/keystore.properties
+
+# Key files
+*.p8
+*.pem

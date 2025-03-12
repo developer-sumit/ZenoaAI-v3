@@ -1,4 +1,4 @@
-package com.zenoaai
+package com.sumit.zenoaai
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

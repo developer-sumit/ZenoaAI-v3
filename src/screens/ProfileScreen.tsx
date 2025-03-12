@@ -1,43 +1,108 @@
-import React, {useState} from 'react';
-import {BlurView} from '@react-native-community/blur';
+import React, {useState, useEffect, useCallback} from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {launchImageLibrary} from 'react-native-image-picker';
 import {
   Text,
   TouchableOpacity,
   View,
   Image,
-  TextInput,
-  Modal,
   ScrollView,
+  Platform,
+  UIManager,
 } from 'react-native';
-
+import FastImage from 'react-native-fast-image';
+import {useAuthStore} from '@src/store/authStore';
 import {theme} from '@src/theme/Theme';
 import appConfig from '@src/config/app.config';
 import {useThemeStore} from '@src/store/themeStore';
 import SubscriptionModal from '@src/components/SubscriptionModal';
+import {useToast} from '@src/components/Toast';
+import {useNavigation} from '@react-navigation/native';
+import Routes from '@src/constants/routes';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
+const PLACEHOLDER_IMAGE = require('@src/assets/favicon.png');
 
 const ProfileScreen = () => {
-  const [user] = useState({
-    name: appConfig.author.name,
-    email: 'test@example.com',
-    avatar: appConfig.author.avatar,
-    isPro: false,
-  });
+  const navigation = useNavigation();
+  const {user, logout} = useAuthStore();
   const {isDark, toggleTheme} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(user.name);
+  const [profileName, setProfileName] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState('');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isLocalImage, setIsLocalImage] = useState(true);
 
-  const handleAvatarChange = async () => {
-    const result = await launchImageLibrary({mediaType: 'photo', quality: 0.8});
+  useEffect(() => {
+    loadProfileData();
+  }, []);
 
-    if (!result.didCancel && result.assets?.[0]?.uri) {
-      // Handle image upload here
+  const loadProfileData = useCallback(() => {
+    if (user) {
+      setProfileName(user.name || 'User');
+
+      if (user.photo) {
+        setProfileAvatar(user.photo);
+        setIsLocalImage(false);
+      } else {
+        setProfileAvatar('');
+        setIsLocalImage(true);
+      }
+    }
+  }, [user]);
+
+  const handleEditProfile = () => {
+    navigation.navigate(Routes.EDIT_PROFILE as never);
+  };
+
+  const getProfileData = () => {
+    return {
+      name: profileName,
+      email: user?.email || '',
+      avatar: profileAvatar,
+      isPro: false, // Would come from user subscription status
+      isLocalImage,
+    };
+  };
+
+  const currentProfile = getProfileData();
+
+  const renderAvatar = (
+    imageUri: string,
+    size: number,
+    localImage = isLocalImage,
+  ) => {
+    if (localImage) {
+      return (
+        <Image
+          source={PLACEHOLDER_IMAGE}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: '#0077b6',
+          }}
+          resizeMode="cover"
+        />
+      );
+    } else {
+      return (
+        <FastImage
+          source={{uri: imageUri}}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+          }}
+          resizeMode={FastImage.resizeMode.cover}
+        />
+      );
     }
   };
 
@@ -48,49 +113,20 @@ const ProfileScreen = () => {
       contentContainerClassName="pb-[150px] pt-10 px-5">
       {/* User Profile Section */}
       <View className="items-center mb-8">
-        <View className="relative">
-          <Image
-            source={{uri: user.avatar}}
-            className="h-44 aspect-square rounded-full mb-4"
-          />
-          <TouchableOpacity
-            className="absolute bottom-5 right-2 p-3 rounded-full elevation-xl"
-            style={{
-              backgroundColor: colors.surface,
-              shadowColor: colors.primary,
-            }}
-            onPress={handleAvatarChange}>
-            <Icon name="edit" size={18} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+        {/* Profile Info */}
+        <View className="items-center">
+          <View style={{marginBottom: 16}}>
+            {renderAvatar(currentProfile.avatar, 160)}
+          </View>
 
-        <View className="flex-row items-center">
-          {isEditingName ? (
-            <TextInput
-              value={editedName}
-              onChangeText={setEditedName}
-              className="text-2xl font-bold mr-2"
-              style={{color: colors.text}}
-              autoFocus
-            />
-          ) : (
-            <Text
-              className="text-2xl font-bold mr-2"
-              style={{color: colors.text}}>
-              {editedName}
-            </Text>
-          )}
-          <TouchableOpacity
-            className="p-2.5 rounded-full elevation-xl"
-            style={{
-              backgroundColor: colors.surface,
-              shadowColor: colors.primary,
-            }}
-            onPress={() => setIsEditingName(!isEditingName)}>
-            <Icon name="edit" size={18} color={colors.primary} />
-          </TouchableOpacity>
+          <Text className="text-2xl font-bold" style={{color: colors.text}}>
+            {currentProfile.name}
+          </Text>
+
+          <Text style={{color: colors.secondaryText}} className="mt-1 mb-4">
+            {currentProfile.email}
+          </Text>
         </View>
-        <Text style={{color: colors.secondaryText}}>{user.email}</Text>
       </View>
 
       {/* Account Settings */}
@@ -100,13 +136,41 @@ const ProfileScreen = () => {
         <Text
           className="text-lg font-semibold mb-4"
           style={{color: colors.secondaryText}}>
-          Account Settings
+          Account
         </Text>
 
+        {/* Edit Profile Option */}
+        <TouchableOpacity
+          className="py-3 border-b"
+          style={{borderColor: colors.secondaryText + '50'}}
+          onPress={handleEditProfile}>
+          <View className="flex-row justify-between items-center">
+            <View className="flex-row items-center">
+              <Icon
+                name="person"
+                size={20}
+                color={colors.primary}
+                style={{marginRight: 10}}
+              />
+              <Text style={{color: colors.text}}>Edit Profile</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.secondaryText} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Dark Mode Option */}
         <View
           style={{borderColor: colors.secondaryText + '50'}}
           className="flex-row justify-between items-center py-3 border-b">
-          <Text style={{color: colors.text}}>Dark Mode</Text>
+          <View className="flex-row items-center">
+            <Icon
+              name={isDark ? 'dark-mode' : 'light-mode'}
+              size={20}
+              color={colors.primary}
+              style={{marginRight: 10}}
+            />
+            <Text style={{color: colors.text}}>Dark Mode</Text>
+          </View>
           <TouchableOpacity
             className="w-14 h-8 rounded-full p-1.5"
             style={{backgroundColor: isDark ? colors.primary : '#cbd5e1'}}
@@ -119,36 +183,31 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <View
-          style={{borderColor: colors.secondaryText + '50'}}
-          className="flex-row justify-between items-center py-3 border-b">
-          <Text style={{color: colors.text}}>Notifications</Text>
-          <TouchableOpacity
-            className="w-14 h-8 rounded-full p-1.5"
-            style={{
-              backgroundColor: notificationsEnabled
-                ? colors.primary
-                : '#cbd5e1',
-            }}
-            onPress={() => setNotificationsEnabled(!notificationsEnabled)}>
-            <View
-              className={`w-5 h-5 rounded-full bg-white ${
-                notificationsEnabled ? 'ml-6' : 'ml-0'
-              }`}
-            />
-          </TouchableOpacity>
-        </View>
-
+        {/* Upgrade to Pro */}
         <TouchableOpacity
           className="py-3"
           onPress={() => setShowSubscriptionModal(true)}>
           <View className="flex-row justify-between items-center">
-            <Text
-              style={{color: user.isPro ? colors.primary : colors.secondary}}>
-              {user.isPro ? 'Pro Member 🎉' : 'Upgrade to Pro'}
-            </Text>
-            {!user.isPro && (
-              <Icon name="arrow-forward" size={20} color={colors.secondary} />
+            <View className="flex-row items-center">
+              <Icon
+                name="star"
+                size={20}
+                color={currentProfile.isPro ? colors.primary : colors.secondary}
+                style={{marginRight: 10}}
+              />
+              <Text
+                style={{
+                  color: currentProfile.isPro ? colors.primary : colors.text,
+                }}>
+                {currentProfile.isPro ? 'Pro Member 🎉' : 'Upgrade to Pro'}
+              </Text>
+            </View>
+            {!currentProfile.isPro && (
+              <Icon
+                name="chevron-right"
+                size={20}
+                color={colors.secondaryText}
+              />
             )}
           </View>
         </TouchableOpacity>
@@ -156,67 +215,35 @@ const ProfileScreen = () => {
 
       {/* About Section */}
       <View
-        style={{backgroundColor: colors.background}}
-        className="rounded-2xl p-4 mb-6">
+        style={{backgroundColor: colors.surface}}
+        className="rounded-3xl p-4 mb-6">
         <Text
           className="text-lg font-semibold mb-4"
-          style={{color: colors.text}}>
+          style={{color: colors.secondaryText}}>
           About
         </Text>
-        <Text style={{color: colors.secondaryText}} className="text-base mb-2">
+        <Text style={{color: colors.text}} className="text-base mb-2">
           {appConfig.name} v{appConfig.version}
         </Text>
         <Text style={{color: colors.secondaryText}} className="text-base">
-          {appConfig.author.name} © {new Date().getFullYear()}
+          {appConfig.author.name}
         </Text>
       </View>
 
-      {/* Delete Account Section */}
+      {/* Sign Out Button */}
       <TouchableOpacity
-        style={{backgroundColor: isDark ? colors.surface : '#fecdd3'}}
-        className="p-2.5 rounded-2xl absolute top-4 right-5"
-        onPress={() => setShowDeleteModal(true)}>
-        <Icon name="delete" size={20} color="#e11d48" />
+        className="p-4 rounded-2xl mb-4 items-center"
+        style={{backgroundColor: colors.surface}}
+        onPress={logout}>
+        <Text style={{color: '#e11d48'}} className="font-medium">
+          Sign Out
+        </Text>
       </TouchableOpacity>
 
-      {/* Delete Confirmation Modal */}
-      <Modal visible={showDeleteModal} transparent animationType="fade">
-        <BlurView
-          style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}
-          blurType="dark"
-          blurAmount={7}
-          reducedTransparencyFallbackColor="white">
-          <View
-            style={{backgroundColor: colors.surface}}
-            className="w-[90%] rounded-2xl p-6">
-            <Text
-              style={{color: colors.text}}
-              className="text-lg font-bold mb-4">
-              Are you sure you want to delete your account?
-            </Text>
-            <Text className="text-slate-600 dark:text-slate-300 mb-6">
-              This action cannot be undone. All your data will be permanently
-              removed.
-            </Text>
-            <View className="flex-row justify-end space-x-4">
-              <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
-                <Text className="text-slate-600 dark:text-slate-300 p-3">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
-                <Text className="text-red-600 dark:text-red-400 p-3">
-                  Delete
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </BlurView>
-      </Modal>
-
+      {/* Subscription Modal */}
       <SubscriptionModal
         visible={showSubscriptionModal}
-        setVisibility={() => setShowSubscriptionModal(false)}
+        onClose={() => setShowSubscriptionModal(false)}
       />
     </ScrollView>
   );
