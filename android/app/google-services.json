@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "289072868964",
+    "project_id": "zenoa-ai",
+    "storage_bucket": "zenoa-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:289072868964:android:8401cad7158f6d5b66b971",
+        "android_client_info": {
+          "package_name": "com.sumit.zenoaai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "289072868964-3noud6pocrudim51oqqjt9snmb4oh9rl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sumit.zenoaai",
+            "certificate_hash": "4f3130985375f2f2b120ba7ad9fd46ddb9f1b866"
+          }
+        },
+        {
+          "client_id": "289072868964-ngh33mt05s7gvs21huic2dj6r9qo2kl8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sumit.zenoaai",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "289072868964-lkq3tjrs7pracp06sf65do4tgb6gp3vt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjP-cKpoczmpXn0jnisLXhwrs8dRx1I6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "289072868964-lkq3tjrs7pracp06sf65do4tgb6gp3vt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

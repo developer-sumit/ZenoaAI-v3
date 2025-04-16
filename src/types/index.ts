@@ -8,6 +8,7 @@ export interface User {
   isDeleted?: boolean;
   deletedAt?: string;
   lastUpdated?: string;
+  createdAt?: string;
   lastLogin?: string;
 }
 

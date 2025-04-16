@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import FastImage from 'react-native-fast-image';
 
 import {theme} from '@src/theme/Theme';
@@ -18,7 +17,8 @@ import {useAuthStore} from '@src/store/authStore';
 import {imageService} from '@src/services/imageService';
 import {GeneratedImage} from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
-import {useToast} from '@src/components/Toast';
+import Toast from 'react-native-toast-message';
+import Icon from '@src/components/Icon';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
@@ -31,7 +31,6 @@ const GalleryScreen = () => {
   const {isDark} = useThemeStore();
   const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
-  const toast = useToast();
 
   const [images, setImages] = useState<GeneratedImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,9 +54,14 @@ const GalleryScreen = () => {
     try {
       setLoading(true);
       const userImages = await imageService.getUserImages(user.id);
-      setImages(userImages);
+      // Type cast or transform the data to match GeneratedImage type
+      setImages(userImages as unknown as GeneratedImage[]);
     } catch (error) {
-      toast.error('Failed to load images');
+      Toast.show({
+        type: 'error',
+        text1: 'Error fetching images',
+        text2: 'Please try again later',
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);

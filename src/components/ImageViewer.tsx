@@ -2,7 +2,6 @@ import React from 'react';
 import RNFS from 'react-native-fs';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {GeneratedImage} from '@src/types';
 import {theme} from '@src/theme/Theme';
 import {
@@ -16,16 +15,12 @@ import {
   View,
   StyleSheet,
 } from 'react-native';
-import {useToast} from './Toast';
 import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import appConfig from '@src/config/app.config';
-import {
-  RewardedAd,
-  TestIds,
-  RewardedAdEventType,
-} from 'react-native-google-mobile-ads';
 import {imageService} from '@src/services/imageService';
+import Toast from 'react-native-toast-message';
+import Icon, {IconName} from './Icon';
 
 interface ImageViewerProps {
   image: GeneratedImage | null;
@@ -33,70 +28,17 @@ interface ImageViewerProps {
   onImageDeleted?: () => void;
 }
 
-const rewarded = RewardedAd.createForAdRequest(TestIds.REWARDED);
-
 const ImageViewer: React.FC<ImageViewerProps> = ({
   image,
   onClose,
   onImageDeleted,
 }) => {
-  const toast = useToast();
   const {isDark} = useThemeStore();
   const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
 
   const [downloading, setDownloading] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
-  const [isAdLoaded, setIsAdLoaded] = React.useState(false);
-  const [rewardReceived, setRewardReceived] = React.useState(false);
-
-  // It will reset states when image changes
-  React.useEffect(() => {
-    setRewardReceived(false);
-
-    const loadedListener = rewarded.addAdEventListener(
-      RewardedAdEventType.LOADED,
-      () => setIsAdLoaded(true),
-    );
-
-    const rewardListener = rewarded.addAdEventListener(
-      RewardedAdEventType.EARNED_REWARD,
-      () => {
-        setRewardReceived(true);
-        // If user just earned reward, start download now
-        console.log('Reward received, downloading image...');
-        if (image) {
-          downloadImage(image);
-        }
-      },
-    );
-
-    rewarded.load();
-
-    return () => {
-      loadedListener();
-      rewardListener();
-      rewarded.removeAllListeners();
-    };
-  }, [image]);
-
-  const showRewardedAd = () => {
-    if (isAdLoaded) {
-      rewarded.show();
-    } else {
-      // If ad isn't loaded, try loading again
-      toast.show('Loading ad, please wait...');
-      rewarded.load();
-
-      // Allow download after a timeout if ad still won't load
-      setTimeout(() => {
-        if (!isAdLoaded && image) {
-          setRewardReceived(true);
-          toast.show('Ad not available, download enabled');
-        }
-      }, 5000);
-    }
-  };
 
   const handleDownloadPress = () => {
     if (!image) {
@@ -104,11 +46,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       return;
     }
 
-    if (rewardReceived) {
-      downloadImage(image); // Already rewarded => download
-    } else {
-      showRewardedAd(); // Show ad if user hasn't earned reward
-    }
+    downloadImage(image);
   };
 
   const handleDeletePress = () => {
@@ -136,12 +74,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       const imageId = `${image.timestamp}_${image.seed}`;
       await imageService.deleteImage(user.id, imageId);
 
-      toast.success('Image deleted');
+      Toast.show({
+        type: 'success',
+        text1: 'Image deleted',
+        visibilityTime: 2000,
+      });
       if (onImageDeleted) onImageDeleted();
       if (onClose) onClose();
     } catch (error) {
       console.error('Error deleting image:', error);
-      toast.error('Failed to delete image');
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to delete image',
+        visibilityTime: 2000,
+      });
     } finally {
       setDeleting(false);
     }
@@ -189,9 +135,17 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         await RNFS.scanFile(filePath);
       }
 
-      toast.success('Image saved to gallery!');
+      Toast.show({
+        type: 'success',
+        text1: 'Image downloaded',
+        visibilityTime: 2000,
+      });
     } catch (error) {
-      toast.error('Download Failed');
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to download image',
+        visibilityTime: 2000,
+      });
     } finally {
       setDownloading(false);
     }
@@ -199,7 +153,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const copyToClipboard = (text: string) => {
     Clipboard.setString(text);
-    toast.success('Copied to clipboard!');
+    Toast.show({
+      type: 'info',
+      text1: 'Copied to clipboard',
+      visibilityTime: 1000,
+    });
   };
 
   return (
@@ -332,9 +290,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   <Icon name="download" size={22} color="white" />
                   <View>
                     <Text style={styles.actionButtonText}>Download HD</Text>
-                    {!rewardReceived && (
-                      <Text style={styles.adInfo}>Watch an ad</Text>
-                    )}
                   </View>
                 </>
               )}
@@ -352,7 +307,7 @@ const MetadataItem = ({
   value,
   onCopy,
 }: {
-  icon: string;
+  icon: IconName;
   label: string;
   value: string;
   onCopy?: () => void;
@@ -509,11 +464,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '500',
     fontSize: 15,
-  },
-  adInfo: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 11,
-    marginTop: 2,
   },
 });
 

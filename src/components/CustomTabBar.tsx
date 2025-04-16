@@ -1,8 +1,8 @@
 import React from 'react';
 import {BlurView} from '@react-native-community/blur';
 import {Text, TouchableOpacity, View, StyleSheet} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
+import Icon from './Icon';
 import {theme} from '@src/theme/Theme';
 import Routes from '@src/constants/routes';
 import {useThemeStore} from '@src/store/themeStore';

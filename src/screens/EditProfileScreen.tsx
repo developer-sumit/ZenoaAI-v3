@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,25 +9,23 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-import {BlurView} from '@react-native-community/blur';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { BlurView } from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
-import {launchImageLibrary} from 'react-native-image-picker';
-import {useNavigation} from '@react-navigation/native';
-import {useThemeStore} from '@src/store/themeStore';
-import {useAuthStore} from '@src/store/authStore';
-import {theme} from '@src/theme/Theme';
-import {useToast} from '@src/components/Toast';
-import {userService} from '@src/services/userService';
+import { useNavigation } from '@react-navigation/native';
+import { useThemeStore } from '@src/store/themeStore';
+import { useAuthStore } from '@src/store/authStore';
+import { theme } from '@src/theme/Theme';
+import { userService } from '@src/services/userService';
+import Toast from 'react-native-toast-message';
+import Icon from '@src/components/Icon';
 
 const PLACEHOLDER_IMAGE = require('@src/assets/favicon.png');
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
-  const {isDark} = useThemeStore();
-  const {user, updateUserProfile, logout} = useAuthStore();
+  const { isDark } = useThemeStore();
+  const { user, logout } = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
-  const toast = useToast();
 
   const [name, setName] = useState('');
   const [photoUri, setPhotoUri] = useState('');
@@ -49,43 +47,18 @@ const EditProfileScreen = () => {
     }
   }, [user]);
 
-  const handleAvatarChange = async () => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        quality: 0.8,
-        selectionLimit: 1,
-      });
-
-      if (!result.didCancel && result.assets?.[0]?.uri) {
-        setPhotoUri(result.assets[0].uri);
-        setIsLocalImage(false);
-      }
-    } catch (error) {
-      console.error('Error changing avatar:', error);
-      toast.error('Failed to select photo');
-    }
-  };
-
   const saveProfile = async () => {
     if (!user) {
-      toast.error('Not logged in');
+      Toast.show({ text1: 'Please log in', type: 'error' });
       return;
     }
 
-    const trimmedName = name.trim();
-
     try {
-      await updateUserProfile({
-        name: trimmedName || user?.name || 'User',
-        photo: !isLocalImage ? photoUri : undefined,
-      });
-
-      toast.success('Profile updated');
+      Toast.show({ text1: 'Profile updated', type: 'success' });
       navigation.goBack();
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      Toast.show({ text1: 'Failed to update profile', type: 'error' });
     }
   };
 
@@ -95,13 +68,21 @@ const EditProfileScreen = () => {
         // Mark the account as deleted in Firestore
         await userService.markAccountAsDeleted(user.id);
 
-        toast.success('Account deleted successfully');
+        Toast.show({
+          text1: 'Account deleted',
+          text2: 'Your account has been deleted',
+          type: 'success',
+        });
 
         await logout();
       }
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      Toast.show({
+        text1: 'Failed to delete account',
+        text2: 'An error occurred while deleting your account',
+        type: 'error',
+      });
     }
   };
 
@@ -116,14 +97,14 @@ const EditProfileScreen = () => {
             alignItems: 'center',
           },
         ]}>
-        <Text style={{color: colors.text}}>Please log in</Text>
+        <Text style={{ color: colors.text }}>Please log in</Text>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: colors.background}]}
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
@@ -132,11 +113,11 @@ const EditProfileScreen = () => {
           onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, {color: colors.text}]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
           Edit Profile
         </Text>
         <TouchableOpacity
-          style={[styles.saveButton, {backgroundColor: colors.primary}]}
+          style={[styles.saveButton, { backgroundColor: colors.primary }]}
           onPress={saveProfile}>
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
@@ -152,17 +133,11 @@ const EditProfileScreen = () => {
           />
         ) : (
           <FastImage
-            source={{uri: photoUri}}
+            source={{ uri: photoUri }}
             style={styles.avatar}
             resizeMode={FastImage.resizeMode.cover}
           />
         )}
-
-        <TouchableOpacity
-          style={[styles.changeAvatarButton, {backgroundColor: colors.primary}]}
-          onPress={handleAvatarChange}>
-          <Icon name="camera-alt" size={24} color="white" />
-        </TouchableOpacity>
 
         {/* Reset to default button */}
         {!isLocalImage && (
@@ -172,14 +147,14 @@ const EditProfileScreen = () => {
               setPhotoUri('');
               setIsLocalImage(true);
             }}>
-            <Text style={{color: colors.secondary}}>Reset to default</Text>
+            <Text style={{ color: colors.secondary }}>Reset to default</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Form Fields */}
       <View style={styles.formContainer}>
-        <Text style={[styles.fieldLabel, {color: colors.secondaryText}]}>
+        <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>
           Name
         </Text>
         <TextInput
@@ -197,7 +172,7 @@ const EditProfileScreen = () => {
           placeholderTextColor={colors.secondaryText}
         />
 
-        <Text style={[styles.fieldLabel, {color: colors.secondaryText}]}>
+        <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>
           Email
         </Text>
         <View
@@ -209,11 +184,11 @@ const EditProfileScreen = () => {
               opacity: 0.7,
             },
           ]}>
-          <Text style={{color: colors.secondaryText}}>
+          <Text style={{ color: colors.secondaryText }}>
             {user?.email || 'Not available'}
           </Text>
         </View>
-        <Text style={[styles.helpText, {color: colors.secondaryText}]}>
+        <Text style={[styles.helpText, { color: colors.secondaryText }]}>
           Email cannot be changed
         </Text>
       </View>
@@ -230,21 +205,21 @@ const EditProfileScreen = () => {
       {/* Delete Account Modal */}
       <Modal visible={showDeleteModal} transparent animationType="fade">
         <BlurView
-          style={{flex: 1}}
+          style={{ flex: 1 }}
           blurType={isDark ? 'dark' : 'light'}
           blurAmount={5}>
           <View className="flex-1 justify-center items-center p-6">
             <View
               className="w-full max-w-md rounded-3xl p-6"
-              style={{backgroundColor: colors.background}}>
+              style={{ backgroundColor: colors.background }}>
               <Text
                 className="text-xl font-bold mb-4 text-center"
-                style={{color: colors.text}}>
+                style={{ color: colors.text }}>
                 Delete Account?
               </Text>
               <Text
                 className="text-base mb-6 text-center"
-                style={{color: colors.secondaryText}}>
+                style={{ color: colors.secondaryText }}>
                 Your account will be deleted, but you can always create a new
                 one with the same email later.
               </Text>
@@ -252,11 +227,11 @@ const EditProfileScreen = () => {
                 <TouchableOpacity
                   className="py-2 px-4 rounded-xl"
                   onPress={() => setShowDeleteModal(false)}>
-                  <Text style={{color: colors.text}}>Cancel</Text>
+                  <Text style={{ color: colors.text }}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="py-2 px-4 rounded-xl"
-                  style={{backgroundColor: '#e11d48'}}
+                  style={{ backgroundColor: '#e11d48' }}
                   onPress={() => {
                     handleAccountDeletion();
                     setShowDeleteModal(false);

@@ -1,49 +1,99 @@
 import {create} from 'zustand';
-import EncryptedStorage from 'react-native-encrypted-storage';
 import {User} from '@src/types';
-import {firestore} from '@src/config/firebase.config';
-import {doc, getDoc, setDoc} from 'firebase/firestore';
 import {userService} from '@src/services/userService';
-import { googleAuth } from '@src/config/auth.config';
+import {auth} from '@src/config/firebase.config';
+import {signOut} from 'firebase/auth';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import {authManager} from '@src/services/authManager';
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
-  hasCheckedAuth: boolean;
-
-  // Auth actions
+  restoreSession: () => Promise<void>;
   login: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
-  updateUserProfile: (profileData: Partial<User>) => Promise<void>;
-  checkAuth: () => Promise<void>;
-  clearAuthState: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>(set => ({
   user: null,
   isLoading: true,
-  hasCheckedAuth: false,
 
-  login: async (userData: User) => {
+  restoreSession: async () => {
     try {
       set({isLoading: true});
 
-      // Save the full user data to local storage and Firestore via userService
-      const savedUser = await userService.saveUser({
-        ...userData,
-        lastLogin: new Date().toISOString(),
-      });
+      // Check if we have a Firebase user
+      const firebaseUser = auth.currentUser;
 
-      // Store auth token/user ID for persistent login
-      await EncryptedStorage.setItem('currentUserId', userData.id);
+      if (firebaseUser) {
+        console.log('Firebase auth session found for user:', firebaseUser.uid);
 
-      // Update the auth state
-      set({
-        user: savedUser,
-        isLoading: false,
-      });
+        try {
+          // Validate token and make sure it's not revoked
+          const token = await firebaseUser.getIdTokenResult(true);
+          if (token.claims.revoked) {
+            console.log('User token revoked, logging out');
+            await signOut(auth);
+            authManager.clearAuthData();
+            set({isLoading: false, user: null});
+            return;
+          }
+        } catch (tokenError) {
+          console.error('Token validation failed:', tokenError);
+          // If token validation fails, we might still have a valid user
+        }
+
+        // Get user data from your database
+        const userData = await userService.getUser(firebaseUser.uid);
+
+        if (userData) {
+          console.log('User data found, restoring session');
+          // Update last login time
+          userService
+            .updateProfile(userData.id, {
+              lastLogin: new Date().toISOString(),
+            })
+            .catch(e => console.log('Failed to update last login:', e));
+
+          // Store the updated auth data
+          authManager.storeAuthData(firebaseUser);
+
+          set({user: userData, isLoading: false});
+        } else {
+          console.log('Creating new user profile for Firebase user');
+          // Create new user profile if not found
+          const newUser = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || '',
+            photo: firebaseUser.photoURL || '',
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          };
+          await userService.saveUser(newUser);
+
+          // Store the auth data
+          authManager.storeAuthData(firebaseUser);
+
+          set({user: newUser, isLoading: false});
+        }
+      } else {
+        console.log('No Firebase user, checking for saved credentials');
+        set({isLoading: false, user: null});
+      }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Session restore failed:', error);
+      set({user: null, isLoading: false});
+    }
+  },
+
+  login: async userData => {
+    try {
+      set({isLoading: true});
+      await userService.saveUser(userData);
+      set({user: userData, isLoading: false});
+    } catch (error) {
+      console.error('Login failed:', error);
       set({isLoading: false});
       throw error;
     }
@@ -52,114 +102,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       set({isLoading: true});
-
-      // Clear Google Auth tokens and sign out from Google
-      try {
-        // This needs to be imported in the file where logout is called
-        // Add this to the login screen or wherever logout is triggered
-        await googleAuth.signOut();
-      } catch (signOutError) {
-        console.warn('Error signing out from Google:', signOutError);
-        // Continue with logout even if Google sign out fails
-      }
-
-      // Clear local auth data
-      await EncryptedStorage.removeItem('currentUserId');
-
-      // Clear any other stored user data
+      // Full cleanup sequence
+      await signOut(auth);
+      await GoogleSignin.revokeAccess();
+      await GoogleSignin.signOut();
       await userService.clearCurrentUserData();
-
-      // Update state
-      set({
-        user: null,
-        isLoading: false,
-        hasCheckedAuth: true,
-      });
+      // Clear auth storage
+      authManager.clearAuthData();
+      set({user: null, isLoading: false});
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout failed:', error);
       set({isLoading: false});
-    }
-  },
-
-  updateUserProfile: async (profileData: Partial<User>) => {
-    try {
-      const {user} = get();
-
-      if (!user?.id) {
-        throw new Error('User not found');
-      }
-
-      // Update user profile via userService
-      const updatedUser = await userService.updateProfile(user.id, profileData);
-
-      if (updatedUser) {
-        // Update local state with the new profile data
-        set({user: updatedUser});
-      }
-    } catch (error) {
-      console.error('Profile update error:', error);
       throw error;
-    }
-  },
-
-  checkAuth: async () => {
-    try {
-      set({isLoading: true});
-
-      // Check if we have a stored user ID
-      const userId = await EncryptedStorage.getItem('currentUserId');
-
-      if (!userId) {
-        set({isLoading: false, hasCheckedAuth: true});
-        return;
-      }
-
-      // Get the full user data from userService (which handles Firestore/local storage)
-      const userData = await userService.getUser(userId);
-
-      if (userData) {
-        // If found and not marked as deleted, restore the session
-        set({
-          user: userData,
-          isLoading: false,
-          hasCheckedAuth: true,
-        });
-
-        // Update last login time in background
-        userService
-          .updateProfile(userId, {
-            lastLogin: new Date().toISOString(),
-          })
-          .catch(err => console.log('Error updating last login:', err));
-      } else {
-        // User data not found or marked as deleted, clear the session
-        await EncryptedStorage.removeItem('currentUserId');
-        set({
-          user: null,
-          isLoading: false,
-          hasCheckedAuth: true,
-        });
-      }
-    } catch (error) {
-      console.error('Auth check error:', error);
-      set({isLoading: false, hasCheckedAuth: true});
-    }
-  },
-
-  // Helper function to completely clear auth state
-  clearAuthState: async () => {
-    try {
-      // Remove all auth-related items from storage
-      await EncryptedStorage.removeItem('currentUserId');
-
-      // Reset the auth state
-      set({
-        user: null,
-        isLoading: false,
-        hasCheckedAuth: true,
-      });
-    } catch (error) {
-      console.error('Clear auth state error:', error);
     }
   },
 }));

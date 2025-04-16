@@ -1,7 +1,14 @@
 import {initializeApp} from 'firebase/app';
-import {getAuth} from 'firebase/auth';
+import {initializeAuth} from 'firebase/auth';
 import {getFirestore} from 'firebase/firestore';
 import Config from 'react-native-config';
+import {MMKV} from 'react-native-mmkv';
+
+// Create MMKV instance with a specific ID for auth
+export const authStorage = new MMKV({
+  id: 'auth-storage',
+  encryptionKey: 'your-app-encryption-key' // Optional but recommended for security
+});
 
 const firebaseConfig = {
   apiKey: Config.FIREBASE_API_KEY,
@@ -16,37 +23,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize services
-const auth = getAuth(app);
+// Initialize Firebase Auth without custom persistence
+const auth = initializeAuth(app);
+
 const firestore = getFirestore(app);
 
-// Helper function to check if Firebase is initialized
-export const isFirebaseInitialized = () => {
-  try {
-    getAuth(app);
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
 export {app, auth, firestore};
-
-// Debug info for development
-if (__DEV__) {
-  console.log('Firebase initialized with config:', {
-    apiKey: Config.FIREBASE_API_KEY ? '✓ Set' : '✗ Missing',
-    authDomain: Config.FIREBASE_AUTH_DOMAIN ? '✓ Set' : '✗ Missing',
-    projectId: Config.FIREBASE_PROJECT_ID ? '✓ Set' : '✗ Missing',
-    storageBucket: Config.FIREBASE_STORAGE_BUCKET ? '✓ Set' : '✗ Missing',
-    messagingSenderId: Config.FIREBASE_MESSAGING_SENDER_ID
-      ? '✓ Set'
-      : '✗ Missing',
-    appId: Config.FIREBASE_APP_ID ? '✓ Set' : '✗ Missing',
-  });
-
-  console.log(
-    'Google Auth Web Client ID:',
-    Config.GOOGLE_WEB_CLIENT_ID ? '✓ Set' : '✗ Missing',
-  );
-}

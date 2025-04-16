@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,15 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import {FlashList} from '@shopify/flash-list';
-import Icon from 'react-native-vector-icons/Ionicons';
-import {BlurView} from '@react-native-community/blur';
+import { FlashList } from '@shopify/flash-list';
+import { BlurView } from '@react-native-community/blur';
 
-import {theme} from '@src/theme/Theme';
-import {artStyles} from '@src/data/styles';
-import {aspectRatios} from '@src/data/ratio';
-import {AdvancedSettingsProps} from '@src/types';
-import {useThemeStore} from '@src/store/themeStore';
+import Icon from './Icon';
+import { theme } from '@src/theme/Theme';
+import { artStyles } from '@src/data/styles';
+import { aspectRatios } from '@src/data/ratio';
+import { AdvancedSettingsProps } from '@src/types';
+import { useThemeStore } from '@src/store/themeStore';
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   visible,
@@ -39,7 +39,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   qualityPresets,
   samplers,
 }) => {
-  const {isDark} = useThemeStore();
+  const { isDark } = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
   const [selectedRatio, setSelectedRatio] = useState(aspectRatio);
   const [showQualityPicker, setShowQualityPicker] = useState(false);
@@ -58,7 +58,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   };
 
   const renderStyleItem = React.useCallback(
-    ({item}: {item: any; index: number}) => (
+    ({ item }: { item: any; index: number }) => (
       <TouchableOpacity
         activeOpacity={0.8}
         className="w-full h-full mb-2 p-1"
@@ -73,20 +73,18 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             <Image
               source={item.image}
               className="w-full h-full"
-              style={{
-                borderRadius: selectedStyles.includes(item.name) ? 16 : 20,
-              }}
+              style={{ borderRadius: selectedStyles.includes(item.name) ? 16 : 20 }}
             />
           </View>
           {selectedStyles.includes(item.name) && (
             <View
-              style={{backgroundColor: colors.primary}}
+              style={{ backgroundColor: colors.primary }}
               className="absolute top-2 right-2 p-1 rounded-full">
               <Icon name="checkmark" size={16} color="white" />
             </View>
           )}
         </View>
-        <Text className="font-medium mt-1" style={{color: colors.text}}>
+        <Text className="font-medium mt-1" style={{ color: colors.text }}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -117,7 +115,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             key={index}
             onPress={() => {
               LayoutAnimation.spring();
-              setAspectRatio({...ratio, size: 'medium'});
+              setAspectRatio({ ...ratio, size: 'medium' });
               setSelectedRatio(ratio);
             }}
             style={{
@@ -127,9 +125,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                   ? colors.primary
                   : colors.surface,
             }}
-            className={`px-5 py-3 rounded-2xl ${
-              aspectRatio.ratio === ratio.ratio ? 'elevation-xl' : ''
-            }`}>
+            className={`px-5 py-3 rounded-2xl ${aspectRatio.ratio === ratio.ratio ? 'elevation-xl' : ''
+              }`}>
             <Text
               style={{
                 color:
@@ -153,19 +150,19 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
     <Modal visible={visible} animationType="slide" transparent>
       <View className="flex-1">
         <BlurView
-          style={{flex: 1, position: 'absolute', width: '100%', height: '100%'}}
+          style={{ flex: 1, position: 'absolute', width: '100%', height: '100%' }}
           blurType="light"
           blurAmount={10}
         />
         {/* Header */}
         <View className="flex-row justify-between items-center py-3 px-7">
           <View className="w-12 h-12" />
-          <Text style={{color: colors.text}} className="font-bold text-base">
+          <Text style={{ color: colors.text }} className="font-bold text-base">
             Advanced Settings
           </Text>
           <TouchableOpacity
             onPress={onClose}
-            style={{backgroundColor: colors.surface}}
+            style={{ backgroundColor: colors.surface }}
             className="p-2 rounded-full">
             <Icon name="close" size={24} color={colors.text} />
           </TouchableOpacity>
@@ -174,8 +171,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
         <ScrollView
           showsVerticalScrollIndicator={false}
           className="flex-1 m-4 rounded-3xl"
-          style={{elevation: 100}}
-          contentContainerStyle={{backgroundColor: colors.background}}
+          style={{ elevation: 100 }}
+          contentContainerStyle={{ backgroundColor: colors.background }}
           contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl"
           removeClippedSubviews={true}
           scrollEventThrottle={16}
@@ -183,7 +180,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Style Grid */}
           <View className="gap-4">
             <Text
-              style={{color: colors.secondaryText}}
+              style={{ color: colors.secondaryText }}
               className="text-lg font-medium">
               Art Styles
             </Text>
@@ -193,7 +190,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Aspect Ratio Section */}
           <View>
             <Text
-              style={{color: colors.secondaryText}}
+              style={{ color: colors.secondaryText }}
               className="text-lg font-medium mb-4">
               Aspect Ratio
             </Text>
@@ -203,7 +200,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Size Selection */}
           <View>
             <Text
-              style={{color: colors.secondaryText}}
+              style={{ color: colors.secondaryText }}
               className="text-lg font-medium mb-3">
               Image Size
             </Text>
@@ -225,9 +222,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         ? colors.primary
                         : colors.surface,
                   }}
-                  className={`flex-1 p-3 rounded-2xl ${
-                    aspectRatio.size === size ? 'elevation-xl' : ''
-                  }`}>
+                  className={`flex-1 p-3 rounded-2xl ${aspectRatio.size === size ? 'elevation-xl' : ''
+                    }`}>
                   <Text
                     style={{
                       color:
@@ -260,7 +256,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Batch Count */}
           <View>
             <Text
-              style={{color: colors.secondaryText}}
+              style={{ color: colors.secondaryText }}
               className="text-lg font-medium mb-3">
               Batch Count
             </Text>
@@ -278,9 +274,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         ? colors.primary
                         : colors.surface,
                   }}
-                  className={`w-16 h-16 items-center justify-center rounded-2xl ${
-                    numberOfImages === count ? 'elevation-xl' : ''
-                  }`}>
+                  className={`w-16 h-16 items-center justify-center rounded-2xl ${numberOfImages === count ? 'elevation-xl' : ''
+                    }`}>
                   <Text
                     style={{
                       shadowColor: colors.primary,
@@ -303,7 +298,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             {/* Quality Picker */}
             <View className="flex-1">
               <Text
-                style={{color: colors.secondaryText}}
+                style={{ color: colors.secondaryText }}
                 className="text-lg font-medium mb-3">
                 Quality
               </Text>
@@ -315,16 +310,16 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                   setShowQualityPicker(!showQualityPicker);
                   setShowSamplerPicker(false); // Close other picker
                 }}
-                style={{backgroundColor: colors.surface}}
+                style={{ backgroundColor: colors.surface }}
                 className="p-5 rounded-2xl">
-                <Text style={{color: colors.text}} className="text-lg">
+                <Text style={{ color: colors.text }} className="text-lg">
                   {qualityPresets.find(q => q.value === quality)?.label}
                 </Text>
               </TouchableOpacity>
 
               {showQualityPicker && (
                 <View
-                  style={{backgroundColor: colors.surface}}
+                  style={{ backgroundColor: colors.surface }}
                   className="absolute bottom-0 translate-y-0 w-full z-10 rounded-2xl overflow-hidden">
                   {qualityPresets.map((q, index) => (
                     <TouchableOpacity
@@ -335,7 +330,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         setShowQualityPicker(false);
                       }}
                       className="p-5 border-b border-gray-200 dark:border-gray-700">
-                      <Text style={{color: colors.text}} className="text-lg">
+                      <Text style={{ color: colors.text }} className="text-lg">
                         {q.label}
                       </Text>
                     </TouchableOpacity>
@@ -347,7 +342,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             {/* Sampler Picker */}
             <View className="flex-1">
               <Text
-                style={{color: colors.secondaryText}}
+                style={{ color: colors.secondaryText }}
                 className="text-lg font-medium mb-3">
                 Sampler
               </Text>
@@ -359,16 +354,16 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                   setShowSamplerPicker(!showSamplerPicker);
                   setShowQualityPicker(false); // Close other picker
                 }}
-                style={{backgroundColor: colors.surface}}
+                style={{ backgroundColor: colors.surface }}
                 className="p-5 rounded-2xl">
-                <Text style={{color: colors.text}} className="text-lg">
+                <Text style={{ color: colors.text }} className="text-lg">
                   {sampler}
                 </Text>
               </TouchableOpacity>
 
               {showSamplerPicker && (
                 <View
-                  style={{backgroundColor: colors.surface}}
+                  style={{ backgroundColor: colors.surface }}
                   className="absolute bottom-0 translate-y-0 w-full z-10 rounded-2xl overflow-hidden">
                   {samplers.map((s, index) => (
                     <TouchableOpacity
@@ -379,7 +374,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         setShowSamplerPicker(false);
                       }}
                       className="p-5 border-b">
-                      <Text style={{color: colors.text}} className="text-base">
+                      <Text style={{ color: colors.text }} className="text-base">
                         {s}
                       </Text>
                     </TouchableOpacity>
@@ -392,7 +387,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Seed Input */}
           <View>
             <Text
-              style={{color: colors.secondaryText}}
+              style={{ color: colors.secondaryText }}
               className="text-lg font-medium mb-3">
               Seed
             </Text>
@@ -402,7 +397,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               placeholder="Random"
               keyboardType="numeric"
               className="p-5 rounded-2xl dark:text-white"
-              style={{backgroundColor: colors.surface}}
+              style={{ backgroundColor: colors.surface }}
               placeholderTextColor="#6B7280"
             />
           </View>
@@ -410,7 +405,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Negative Prompt */}
           <View>
             <Text
-              style={{color: colors.secondaryText}}
+              style={{ color: colors.secondaryText }}
               className="text-lg font-medium mb-3">
               Negative Prompt
             </Text>
@@ -420,7 +415,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               placeholder="What to exclude..."
               multiline
               className="p-5 rounded-2xl dark:text-white"
-              style={{backgroundColor: colors.surface}}
+              style={{ backgroundColor: colors.surface }}
               placeholderTextColor="#6B7280"
             />
           </View>

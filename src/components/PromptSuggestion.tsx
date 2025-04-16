@@ -6,7 +6,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon from './Icon';
 
 interface PromptSuggestionsProps {
   onSelectPrompt: (prompt: string) => void;
