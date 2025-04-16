@@ -6,40 +6,72 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import {firestore} from '@src/config/firebase.config';
 import {GeneratedImage} from '@src/types';
 import NetInfo from '@react-native-community/netinfo';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 export const imageService = {
   /**
-   * Save an image directly to Firestore
+   * Save an image to Firestore and local cache
    */
-  async saveImage(userId: string, imageData: GeneratedImage): Promise<void> {
+  async saveImage(userId: string, imageData: GeneratedImage): Promise<string> {
     try {
-      const isConnected = await NetInfo.fetch().then(
-        state => state.isConnected,
-      );
-
-      if (!isConnected) {
-        console.log('No network connection, image will not be saved');
-        return;
-      }
-
-      const imagesCollection = collection(firestore, 'users', userId, 'images');
-
       // Create a unique ID using timestamp and seed
-      const imageId = `${imageData.timestamp}_${imageData.seed}`;
+      const imageId =
+        `${imageData.timestamp}_${imageData.seed}` ||
+        `img_${new Date().getTime()}_${Math.floor(Math.random() * 10000)}`;
 
       const imageWithTimestamp = {
         ...imageData,
         imageId,
+        userId,
         createdAt: serverTimestamp(),
+        synced: false,
       };
 
-      // Save to Firestore with custom ID to avoid duplicates
-      await setDoc(doc(imagesCollection, imageId), imageWithTimestamp);
-      console.log('Image saved to Firestore');
+      // Save to local storage first for offline access
+      const userImages = await this.getLocalUserImages(userId);
+      userImages.unshift(imageWithTimestamp);
+
+      // Limit local storage to 50 recent images to prevent storage issues
+      const limitedImages = userImages.slice(0, 50);
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(limitedImages),
+      );
+      console.log('Image saved to local storage');
+
+      // Try to sync with Firestore if connected
+      const isConnected = await NetInfo.fetch().then(
+        state => state.isConnected,
+      );
+
+      if (isConnected) {
+        try {
+          // Save to user's images collection
+          const imageRef = doc(
+            collection(firestore, 'users', userId, 'images'),
+            imageId,
+          );
+          await setDoc(imageRef, {
+            ...imageWithTimestamp,
+            createdAt: serverTimestamp(), // Use server timestamp
+            synced: true,
+          });
+          console.log('Image saved to Firestore');
+        } catch (error) {
+          console.error('Error saving image to Firestore:', error);
+        }
+      } else {
+        console.log('No network connection, image will sync later');
+        // Flag for future sync
+        this.markImagesForSync(userId);
+      }
+
+      return imageId;
     } catch (error) {
       console.error('Error saving image:', error);
       throw error;
@@ -47,57 +79,214 @@ export const imageService = {
   },
 
   /**
-   * Get all user's images from Firestore
+   * Mark images for future sync when connection is restored
    */
-  async getUserImages(userId: string): Promise<GeneratedImage[]> {
+  async markImagesForSync(userId: string): Promise<void> {
     try {
+      await EncryptedStorage.setItem(`sync_needed_${userId}`, 'true');
+    } catch (error) {
+      console.error('Error marking for sync:', error);
+    }
+  },
+
+  /**
+   * Get all user images, combining from both local storage and Firestore
+   */
+  async getUserImages(userId: string): Promise<any[]> {
+    try {
+      if (!userId) {
+        console.error('No user ID provided to getUserImages');
+        return [];
+      }
+
+      console.log('Fetching images for user:', userId);
+
+      // Try to sync if needed and connected
+      await this.syncImagesIfNeeded(userId);
+
+      // First, get local images
+      const localImages = await this.getLocalUserImages(userId);
+
+      // Get remote images if connected
       const isConnected = await NetInfo.fetch().then(
         state => state.isConnected,
       );
 
-      if (!isConnected) {
-        console.log('No network connection, cannot retrieve images');
-        return [];
+      if (isConnected) {
+        try {
+          console.log('Fetching images from Firestore');
+          const imagesCollection = collection(
+            firestore,
+            'users',
+            userId,
+            'images',
+          );
+          const q = query(imagesCollection, orderBy('createdAt', 'desc'));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const firestoreImages = querySnapshot.docs.map(d => {
+              const data = d.data();
+              // Convert Firestore timestamp to ISO string if present
+              if (data.createdAt && data.createdAt instanceof Timestamp) {
+                data.createdAt = data.createdAt.toDate().toISOString();
+              }
+              return {
+                id: d.id,
+                ...data,
+              };
+            });
+
+            console.log(`Found ${firestoreImages.length} images in Firestore`);
+
+            // Update local cache
+            await EncryptedStorage.setItem(
+              `images_${userId}`,
+              JSON.stringify(firestoreImages),
+            );
+
+            return firestoreImages;
+          } else {
+            console.log('No images found in Firestore');
+            return localImages;
+          }
+        } catch (error) {
+          console.error('Error fetching images from Firestore:', error);
+          return localImages;
+        }
+      } else {
+        console.log('Offline mode: Using cached images');
+        return localImages;
       }
-
-      const imagesCollection = collection(firestore, 'users', userId, 'images');
-      const q = query(imagesCollection, orderBy('timestamp', 'desc'));
-      const querySnapshot = await getDocs(q);
-
-      const images: GeneratedImage[] = [];
-      querySnapshot.forEach(doc => {
-        const data = doc.data() as GeneratedImage;
-        images.push(data);
-      });
-
-      return images;
     } catch (error) {
-      console.error('Error getting images:', error);
+      console.error('Error in getUserImages:', error);
       return [];
     }
   },
 
   /**
-   * Delete an image from Firestore
+   * Get images from local storage
    */
-  async deleteImage(userId: string, imageId: string): Promise<void> {
+  async getLocalUserImages(userId: string): Promise<any[]> {
     try {
+      const cachedImagesJson = await EncryptedStorage.getItem(
+        `images_${userId}`,
+      );
+      if (cachedImagesJson) {
+        const parsedImages = JSON.parse(cachedImagesJson);
+        console.log(`Found ${parsedImages.length} cached images`);
+        return parsedImages;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting local images:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Sync local images with Firestore if needed
+   */
+  async syncImagesIfNeeded(userId: string): Promise<void> {
+    try {
+      const syncNeeded = await EncryptedStorage.getItem(
+        `sync_needed_${userId}`,
+      );
+
+      if (syncNeeded !== 'true') {
+        return;
+      }
+
       const isConnected = await NetInfo.fetch().then(
         state => state.isConnected,
       );
 
       if (!isConnected) {
-        console.log('No network connection, cannot delete image');
         return;
       }
 
-      await setDoc(
-        doc(firestore, 'users', userId, 'images', imageId),
-        {deleted: true, deletedAt: serverTimestamp()},
-        {merge: true},
+      console.log('Syncing local images with Firestore');
+
+      // Get local images
+      const localImages = await this.getLocalUserImages(userId);
+      const unsynced = localImages.filter(img => !img.synced);
+
+      if (unsynced.length === 0) {
+        await EncryptedStorage.removeItem(`sync_needed_${userId}`);
+        return;
+      }
+
+      // Upload unsynced images
+      for (const image of unsynced) {
+        try {
+          const imageRef = doc(
+            collection(firestore, 'users', userId, 'images'),
+            image.imageId,
+          );
+
+          await setDoc(imageRef, {
+            ...image,
+            createdAt: serverTimestamp(),
+            synced: true,
+          });
+
+          // Mark as synced locally
+          image.synced = true;
+        } catch (error) {
+          console.error('Error syncing image:', error);
+        }
+      }
+
+      // Update local storage with synced status
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(localImages),
       );
 
-      console.log('Image marked as deleted');
+      // Clear sync flag
+      await EncryptedStorage.removeItem(`sync_needed_${userId}`);
+      console.log('Image sync complete');
+    } catch (error) {
+      console.error('Error in syncImagesIfNeeded:', error);
+    }
+  },
+
+  /**
+   * Delete an image locally and from Firestore
+   */
+  async deleteImage(userId: string, imageId: string): Promise<void> {
+    try {
+      // First, delete/mark locally
+      const localImages = await this.getLocalUserImages(userId);
+      const updatedImages = localImages.filter(img => img.imageId !== imageId);
+
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(updatedImages),
+      );
+
+      // Try to delete from Firestore
+      const isConnected = await NetInfo.fetch().then(
+        state => state.isConnected,
+      );
+
+      if (isConnected) {
+        const imageRef = doc(
+          collection(firestore, 'users', userId, 'images'),
+          imageId,
+        );
+
+        await setDoc(
+          imageRef,
+          {deleted: true, deletedAt: serverTimestamp()},
+          {merge: true},
+        );
+
+        console.log('Image marked as deleted in Firestore');
+      } else {
+        // Mark for sync later
+        this.markImagesForSync(userId);
+      }
     } catch (error) {
       console.error('Error deleting image:', error);
       throw error;

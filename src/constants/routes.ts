@@ -1,4 +1,4 @@
-const Routes = {
+export default {
   SPLASH: 'Splash',
   AUTH: 'Auth',
   MAIN: 'Main',
@@ -10,5 +10,3 @@ const Routes = {
   GALLERY: 'Gallery',
   EDIT_PROFILE: 'EditProfile',
 };
-
-export default Routes;

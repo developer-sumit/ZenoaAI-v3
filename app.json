@@ -1,9 +1,4 @@
 {
   "name": "ZenoaAI",
-  "displayName": "Zenoa AI",
-
-  "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-xxxxx~xxxxx",
-    "ios_app_id": "ca-app-pub-xxxxx~xxxxx"
-  }
+  "displayName": "Zenoa AI"
 }

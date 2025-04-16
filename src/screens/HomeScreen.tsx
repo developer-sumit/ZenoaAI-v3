@@ -1,44 +1,41 @@
-import React, {useEffect, useRef} from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   ActivityIndicator,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import {FlashList} from '@shopify/flash-list';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
+import { FlashList } from '@shopify/flash-list';
 
-import {theme} from '@src/theme/Theme';
-import {aspectRatios} from '@src/data/ratio';
+import { theme } from '@src/theme/Theme';
+import { aspectRatios } from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
-import {useThemeStore} from '@src/store/themeStore';
-import {useAuthStore} from '@src/store/authStore';
-import {generateImage} from '@src/config/api.config';
-import {imageService} from '@src/services/imageService';
-import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
+import { useThemeStore } from '@src/store/themeStore';
+import { useAuthStore } from '@src/store/authStore';
+import { generateImage } from '@src/config/api.config';
+import { imageService } from '@src/services/imageService';
+import { AspectRatioType, GeneratedImage, QualityPresetType } from '../types';
 import AdvancedSettings from '@src/components/AdvancedSettings';
-import {useToast} from '@src/components/Toast';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
+import Toast from 'react-native-toast-message';
+import Icon from '@src/components/Icon';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24; // Total horizontal padding
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
-  const toast = useToast();
-  const {isDark} = useThemeStore();
-  const {user} = useAuthStore();
+  const { isDark } = useThemeStore();
+  const { user } = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showPromptSuggestions, setShowPromptSuggestions] =
@@ -65,9 +62,9 @@ const HomeScreen = () => {
   const flashListRef = useRef(null);
 
   const qualityPresets: QualityPresetType[] = [
-    {label: 'Fast', value: 15},
-    {label: 'Standard', value: 25},
-    {label: 'Premium', value: 50},
+    { label: 'Fast', value: 15 },
+    { label: 'Standard', value: 25 },
+    { label: 'Premium', value: 50 },
   ];
 
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
@@ -84,16 +81,31 @@ const HomeScreen = () => {
 
     try {
       const images = await imageService.getUserImages(user.id);
-      setGeneratedImages(images);
+      // Explicitly cast to unknown first, then filter and cast to GeneratedImage
+      const typedImages = images as unknown as Partial<GeneratedImage>[];
+      const validImages = typedImages.filter(
+        (img): img is GeneratedImage =>
+          !!img.uri &&
+          !!img.prompt &&
+          !!img.styles &&
+          !!img.aspectRatio &&
+          img.quality !== undefined &&
+          img.timestamp !== undefined,
+      );
+      setGeneratedImages(validImages);
     } catch (error) {
       console.error('Failed to load images:', error);
-      toast.error('Failed to load your images');
+      Toast.show({
+        type: 'error',
+        text1: 'Error fetching images',
+        text2: 'Please try again later',
+      });
     }
   };
 
   const getAspectRatio = (image: GeneratedImage): number => {
     // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) return 1;
+    if (!image?.aspectRatio?.ratio) { return 1; }
 
     const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
     return width / height;
@@ -101,8 +113,8 @@ const HomeScreen = () => {
 
   // Get the height for an image based on its aspect ratio
   const getImageHeight = (image: GeneratedImage): number => {
-    const aspectRatio = getAspectRatio(image);
-    return COLUMN_WIDTH / aspectRatio;
+    const ratio = getAspectRatio(image);
+    return COLUMN_WIDTH / ratio;
   };
 
   const handleSelectPrompt = (selectedPrompt: string) => {
@@ -111,12 +123,20 @@ const HomeScreen = () => {
 
   const handleImageGeneration = async () => {
     if (!prompt.trim()) {
-      toast.error('Please enter a prompt');
+      Toast.show({
+        type: 'error',
+        text1: 'Please enter a description',
+        text2: 'Describe what you want to see in the image',
+      });
       return;
     }
 
     if (!user?.id) {
-      toast.error('Please sign in to save your creations');
+      Toast.show({
+        type: 'error',
+        text1: 'Sign In Required',
+        text2: 'Please sign in to generate images',
+      });
       return;
     }
 
@@ -207,21 +227,33 @@ const HomeScreen = () => {
           setGeneratedImages(prev =>
             prev.map(img =>
               img.timestamp === generationTimestamp && img.index === i
-                ? {...img, loading: false, error: true}
+                ? { ...img, loading: false, error: true }
                 : img,
             ),
           );
 
-          toast.error(`Failed to generate image ${i + 1}`);
+          Toast.show({
+            type: 'error',
+            text1: 'Generation Failed',
+            text2: 'An error occurred while generating images',
+          });
         }
       }
 
       if (newImages.length > 0) {
-        toast.success(`Generated ${newImages.length} images`);
+        Toast.show({
+          type: 'success',
+          text1: 'Images Generated',
+          text2: 'Check the grid below for your new images',
+        });
       }
     } catch (error) {
       console.error('Generation error:', error);
-      toast.error('Failed to generate images');
+      Toast.show({
+        type: 'error',
+        text1: 'Generation Failed',
+        text2: 'An error occurred while generating images',
+      });
 
       // Remove all placeholder images
       setGeneratedImages(prev =>
@@ -235,7 +267,7 @@ const HomeScreen = () => {
   };
 
   const groupImagesByParameters = (images: GeneratedImage[]) => {
-    const groups: {[key: string]: GeneratedImage[]} = {};
+    const groups: { [key: string]: GeneratedImage[] } = {};
 
     images.forEach(image => {
       // Group by timestamp to keep generation batches separate
@@ -292,7 +324,7 @@ const HomeScreen = () => {
             height: imageHeight,
           }}>
           <Icon name="error-outline" size={40} color="#ef4444" />
-          <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
+          <Text style={{ color: colors.secondaryText }} className="text-xs mt-2">
             Generation failed
           </Text>
         </View>
@@ -320,7 +352,7 @@ const HomeScreen = () => {
       <View className="px-4 mb-4">
         <View className="flex-row items-center justify-between mb-2">
           <Text
-            style={{color: colors.text}}
+            style={{ color: colors.text }}
             className="text-lg font-semibold"
             numberOfLines={1}
             ellipsizeMode="tail">
@@ -332,9 +364,9 @@ const HomeScreen = () => {
           {item.parameters.styles.map(style => (
             <View
               key={style}
-              style={{backgroundColor: colors.primary + '20'}}
+              style={{ backgroundColor: colors.primary + '20' }}
               className="px-2 py-1 rounded-full">
-              <Text style={{color: colors.primary}} className="text-xs">
+              <Text style={{ color: colors.primary }} className="text-xs">
                 {style}
               </Text>
             </View>
@@ -360,16 +392,7 @@ const HomeScreen = () => {
   const EmptyState = () => (
     <View className="items-center justify-center py-20 flex-1 h-full">
       <View className="relative w-[120px] h-[120px] items-center justify-center">
-        <IconMC
-          name="robot-excited"
-          size={80}
-          color={colors.primary}
-          style={{
-            textShadowColor: 'rgba(0, 0, 0, 0.1)',
-            textShadowOffset: {width: 1, height: 1},
-            textShadowRadius: 10,
-          }}
-        />
+        <Icon name="robot-excited" size={80} color={colors.primary} />
         <View
           style={{
             position: 'absolute',
@@ -406,12 +429,12 @@ const HomeScreen = () => {
       </View>
 
       <Text
-        style={{color: colors.text}}
+        style={{ color: colors.text }}
         className="text-2xl font-semibold mt-6 mb-3">
         Create your first AI image
       </Text>
       <Text
-        style={{color: colors.secondaryText}}
+        style={{ color: colors.secondaryText }}
         className="text-center mx-10 mb-6 text-base">
         Describe what you'd like to see, then tap the Generate button below
       </Text>
@@ -424,8 +447,8 @@ const HomeScreen = () => {
             borderColor: colors.primary + '30',
           }}
           className="p-4 rounded-xl mb-3">
-          <Text style={{color: colors.text}}>
-            <Text style={{color: colors.primary}}>Tip:</Text> Try adding styles
+          <Text style={{ color: colors.text }}>
+            <Text style={{ color: colors.primary }}>Tip:</Text> Try adding styles
             like "digital art", "watercolor", "oil painting" or "photorealistic"
           </Text>
         </View>
@@ -436,170 +459,163 @@ const HomeScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, {backgroundColor: colors.background}]}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          {/* Header with Settings */}
-          <View className="flex-row justify-between items-center p-4">
-            <Text className="text-3xl font-bold" style={{color: colors.text}}>
-              {appConfig.name}
-            </Text>
-          </View>
-
-          {/* Selected Styles Preview */}
-          {selectedStyles.length > 0 && (
-            <View className="px-4 mb-4">
-              <Text
-                style={{color: colors.secondaryText}}
-                className="text-sm mb-2">
-                Selected Styles:
-              </Text>
-              <FlashList
-                horizontal
-                estimatedItemSize={100}
-                data={selectedStyles}
-                keyExtractor={item => item}
-                renderItem={({item}) => (
-                  <View
-                    style={{backgroundColor: colors.primary + '20'}}
-                    className="px-3 py-1 rounded-full mr-2">
-                    <Text style={{color: colors.primary}}>{item}</Text>
-                  </View>
-                )}
-              />
-            </View>
-          )}
-
-          {/* Generated Images Grid */}
-          <View style={styles.listContainer}>
-            <FlashList
-              ref={flashListRef}
-              data={groupImagesByParameters(generatedImages)}
-              estimatedItemSize={300}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.listContentContainer}
-              renderItem={renderGroup}
-              ListEmptyComponent={<EmptyState />}
-            />
-          </View>
-
-          {/* Bottom Input Area */}
-          <View style={styles.inputContainer}>
-            <View style={[styles.inputBox, {backgroundColor: colors.surface}]}>
-              <View className="flex-row items-center">
-                <TextInput
-                  value={prompt}
-                  onChangeText={setPrompt}
-                  placeholder="Describe your vision..."
-                  placeholderTextColor="#94a3b8"
-                  style={[styles.textInput, {color: colors.text}]}
-                  multiline
-                  numberOfLines={3}
-                />
-                {prompt.length === 0 && (
-                  <TouchableOpacity
-                    onPress={() => setShowPromptSuggestions(true)}
-                    className="pr-4">
-                    <IconMC
-                      name="lightbulb-outline"
-                      size={24}
-                      color={colors.secondaryText}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View
-                className="flex-row justify-end p-2 border-t gap-2"
-                style={{borderColor: colors.surface}}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setShowAdvanced(true)}
-                  style={[
-                    styles.advancedButton,
-                    {backgroundColor: colors.primary + '20'},
-                  ]}>
-                  <Icon name="settings" size={24} color={colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleImageGeneration}
-                  disabled={loading}
-                  style={[
-                    styles.generateButton,
-                    {
-                      backgroundColor: loading
-                        ? colors.primary + '20'
-                        : colors.primary,
-                    },
-                  ]}>
-                  {loading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <>
-                      <Text className="text-white mr-2 font-medium">
-                        Generate
-                      </Text>
-                      <Icon name="auto-fix-high" size={20} color="white" />
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Prompt Suggestions */}
-          <PromptSuggestions
-            visible={showPromptSuggestions}
-            setVisible={setShowPromptSuggestions}
-            onSelectPrompt={handleSelectPrompt}
-            colors={colors}
-          />
-
-          {/* Modals */}
-          <AdvancedSettings
-            visible={showAdvanced}
-            onClose={() => setShowAdvanced(false)}
-            selectedStyles={selectedStyles}
-            setSelectedStyles={setSelectedStyles}
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
-            numberOfImages={numberOfImages}
-            setNumberOfImages={setNumberOfImages}
-            quality={quality}
-            setQuality={setQuality}
-            seed={seed}
-            setSeed={setSeed}
-            sampler={sampler}
-            setSampler={setSampler}
-            negativePrompt={negativePrompt}
-            setNegativePrompt={setNegativePrompt}
-            qualityPresets={qualityPresets}
-            samplers={samplers}
-          />
-
-          {selectedImage && (
-            <ImageViewer
-              image={selectedImage}
-              onClose={() => setSelectedImage(null)}
-            />
-          )}
+      style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.container}>
+        {/* Header with Settings */}
+        <View className="flex-row justify-between items-center p-4">
+          <Text className="text-3xl font-bold" style={{ color: colors.text }}>
+            {appConfig.name}
+          </Text>
         </View>
-      </TouchableWithoutFeedback>
+
+        {/* Selected Styles Preview */}
+        {selectedStyles.length > 0 && (
+          <View className="px-4 mb-4">
+            <Text
+              style={{ color: colors.secondaryText }}
+              className="text-sm mb-2">
+              Selected Styles:
+            </Text>
+            <FlashList
+              horizontal
+              estimatedItemSize={100}
+              data={selectedStyles}
+              keyExtractor={item => item}
+              renderItem={({ item }) => (
+                <View
+                  style={{ backgroundColor: colors.primary + '20' }}
+                  className="px-3 py-1 rounded-full mr-2">
+                  <Text style={{ color: colors.primary }}>{item}</Text>
+                </View>
+              )}
+            />
+          </View>
+        )}
+
+        {/* Generated Images Grid */}
+        <View style={styles.listContainer}>
+          <FlashList
+            ref={flashListRef}
+            data={groupImagesByParameters(generatedImages)}
+            estimatedItemSize={300}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContentContainer}
+            renderItem={renderGroup}
+            ListEmptyComponent={<EmptyState />}
+            keyboardShouldPersistTaps="handled"
+            onScrollBeginDrag={Keyboard.dismiss}
+          />
+        </View>
+
+        {/* Bottom Input Area */}
+        <View style={styles.inputContainer}>
+          <View style={[styles.inputBox, { backgroundColor: colors.surface }]}>
+            <View className="flex-row items-center">
+              <TextInput
+                value={prompt}
+                onChangeText={setPrompt}
+                placeholder="Describe your vision..."
+                placeholderTextColor="#94a3b8"
+                style={[styles.textInput, { color: colors.text }]}
+                multiline
+                numberOfLines={3}
+              />
+              {prompt.length === 0 && (
+                <TouchableOpacity
+                  onPress={() => setShowPromptSuggestions(true)}
+                  className="pr-4">
+                  <Icon
+                    name="lightbulb-outline"
+                    size={24}
+                    color={colors.secondaryText}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            <View
+              className="flex-row justify-end p-2 border-t gap-2"
+              style={{ borderColor: colors.surface }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setShowAdvanced(true)}
+                style={[
+                  styles.advancedButton,
+                  { backgroundColor: colors.primary + '20' },
+                ]}>
+                <Icon name="tune" size={24} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleImageGeneration}
+                disabled={loading}
+                style={[
+                  styles.generateButton,
+                  {
+                    backgroundColor: loading
+                      ? colors.primary + '20'
+                      : colors.primary,
+                  },
+                ]}>
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Text className="text-white mr-2 font-medium">
+                      Generate
+                    </Text>
+                    <Icon name="magic-wand" color="white" />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Prompt Suggestions */}
+        <PromptSuggestions
+          visible={showPromptSuggestions}
+          setVisible={setShowPromptSuggestions}
+          onSelectPrompt={handleSelectPrompt}
+          colors={colors}
+        />
+
+        {/* Modals */}
+        <AdvancedSettings
+          visible={showAdvanced}
+          onClose={() => setShowAdvanced(false)}
+          selectedStyles={selectedStyles}
+          setSelectedStyles={setSelectedStyles}
+          aspectRatio={aspectRatio}
+          setAspectRatio={setAspectRatio}
+          numberOfImages={numberOfImages}
+          setNumberOfImages={setNumberOfImages}
+          quality={quality}
+          setQuality={setQuality}
+          seed={seed}
+          setSeed={setSeed}
+          sampler={sampler}
+          setSampler={setSampler}
+          negativePrompt={negativePrompt}
+          setNegativePrompt={setNegativePrompt}
+          qualityPresets={qualityPresets}
+          samplers={samplers}
+        />
+
+        {selectedImage && (
+          <ImageViewer
+            image={selectedImage}
+            onClose={() => setSelectedImage(null)}
+          />
+        )}
+      </View>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  listContainer: {
-    flex: 1,
-    paddingBottom: 180,
-  },
-  listContentContainer: {
-    paddingBottom: 200,
-  },
+  container: { flex: 1 },
+  listContainer: { flex: 1, paddingBottom: 20 },
+  listContentContainer: { paddingBottom: 200 },
   inputContainer: {
     position: 'absolute',
     bottom: 100,
@@ -612,7 +628,7 @@ const styles = StyleSheet.create({
   inputBox: {
     borderRadius: 24,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 12,
@@ -623,10 +639,7 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     flex: 1,
   },
-  advancedButton: {
-    padding: 12,
-    borderRadius: 16,
-  },
+  advancedButton: { padding: 12, borderRadius: 16 },
   generateButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -635,14 +648,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imagesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  imageWrapper: {
-    width: '50%',
-    padding: 6,
-  },
+  imagesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  imageWrapper: { width: '50%', padding: 6 },
 });
 
 export default HomeScreen;

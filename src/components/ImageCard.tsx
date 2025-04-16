@@ -8,11 +8,11 @@ import {
   ViewStyle,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import {GeneratedImage} from '@src/types';
 import {useThemeStore} from '@src/store/themeStore';
 import {theme} from '@src/theme/Theme';
 import {Animated, Easing} from 'react-native';
+import Icon from './Icon';
 
 interface ImageCardProps {
   image: GeneratedImage;

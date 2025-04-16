@@ -1,59 +1,83 @@
-import Config from 'react-native-config';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {auth} from './firebase.config';
 import {GoogleAuthProvider, signInWithCredential} from 'firebase/auth';
+import {auth} from './firebase.config';
+import Config from 'react-native-config';
+import {authManager} from '@src/services/authManager';
 
-export function configureGoogleAuth() {
-  GoogleSignin.configure({
-    webClientId: Config.GOOGLE_WEB_CLIENT_ID,
-    offlineAccess: true,
-    forceCodeForRefreshToken: true,
-    scopes: ['profile', 'email'],
-  });
-
-  console.log('Google Sign-In configured');
-  return true;
-}
+// Initialize Google Sign-In immediately
+GoogleSignin.configure({
+  webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: true, // Keep this for refresh tokens
+  forceCodeForRefreshToken: true,
+});
 
 export const googleAuth = {
-  signIn: async () => {
+  async signIn() {
     try {
-      // Get Google credentials
+      // Ensure configuration is set
+      GoogleSignin.configure({
+        webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+        offlineAccess: true,
+        forceCodeForRefreshToken: true,
+      });
+
+      // Check for Play Services
       await GoogleSignin.hasPlayServices();
+
+      // Get Google user
       const userInfo = await GoogleSignin.signIn();
+      console.log('Google sign-in successful:', userInfo.data?.user?.email);
 
-      // Get ID token from Google Sign-In
-      const {idToken} = await GoogleSignin.getTokens();
+      // Get ID token for Firebase auth
+      const {idToken, accessToken} = await GoogleSignin.getTokens();
 
-      // Create a Google credential for Firebase
+      // Create credential
       const googleCredential = GoogleAuthProvider.credential(idToken);
 
       // Sign in with Firebase
-      const result = await signInWithCredential(auth, googleCredential);
+      const firebaseUserCredential = await signInWithCredential(
+        auth,
+        googleCredential,
+      );
 
-      // Return proper user format
+      // Store auth data for persistence
+      await authManager.storeAuthData(firebaseUserCredential.user, accessToken);
+
       return {
+        success: true,
         data: {
-          user: {
-            id: result.user.uid, // Use Firebase UID
-            name:
-              userInfo?.data?.user.givenName || result.user.displayName || '',
-            email: userInfo?.data?.user.email || result.user.email || '',
-            photo: userInfo?.data?.user.photo || result.user.photoURL || '',
-          },
+          user: userInfo.data?.user,
+          firebaseUser: firebaseUserCredential.user,
         },
       };
     } catch (error) {
-      console.log('Google sign-in error:', error);
-      throw error;
+      console.error('Google Sign-In Error:', error);
+      return {success: false, error};
     }
   },
 
-  signOut: async () => {
+  async signOut() {
     try {
       await GoogleSignin.signOut();
+      // Clear stored auth data
+      authManager.clearAuthData();
+      return {success: true};
     } catch (error) {
-      console.log('Google sign-out error:', error);
+      console.error('Google Sign-Out Error:', error);
+      return {success: false, error};
+    }
+  },
+
+  async checkCurrentUser() {
+    try {
+      const currentUser = await GoogleSignin.getCurrentUser();
+      return {
+        success: !!currentUser,
+        data: currentUser,
+      };
+    } catch (error) {
+      console.error('Error checking current Google user:', error);
+      return {success: false, error};
     }
   },
 };
