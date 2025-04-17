@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   LayoutAnimation,
   TouchableOpacity,
   Image,
+  BackHandler,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { BlurView } from '@react-native-community/blur';
@@ -18,6 +19,7 @@ import { artStyles } from '@src/data/styles';
 import { aspectRatios } from '@src/data/ratio';
 import { AdvancedSettingsProps } from '@src/types';
 import { useThemeStore } from '@src/store/themeStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   visible,
@@ -150,7 +152,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   );
 
   // Close pickers when touching outside
-  const dismissAllPickers = () => {
+  const dismissAllPickers = React.useCallback(() => {
     if (showQualityPicker || showSamplerPicker) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setShowQualityPicker(false);
@@ -158,16 +160,60 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
       return true;
     }
     return false;
-  };
+  }, [showQualityPicker, showSamplerPicker]);
+
+  useEffect(() => {
+    const backAction = () => {
+      console.log('Back button pressed, modal visible:', visible); // Debug logging
+
+      if (!visible) { return false; }
+
+      // First handle open pickers
+      if (showQualityPicker || showSamplerPicker) {
+        console.log('Closing pickers');
+        dismissAllPickers();
+        return true;
+      }
+
+      // Close the modal if no pickers are open
+      console.log('Closing modal');
+      onClose();
+      return true;
+    };
+
+    // Add event listener with higher priority
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    // Make sure to clean up
+    return () => {
+      console.log('Removing back handler');
+      backHandler.remove();
+    };
+  }, [visible, showQualityPicker, showSamplerPicker, onClose, dismissAllPickers]);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View className="flex-1">
-        <BlurView
-          style={{ flex: 1, position: 'absolute', width: '100%', height: '100%' }}
-          blurType={isDark ? "dark" : "light"}
-          blurAmount={10}
-        />
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={() => {
+        // This provides an additional layer of back button handling
+        if (showQualityPicker || showSamplerPicker) {
+          dismissAllPickers();
+        } else {
+          onClose();
+        }
+      }}>
+      <BlurView
+        style={{ flex: 1, position: 'absolute', width: '100%', height: '100%' }}
+        blurType={isDark ? "dark" : "light"}
+        blurAmount={10}
+      />
+      <SafeAreaView className="flex-1">
         {/* Header */}
         <View className="flex-row justify-between items-center py-3 px-7">
           <View className="w-12 h-12" />
@@ -191,7 +237,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           style={{ elevation: 100 }}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ backgroundColor: colors.background }}
-          contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl pb-20"
+          contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl"
           removeClippedSubviews={false}
           scrollEventThrottle={16}
           overScrollMode="never">
@@ -442,7 +488,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             />
           </View>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };

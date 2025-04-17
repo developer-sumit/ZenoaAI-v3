@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import RNFS from 'react-native-fs';
 import { BlurView } from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
@@ -45,13 +45,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const [downloading, setDownloading] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [expandedPrompt, setExpandedPrompt] = React.useState(false);
-  const [fullscreenMode, setFullscreenMode] = useState(false);
+  const [fullscreenMode, setFullscreenMode] = React.useState(false);
 
-  // Track if image is loaded
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = React.useState(false);
 
-  // Add back button handler
-  useEffect(() => {
+  React.useEffect(() => {
     const backAction = () => {
       if (fullscreenMode) {
         setFullscreenMode(false);
