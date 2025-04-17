@@ -18,15 +18,7 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.sumit.zenoaai",
-            "certificate_hash": "4f3130985375f2f2b120ba7ad9fd46ddb9f1b866"
-          }
-        },
-        {
-          "client_id": "289072868964-ngh33mt05s7gvs21huic2dj6r9qo2kl8.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.sumit.zenoaai",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+            "certificate_hash": "a51bc4fc0ed1fa1740d3a1d25722f530eeb0ef98"
           }
         },
         {
