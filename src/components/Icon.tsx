@@ -1,5 +1,5 @@
 import React from 'react';
-import {ViewStyle} from 'react-native';
+import { ViewStyle } from 'react-native';
 import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
 import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -14,7 +14,6 @@ import ErrorIcon from '@src/assets/icons/ErrorIcon';
 import CheckCircleIcon from '@src/assets/icons/CheckCircleIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import SyncIcon from '@src/assets/icons/SyncIcon';
-import RobotExcitedIcon from '@src/assets/icons/RobotExcitedIcon';
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
 import MagicWandIcon from '@src/assets/icons/MagicWandIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
@@ -42,6 +41,9 @@ import ImageMultipleIcon from '@src/assets/icons/ImageMultipleIcon';
 import ImageMultipleOutlineIcon from '@src/assets/icons/ImageMultipleOutlineIcon';
 import RobotIcon from '@src/assets/icons/RobotIcon';
 import RobotOutlineIcon from '@src/assets/icons/RobotOutlineIcon';
+import FullscreenIcon from '@src/assets/icons/FullscreenIcon';
+import ChevronUpIcon from '@src/assets/icons/ChevronUpIcon';
+import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 
 export type IconName =
   | 'account'
@@ -56,6 +58,8 @@ export type IconName =
   | 'check-circle'
   | 'checkmark'
   | 'chevron-right'
+  | 'chevron-up'
+  | 'chevron-down'
   | 'circle'
   | 'close'
   | 'content-copy'
@@ -65,6 +69,7 @@ export type IconName =
   | 'error'
   | 'error-outline'
   | 'flash-on'
+  | 'fullscreen'
   | 'image'
   | 'image-multiple'
   | 'image-multiple-outline'
@@ -78,7 +83,6 @@ export type IconName =
   | 'refresh'
   | 'robot'
   | 'robot-outline'
-  | 'robot-excited'
   | 'seed'
   | 'sparkles'
   | 'star'
@@ -100,7 +104,7 @@ const Icon: React.FC<IconProps> = ({
   color = '#000000',
   style,
 }) => {
-  const props = {size, color, style};
+  const props = { size, color, style };
 
   switch (name) {
     case 'account':
@@ -129,6 +133,10 @@ const Icon: React.FC<IconProps> = ({
       return <CheckmarkIcon {...props} />;
     case 'chevron-right':
       return <ChevronRightIcon {...props} />;
+    case 'chevron-up':
+      return <ChevronUpIcon {...props} />;
+    case 'chevron-down':
+      return <ChevronDownIcon {...props} />;
     case 'circle':
       return <CircleIcon {...props} />;
     case 'close':
@@ -147,6 +155,8 @@ const Icon: React.FC<IconProps> = ({
       return <ErrorOutlineIcon {...props} />;
     case 'flash-on':
       return <FlashOnIcon {...props} />;
+    case 'fullscreen':
+      return <FullscreenIcon {...props} />;
     case 'image':
       return <ImageIcon {...props} />;
     case 'image-multiple':
@@ -171,8 +181,6 @@ const Icon: React.FC<IconProps> = ({
       return <RobotIcon {...props} />;
     case 'robot-outline':
       return <RobotOutlineIcon {...props} />;
-    case 'robot-excited':
-      return <RobotExcitedIcon {...props} />;
     case 'seed':
       return <SeedIcon {...props} />;
     case 'sparkles':

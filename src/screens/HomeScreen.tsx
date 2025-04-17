@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  StyleSheet,
   Dimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -28,6 +27,7 @@ import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import Toast from 'react-native-toast-message';
 import Icon from '@src/components/Icon';
+import EmptyState from '@src/components/EmptyState';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24; // Total horizontal padding
@@ -77,7 +77,7 @@ const HomeScreen = () => {
   }, [user?.id]);
 
   const loadUserImages = async () => {
-    if (!user?.id) return;
+    if (!user?.id) { return; }
 
     try {
       const images = await imageService.getUserImages(user.id);
@@ -376,11 +376,11 @@ const HomeScreen = () => {
 
       {/* Grid Layout with proper aspect ratio */}
       <View className="px-4">
-        <View style={styles.imagesGrid}>
+        <View className="flex-row flex-wrap">
           {item.items.map(image => (
             <View
               key={`${image.uri}_${image.index}_${image.timestamp}`}
-              style={styles.imageWrapper}>
+              className="w-1/2 p-1.5">
               {renderImageContent(image)}
             </View>
           ))}
@@ -389,78 +389,12 @@ const HomeScreen = () => {
     </View>
   );
 
-  const EmptyState = () => (
-    <View className="items-center justify-center py-20 flex-1 h-full">
-      <View className="relative w-[120px] h-[120px] items-center justify-center">
-        <Icon name="robot-excited" size={80} color={colors.primary} />
-        <View
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 15,
-            width: 12,
-            height: 12,
-            borderRadius: 6,
-            backgroundColor: colors.primary + '40',
-          }}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 15,
-            left: 10,
-            width: 12,
-            height: 12,
-            borderRadius: 6,
-            backgroundColor: colors.primary + '40',
-          }}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            top: 30,
-            left: 5,
-            width: 12,
-            height: 12,
-            borderRadius: 6,
-            backgroundColor: colors.primary + '40',
-          }}
-        />
-      </View>
-
-      <Text
-        style={{ color: colors.text }}
-        className="text-2xl font-semibold mt-6 mb-3">
-        Create your first AI image
-      </Text>
-      <Text
-        style={{ color: colors.secondaryText }}
-        className="text-center mx-10 mb-6 text-base">
-        Describe what you'd like to see, then tap the Generate button below
-      </Text>
-
-      <View className="mt-4 w-full px-8">
-        <View
-          style={{
-            backgroundColor: colors.surface + '80',
-            borderWidth: 1,
-            borderColor: colors.primary + '30',
-          }}
-          className="p-4 rounded-xl mb-3">
-          <Text style={{ color: colors.text }}>
-            <Text style={{ color: colors.primary }}>Tip:</Text> Try adding styles
-            like "digital art", "watercolor", "oil painting" or "photorealistic"
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.container}>
+      className="flex-1"
+      style={{ backgroundColor: colors.background }}>
+      <View className="flex-1">
         {/* Header with Settings */}
         <View className="flex-row justify-between items-center p-4">
           <Text className="text-3xl font-bold" style={{ color: colors.text }}>
@@ -493,30 +427,40 @@ const HomeScreen = () => {
         )}
 
         {/* Generated Images Grid */}
-        <View style={styles.listContainer}>
+        <View className="flex-1 pb-5">
           <FlashList
             ref={flashListRef}
             data={groupImagesByParameters(generatedImages)}
             estimatedItemSize={300}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContentContainer}
+            contentContainerStyle={{ paddingBottom: 200 }}
             renderItem={renderGroup}
-            ListEmptyComponent={<EmptyState />}
+            ListEmptyComponent={<EmptyState colors={colors} />}
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
           />
         </View>
 
         {/* Bottom Input Area */}
-        <View style={styles.inputContainer}>
-          <View style={[styles.inputBox, { backgroundColor: colors.surface }]}>
+        <View className="absolute bottom-[100px] left-0 right-0 px-4 py-2 z-10">
+          <View
+            className="rounded-3xl shadow-md"
+            style={{
+              backgroundColor: colors.surface,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 3,
+              elevation: 12,
+            }}>
             <View className="flex-row items-center">
               <TextInput
                 value={prompt}
                 onChangeText={setPrompt}
                 placeholder="Describe your vision..."
                 placeholderTextColor="#94a3b8"
-                style={[styles.textInput, { color: colors.text }]}
+                className="text-lg p-4 max-h-[120px] flex-1"
+                style={{ color: colors.text }}
                 multiline
                 numberOfLines={3}
               />
@@ -538,24 +482,18 @@ const HomeScreen = () => {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => setShowAdvanced(true)}
-                style={[
-                  styles.advancedButton,
-                  { backgroundColor: colors.primary + '20' },
-                ]}>
+                className="p-3 rounded-2xl"
+                style={{ backgroundColor: colors.primary + '20' }}>
                 <Icon name="tune" size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleImageGeneration}
                 disabled={loading}
-                style={[
-                  styles.generateButton,
-                  {
-                    backgroundColor: loading
-                      ? colors.primary + '20'
-                      : colors.primary,
-                  },
-                ]}>
+                className="py-3 px-6 rounded-3xl flex-row items-center justify-center"
+                style={{
+                  backgroundColor: loading ? colors.primary + '20' : colors.primary,
+                }}>
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
@@ -605,51 +543,12 @@ const HomeScreen = () => {
           <ImageViewer
             image={selectedImage}
             onClose={() => setSelectedImage(null)}
+            onImageDeleted={loadUserImages}
           />
         )}
       </View>
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  listContainer: { flex: 1, paddingBottom: 20 },
-  listContentContainer: { paddingBottom: 200 },
-  inputContainer: {
-    position: 'absolute',
-    bottom: 100,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    zIndex: 10,
-  },
-  inputBox: {
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 12,
-  },
-  textInput: {
-    fontSize: 18,
-    padding: 16,
-    maxHeight: 120,
-    flex: 1,
-  },
-  advancedButton: { padding: 12, borderRadius: 16 },
-  generateButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imagesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  imageWrapper: { width: '50%', padding: 6 },
-});
 
 export default HomeScreen;
