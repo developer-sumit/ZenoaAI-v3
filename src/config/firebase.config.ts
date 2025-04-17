@@ -7,7 +7,7 @@ import {MMKV} from 'react-native-mmkv';
 // Create MMKV instance with a specific ID for auth
 export const authStorage = new MMKV({
   id: 'auth-storage',
-  encryptionKey: 'your-app-encryption-key' // Optional but recommended for security
+  encryptionKey: 'your-app-encryption-key', // Optional but recommended for security
 });
 
 const firebaseConfig = {

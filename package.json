@@ -11,12 +11,13 @@
     "test": "jest",
     "clean": "react-native clean",
     "build:ios": "react-native build-ios --mode \"Release\"",
-    "build:aab": "react-native build-android --mode=release",
-    "build:apk": "react-native run-android -- --mode='release'",
-    "prebuild:android": "node node_modules/react-native/local-cli/cli.js bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/build/intermediates/res/merged/release/"
+    "build:apk": "cd android && gradlew assembleRelease",
+    "build:aab": "cd android && gradlew bundleRelease",
+    "prebuild:android": "node node_modules/react-native/local-cli/cli.js bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/build/intermediates/res/merged/release/",
+    "optimize-bundle": "npx react-native-bundle-visualizer",
+    "logcat": "npx react-native log-android"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^1.24.0",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-google-signin/google-signin": "^13.2.0",
@@ -60,6 +61,7 @@
     "prettier": "2.8.8",
     "react-native-config": "^1.5.3",
     "react-test-renderer": "18.3.1",
+    "sharp": "^0.34.1",
     "tailwindcss": "^3.3.2",
     "typescript": "5.0.4"
   },

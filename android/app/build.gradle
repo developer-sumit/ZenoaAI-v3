@@ -62,11 +62,6 @@ react {
 }
 
 /**
- * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
- */
-def enableProguardInReleaseBuilds = true
-
-/**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
  * For example, to use the international variant, you can use:
@@ -122,15 +117,11 @@ android {
         }
     }
     splits {
-        // density {
-        //     enable true
-        //     compatibleScreens 'hdpi', 'xhdpi', 'xxhdpi'
-        // }
         abi {
             enable true
-            reset()     // Optional: if you want to reset the splits for ABI.
+            reset()
             include "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
-            universalApk true  // If true, also generate a universal APK
+            universalApk false
         }
     }
     buildTypes {
@@ -138,15 +129,18 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.release
             crunchPngs true
-            shrinkResources true
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+
+    aaptOptions {
+        cruncherEnabled true
+    }
+
     bundle {
         density {
             // Optimize for different screen densities

@@ -88,7 +88,21 @@ GOOGLE_WEB_CLIENT_ID=your_google_web_client_id
 
 ### Keystore Setup for Android
 
-1. Create a `keystore.properties` file in the `android/` directory with the following content:
+1. Create a keystore file using the following command:
+
+   ```bash
+   keytool -genkeypair -v -storetype PKCS12 -keystore zenoa-release-key.keystore -alias zenoa-key-alias -keyalg RSA -keysize 2048 -validity 36500
+   ```
+   
+   This command creates a keystore with a validity of 100 years (36500 days) and:
+   - `-genkeypair`: Generates a key pair (public/private keys)
+   - `-storetype PKCS12`: Uses the more secure PKCS12 format
+   - `-keystore zenoa-release-key.keystore`: Names your keystore file
+   - `-alias zenoa-key-alias`: Sets the alias for the key
+   - `-keyalg RSA`: Uses RSA algorithm for the key
+   - `-keysize 2048`: Sets the key size to 2048 bits (secure standard)
+
+2. Create a `keystore.properties` file in the `android/` directory with the following content:
 
    ```
    storePassword=your_keystore_password
@@ -97,11 +111,11 @@ GOOGLE_WEB_CLIENT_ID=your_google_web_client_id
    storeFile=your_keystore_filename.keystore
    ```
 
-2. Place your release keystore file in the `app` directory
-3. **IMPORTANT**: Add `keystore.properties` and your keystore file to `.gitignore`
-4. Update your Google Services configuration:
+3. Place your release keystore file in the `android/app` directory
+4. **IMPORTANT**: Add `keystore.properties` and your keystore file to `.gitignore`
+5. Update your Google Services configuration:
    - Download `google-services.json` from Firebase console
-   - Place it in the `app` directory
+   - Place it in the `android/app` directory
    - Make sure this file is included in version control (it doesn't contain secrets)
 
 ### Running the App
