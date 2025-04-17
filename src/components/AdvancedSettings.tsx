@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   const [selectedRatio, setSelectedRatio] = useState(aspectRatio);
   const [showQualityPicker, setShowQualityPicker] = useState(false);
   const [showSamplerPicker, setShowSamplerPicker] = useState(false);
+
+  const seedInputRef = useRef<TextInput>(null);
+  const negativePromptRef = useRef<TextInput>(null);
 
   const keyExtractor = React.useCallback((item: any) => item.name, []);
 
@@ -146,12 +149,23 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
     [aspectRatios, aspectRatio, colors, isDark, setAspectRatio],
   );
 
+  // Close pickers when touching outside
+  const dismissAllPickers = () => {
+    if (showQualityPicker || showSamplerPicker) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setShowQualityPicker(false);
+      setShowSamplerPicker(false);
+      return true;
+    }
+    return false;
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View className="flex-1">
         <BlurView
           style={{ flex: 1, position: 'absolute', width: '100%', height: '100%' }}
-          blurType="light"
+          blurType={isDark ? "dark" : "light"}
           blurAmount={10}
         />
         {/* Header */}
@@ -161,7 +175,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             Advanced Settings
           </Text>
           <TouchableOpacity
-            onPress={onClose}
+            onPress={() => {
+              dismissAllPickers();
+              onClose();
+            }}
             style={{ backgroundColor: colors.surface }}
             className="p-2 rounded-full">
             <Icon name="close" size={24} color={colors.text} />
@@ -172,9 +189,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           showsVerticalScrollIndicator={false}
           className="flex-1 m-4 rounded-3xl"
           style={{ elevation: 100 }}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ backgroundColor: colors.background }}
-          contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl"
-          removeClippedSubviews={true}
+          contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl pb-20"
+          removeClippedSubviews={false}
           scrollEventThrottle={16}
           overScrollMode="never">
           {/* Style Grid */}
@@ -392,12 +410,13 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               Seed
             </Text>
             <TextInput
+              ref={seedInputRef}
               value={seed}
               onChangeText={setSeed}
               placeholder="Random"
               keyboardType="numeric"
-              className="p-5 rounded-2xl dark:text-white"
-              style={{ backgroundColor: colors.surface }}
+              className="p-5 rounded-2xl"
+              style={{ backgroundColor: colors.surface, color: colors.text }}
               placeholderTextColor="#6B7280"
             />
           </View>
@@ -410,12 +429,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               Negative Prompt
             </Text>
             <TextInput
+              ref={negativePromptRef}
               value={negativePrompt}
               onChangeText={setNegativePrompt}
               placeholder="What to exclude..."
               multiline
-              className="p-5 rounded-2xl dark:text-white"
-              style={{ backgroundColor: colors.surface }}
+              numberOfLines={4}
+              className="p-5 rounded-2xl"
+              textAlignVertical="top"
+              style={{ backgroundColor: colors.surface, color: colors.text, minHeight: 100 }}
               placeholderTextColor="#6B7280"
             />
           </View>
