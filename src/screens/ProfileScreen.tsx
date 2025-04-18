@@ -15,7 +15,10 @@ import appConfig from '@src/config/app.config';
 import { useThemeStore } from '@src/store/themeStore';
 import { useNavigation } from '@react-navigation/native';
 import Routes from '@src/constants/routes';
-import Icon from '@src/components/Icon';
+import PersonIcon from '@src/assets/icons/PersonIcon';
+import ChevronRightIcon from '@src/assets/icons/ChevronRightIcon';
+import DarkModeIcon from '@src/assets/icons/DarkModeIcon';
+import LightModeIcon from '@src/assets/icons/LightModeIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -143,15 +146,14 @@ const ProfileScreen = () => {
           onPress={handleEditProfile}>
           <View className="flex-row justify-between items-center">
             <View className="flex-row items-center">
-              <Icon
-                name="person"
+              <PersonIcon
                 size={20}
                 color={colors.primary}
                 style={{ marginRight: 10 }}
               />
               <Text style={{ color: colors.text }}>Edit Profile</Text>
             </View>
-            <Icon name="chevron-right" size={20} color={colors.secondaryText} />
+            <ChevronRightIcon size={20} color={colors.secondaryText} />
           </View>
         </TouchableOpacity>
 
@@ -159,12 +161,20 @@ const ProfileScreen = () => {
         <View
           className="flex-row justify-between items-center py-3">
           <View className="flex-row items-center">
-            <Icon
-              name={isDark ? 'dark-mode' : 'light-mode'}
-              size={20}
-              color={colors.primary}
-              style={{ marginRight: 10 }}
-            />
+            {
+              isDark ?
+                <DarkModeIcon
+                  size={20}
+                  color={colors.primary}
+                  style={{ marginRight: 10 }}
+                />
+                :
+                <LightModeIcon
+                  size={20}
+                  color={colors.primary}
+                  style={{ marginRight: 10 }}
+                />
+            }
             <Text style={{ color: colors.text }}>Dark Mode</Text>
           </View>
           <TouchableOpacity

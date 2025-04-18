@@ -18,8 +18,9 @@ import appConfig from '@src/config/app.config';
 import Routes from '@src/constants/routes';
 import { BlurView } from '@react-native-community/blur';
 import Toast from 'react-native-toast-message';
-import Icon from '@src/components/Icon';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import SparklesIcon from '@src/assets/icons/SparklesIcon';
+import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -119,8 +120,7 @@ const LoginScreen = () => {
         }}>
         {/* App Logo/Title */}
         <View className="items-center mb-16">
-          <Icon
-            name="sparkles"
+          <SparklesIcon
             size={64}
             color={colors.primary}
             style={{ marginBottom: 16 }}
@@ -144,7 +144,7 @@ const LoginScreen = () => {
             onPress={handleGoogleSignIn}
             style={{ backgroundColor: colors.surface }}
             className="flex-row items-center justify-center p-4 rounded-2xl mb-4">
-            <Icon name="logo-google" size={24} color={colors.text} />
+            <GoogleLogoIcon size={24} color={colors.text} />
             <Text style={{ color: colors.text }} className="ml-3 text-lg">
               Continue with Google
             </Text>

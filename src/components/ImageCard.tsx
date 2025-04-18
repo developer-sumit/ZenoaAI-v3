@@ -11,7 +11,8 @@ import { GeneratedImage } from '@src/types';
 import { useThemeStore } from '@src/store/themeStore';
 import { theme } from '@src/theme/Theme';
 import { Animated, Easing } from 'react-native';
-import Icon from './Icon';
+import SyncIcon from '@src/assets/icons/SyncIcon';
+import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
 
 interface ImageCardProps {
   image: GeneratedImage;
@@ -43,7 +44,7 @@ const SyncIndicator = ({ color }: { color: string }) => {
 
   return (
     <Animated.View style={{ transform: [{ rotate }] }}>
-      <Icon name="sync" size={16} color={color} />
+      <SyncIcon size={16} color={color} />
     </Animated.View>
   );
 };
@@ -101,7 +102,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
         <View
           className="absolute inset-0 justify-center items-center z-10"
           style={{ backgroundColor: colors.surface }}>
-          <Icon name="broken-image" size={32} color="#ef4444" />
+          <BrokenImageIcon size={32} color="#ef4444" />
           <Text
             className="mt-2 text-xs"
             style={{ color: colors.secondaryText }}>

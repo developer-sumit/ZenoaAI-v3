@@ -8,7 +8,7 @@ import { useAuthStore } from '@src/store/authStore';
 import { theme } from '@src/theme/Theme';
 import { userService } from '@src/services/userService';
 import Toast from 'react-native-toast-message';
-import Icon from '@src/components/Icon';
+import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
@@ -93,7 +93,7 @@ const EditProfileScreen = () => {
             style={{ backgroundColor: colors.surface }}
             onPress={() => navigation.goBack()}
           >
-            <Icon name="arrow-back" size={20} color={colors.text} />
+            <ArrowBackIcon size={20} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-xl font-semibold tracking-tight" style={{ color: colors.text }}>
             Edit Profile

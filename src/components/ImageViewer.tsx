@@ -23,8 +23,22 @@ import { useAuthStore } from '@src/store/authStore';
 import appConfig from '@src/config/app.config';
 import { imageService } from '@src/services/imageService';
 import Toast from 'react-native-toast-message';
-import Icon, { IconName } from './Icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import CloseIcon from '@src/assets/icons/CloseIcon';
+import ContentCopyIcon from '@src/assets/icons/ContentCopyIcon';
+import DownloadIcon from '@src/assets/icons/DownloadIcon';
+import FullscreenIcon from '@src/assets/icons/FullscreenIcon';
+import DeleteOutlineIcon from '@src/assets/icons/DeleteOutlineIcon';
+import PaletteIcon from '@src/assets/icons/PaletteIcon';
+import ChevronUpIcon from '@src/assets/icons/ChevronUpIcon';
+import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
+import SeedIcon from '@src/assets/icons/SeedIcon';
+import TuneIcon from '@src/assets/icons/TuneIcon';
+import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
+import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
+
+type IconName = 'seed' | 'tune' | 'aspect-ratio' | 'chart-donut';
 
 interface ImageViewerProps {
   image: GeneratedImage | null;
@@ -246,7 +260,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
             style={{ top: StatusBar.currentHeight || 40 }}
           >
-            <Icon name="close" size={28} color="white" />
+            <CloseIcon size={28} color="white" />
           </TouchableOpacity>
         </View>
       </Modal>
@@ -282,7 +296,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             className="p-2.5 rounded-full"
             style={{ backgroundColor: colors.surface }}
           >
-            <Icon name="close" size={24} color={colors.text} />
+            <CloseIcon size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -311,7 +325,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             />
             {imageLoaded && (
               <View className="absolute top-2.5 right-2.5 bg-black/40 rounded-3xl p-2">
-                <Icon name="fullscreen" size={24} color="white" />
+                <FullscreenIcon size={24} color="white" />
               </View>
             )}
           </TouchableOpacity>
@@ -344,21 +358,17 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 onPress={togglePromptExpansion}
                 className="p-1"
               >
-                <Icon
-                  name={expandedPrompt ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={colors.secondaryText}
-                />
+                {expandedPrompt ?
+                  <ChevronUpIcon size={18} color={colors.secondaryText} />
+                  :
+                  <ChevronDownIcon size={18} color={colors.secondaryText} />
+                }
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => copyToClipboard(image?.prompt || '')}
                 className="p-1 ml-2"
               >
-                <Icon
-                  name="content-copy"
-                  size={18}
-                  color={colors.secondaryText}
-                />
+                <ContentCopyIcon size={18} color={colors.secondaryText} />
               </TouchableOpacity>
             </View>
           </View>
@@ -396,7 +406,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 className="flex-row items-center rounded-full px-3 py-1.5"
                 style={{ backgroundColor: colors.primary + '20' }}
               >
-                <Icon name="palette" size={14} color={colors.primary} />
+                <PaletteIcon size={14} color={colors.primary} />
                 <Text className="ml-1 text-sm" style={{ color: colors.primary }}>
                   {style}
                 </Text>
@@ -417,7 +427,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <ActivityIndicator color={colors.secondary} size="small" />
               ) : (
                 <>
-                  <Icon name="delete-outline" size={22} color="#ef4444" />
+                  <DeleteOutlineIcon size={22} color="#ef4444" />
                   <Text style={{ color: '#ef4444', fontWeight: '500', fontSize: 15 }}>
                     Delete
                   </Text>
@@ -431,7 +441,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
               style={{ backgroundColor: colors.surface }}
             >
-              <Icon name="fullscreen" size={22} color={colors.text} />
+              <FullscreenIcon size={22} color={colors.text} />
               <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }}>
                 Fullscreen
               </Text>
@@ -448,7 +458,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <ActivityIndicator color="white" />
               ) : (
                 <>
-                  <Icon name="download" size={22} color="white" />
+                  <DownloadIcon size={22} color="white" />
                   <View>
                     <Text className="text-white font-medium text-[15px]">Download</Text>
                   </View>
@@ -476,12 +486,27 @@ const MetadataItem = ({
   const { isDark } = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
 
+  const renderIcon = () => {
+    switch (icon) {
+      case 'seed':
+        return <SeedIcon size={16} color={colors.text} />;
+      case 'tune':
+        return <TuneIcon size={16} color={colors.text} />;
+      case 'aspect-ratio':
+        return <AspectRatioIcon size={16} color={colors.text} />;
+      case 'chart-donut':
+        return <ChartDonutIcon size={16} color={colors.text} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <View
       className="flex-row items-center gap-2 rounded-2xl p-2.5 flex-1 min-w-[45%]"
       style={{ backgroundColor: colors.surface }}
     >
-      <Icon name={icon} size={16} color={colors.text} />
+      {renderIcon()}
       <View className="flex-1">
         <Text className="text-xs" style={{ color: colors.secondaryText }}>
           {label}
@@ -495,7 +520,7 @@ const MetadataItem = ({
               onPress={onCopy}
               className="p-1"
             >
-              <Icon name="content-copy" size={14} color={colors.text} />
+              <ContentCopyIcon size={14} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
