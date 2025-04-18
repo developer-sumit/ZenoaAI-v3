@@ -1,11 +1,11 @@
 import React from 'react';
-import {BlurView} from '@react-native-community/blur';
-import {Text, TouchableOpacity, View, StyleSheet} from 'react-native';
+import { BlurView } from '@react-native-community/blur';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import Icon from './Icon';
-import {theme} from '@src/theme/Theme';
+import { theme } from '@src/theme/Theme';
 import Routes from '@src/constants/routes';
-import {useThemeStore} from '@src/store/themeStore';
+import { useThemeStore } from '@src/store/themeStore';
 
 const getIconName = (routeName: string, focused: boolean) => {
   switch (routeName) {
@@ -20,19 +20,30 @@ const getIconName = (routeName: string, focused: boolean) => {
   }
 };
 
-export default function CustomTabBar({state, navigation}: any) {
-  const {isDark} = useThemeStore();
+export default function CustomTabBar({ state, navigation }: any) {
+  const { isDark } = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
 
   return (
-    <View style={[styles.tabBarContainer, {backgroundColor: colors.surface}]}>
+    <View
+      className="absolute bottom-0 w-full overflow-hidden"
+      style={{
+        backgroundColor: colors.surface,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 10,
+      }}
+    >
       <BlurView
-        style={styles.blurView}
+        style={{ position: 'absolute', height: '100%', width: '100%', }}
         blurType="light"
         blurAmount={20}
         overlayColor="transparent"
       />
-      <View style={styles.tabsWrapper}>
+
+      <View className="flex-row w-full py-2">
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
           const onPress = () => {
@@ -51,24 +62,28 @@ export default function CustomTabBar({state, navigation}: any) {
             <TouchableOpacity
               key={route.name}
               onPress={onPress}
-              style={styles.tabButton}>
+              className="flex-1 items-center justify-center"
+            >
               <View
-                style={[
-                  styles.iconContainer,
-                  {
-                    backgroundColor: isFocused
-                      ? colors.primary + '15'
-                      : 'transparent',
-                  },
-                ]}>
+                className="w-14 h-14 aspect-square rounded-full items-center justify-center overflow-hidden"
+                style={{
+                  backgroundColor: isFocused
+                    ? colors.primary + '15'
+                    : 'transparent',
+                }}
+              >
                 <Icon
                   name={getIconName(route.name, isFocused)}
                   size={28}
                   color={isFocused ? colors.primary : '#64748b'}
                 />
               </View>
+
               {isFocused && (
-                <Text style={[styles.tabLabel, {color: colors.text}]}>
+                <Text
+                  className="text-xs mt-1 font-medium"
+                  style={{ color: colors.text }}
+                >
                   {route.name}
                 </Text>
               )}
@@ -79,47 +94,3 @@ export default function CustomTabBar({state, navigation}: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBarContainer: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 10,
-  },
-  blurView: {
-    position: 'absolute',
-    height: '100%',
-    width: '100%',
-  },
-  tabsWrapper: {
-    flexDirection: 'row',
-    width: '100%',
-    paddingVertical: 8,
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabLabel: {
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-});
