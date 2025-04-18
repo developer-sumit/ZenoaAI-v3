@@ -1,26 +1,25 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
-import {MasonryFlashList} from '@shopify/flash-list';
+import { useFocusEffect } from '@react-navigation/native';
+import { MasonryFlashList } from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
-import {useAuthStore} from '@src/store/authStore';
-import {imageService} from '@src/services/imageService';
-import {GeneratedImage} from '@src/types';
+import { theme } from '@src/theme/Theme';
+import { useThemeStore } from '@src/store/themeStore';
+import { useAuthStore } from '@src/store/authStore';
+import { imageService } from '@src/services/imageService';
+import { GeneratedImage } from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
 import Toast from 'react-native-toast-message';
 import Icon from '@src/components/Icon';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const NUM_COLUMNS = 2;
 const SPACING = 12; // Spacing between columns
 // Total spacing (outer edges + between columns)
@@ -28,8 +27,8 @@ const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
 const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
 const GalleryScreen = () => {
-  const {isDark} = useThemeStore();
-  const {user} = useAuthStore();
+  const { isDark } = useThemeStore();
+  const { user } = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
 
   const [images, setImages] = useState<GeneratedImage[]>([]);
@@ -49,7 +48,7 @@ const GalleryScreen = () => {
   );
 
   const fetchUserImages = async () => {
-    if (!user?.id) return;
+    if (!user?.id) { return; }
 
     try {
       setLoading(true);
@@ -115,23 +114,22 @@ const GalleryScreen = () => {
       item,
     }: {
       item: GeneratedImage & {
-        dimensions: {width: number; height: number; aspectRatio: number};
+        dimensions: { width: number; height: number; aspectRatio: number };
       };
     }) => (
       <TouchableOpacity
-        style={styles.imageWrapper}
+        className="mb-3"
         onPress={() => setSelectedImage(item)}>
         <View
-          style={[
-            styles.imageContainer,
-            {
-              width: item.dimensions.width,
-              height: item.dimensions.height,
-            },
-          ]}>
+          className="overflow-hidden rounded-[20px]"
+          style={{
+            width: item.dimensions.width,
+            height: item.dimensions.height,
+            backgroundColor: '#f0f0f0',
+          }}>
           <FastImage
-            source={{uri: item.uri}}
-            style={styles.image}
+            source={{ uri: item.uri }}
+            style={{ width: '100%', height: '100%' }}
             resizeMode={FastImage.resizeMode.cover}
           />
         </View>
@@ -143,12 +141,12 @@ const GalleryScreen = () => {
   // Empty state when no images are available
   const EmptyState = useCallback(
     () => (
-      <View style={styles.emptyContainer}>
+      <View className="flex-1 justify-center items-center px-8">
         <Icon name="photo-library" size={60} color={colors.primary} />
-        <Text style={[styles.emptyTitle, {color: colors.text}]}>
+        <Text className="text-xl font-bold mt-4 mb-2" style={{ color: colors.text }}>
           No images yet
         </Text>
-        <Text style={[styles.emptyText, {color: colors.secondaryText}]}>
+        <Text className="text-base text-center" style={{ color: colors.secondaryText }}>
           Images you generate will appear here
         </Text>
       </View>
@@ -157,16 +155,18 @@ const GalleryScreen = () => {
   );
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.background}]}>
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, {color: colors.text}]}>Gallery</Text>
+      <View className="px-4 py-4 flex-row items-center justify-between">
+        <Text className="text-2xl font-bold" style={{ color: colors.text }}>
+          Gallery
+        </Text>
       </View>
 
       {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, {color: colors.text}]}>
+          <Text className="mt-3 text-base" style={{ color: colors.text }}>
             Loading your images...
           </Text>
         </View>
@@ -180,7 +180,8 @@ const GalleryScreen = () => {
           renderItem={renderItem}
           estimatedItemSize={250}
           contentContainerStyle={{
-            ...styles.gridContainer,
+            paddingBottom: 100,
+            paddingTop: SPACING,
             paddingHorizontal: SPACING,
           }}
           showsVerticalScrollIndicator={false}
@@ -201,63 +202,5 @@ const GalleryScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  gridContainer: {
-    paddingBottom: 100,
-    paddingTop: SPACING,
-  },
-  imageWrapper: {
-    marginBottom: SPACING,
-  },
-  imageContainer: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-});
 
 export default GalleryScreen;
