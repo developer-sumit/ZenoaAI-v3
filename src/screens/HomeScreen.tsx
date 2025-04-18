@@ -30,7 +30,7 @@ import Icon from '@src/components/Icon';
 import EmptyState from '@src/components/EmptyState';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const PADDING = 24; // Total horizontal padding
+const PADDING = 24;
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
@@ -81,7 +81,6 @@ const HomeScreen = () => {
 
     try {
       const images = await imageService.getUserImages(user.id);
-      // Explicitly cast to unknown first, then filter and cast to GeneratedImage
       const typedImages = images as unknown as Partial<GeneratedImage>[];
       const validImages = typedImages.filter(
         (img): img is GeneratedImage =>
@@ -266,6 +265,31 @@ const HomeScreen = () => {
     }
   };
 
+  const reusePromptAndSettings = (item: {
+    parameters: {
+      prompt: string;
+      styles: string[];
+      aspectRatio: AspectRatioType;
+    };
+  }) => {
+    setPrompt(item.parameters.prompt);
+    setSelectedStyles(item.parameters.styles);
+    setAspectRatio(item.parameters.aspectRatio);
+
+    // Auto scroll to input
+    setTimeout(() => {
+      if (flashListRef.current) {
+        flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+    }, 300);
+
+    Toast.show({
+      type: 'info',
+      text1: 'Settings copied',
+      text2: 'Ready to generate new images',
+    });
+  };
+
   const groupImagesByParameters = (images: GeneratedImage[]) => {
     const groups: { [key: string]: GeneratedImage[] } = {};
 
@@ -334,10 +358,7 @@ const HomeScreen = () => {
         <ImageCard
           image={image}
           onPress={() => setSelectedImage(image)}
-          style={{
-            width: '100%',
-            height: imageHeight,
-          }}
+          style={{ width: '100%', height: imageHeight }}
         />
       );
     }
@@ -348,30 +369,41 @@ const HomeScreen = () => {
   }: {
     item: ReturnType<typeof groupImagesByParameters>[number];
   }) => (
-    <View className="flex-1 mb-8">
-      <View className="px-4 mb-4">
-        <View className="flex-row items-center justify-between mb-2">
+    <View className="mb-8">
+      {/* Header with Prompt Info and Action Buttons */}
+      <View className="px-4">
+        <View className="flex-row items-center justify-between gap-3">
           <Text
             style={{ color: colors.text }}
-            className="text-lg font-semibold"
+            className="text-lg font-semibold mb-2 flex-1"
             numberOfLines={1}
             ellipsizeMode="tail">
             {item.parameters.prompt}
           </Text>
+
+          <TouchableOpacity
+            onPress={() => reusePromptAndSettings(item)}
+            className="p-2 rounded-full"
+            style={{ backgroundColor: colors.surface }}>
+            <Icon name="refresh" size={20} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
-        <View className="flex-row flex-wrap gap-2">
-          {item.parameters.styles.map(style => (
-            <View
-              key={style}
-              style={{ backgroundColor: colors.primary + '20' }}
-              className="px-2 py-1 rounded-full">
-              <Text style={{ color: colors.primary }} className="text-xs">
-                {style}
-              </Text>
-            </View>
-          ))}
-        </View>
+        {/* Tags/Styles */}
+        {item.parameters.styles.length > 0 && (
+          <View className="flex-row flex-wrap gap-1.5 mb-1.5">
+            {item.parameters.styles.map(style => (
+              <View
+                key={style}
+                className="py-1 px-3 rounded-full"
+                style={{ backgroundColor: colors.primary + '15' }}>
+                <Text style={{ color: colors.primary }} className="text-xs">
+                  {style}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Grid Layout with proper aspect ratio */}
@@ -402,30 +434,6 @@ const HomeScreen = () => {
           </Text>
         </View>
 
-        {/* Selected Styles Preview */}
-        {selectedStyles.length > 0 && (
-          <View className="px-4 mb-4">
-            <Text
-              style={{ color: colors.secondaryText }}
-              className="text-sm mb-2">
-              Selected Styles:
-            </Text>
-            <FlashList
-              horizontal
-              estimatedItemSize={100}
-              data={selectedStyles}
-              keyExtractor={item => item}
-              renderItem={({ item }) => (
-                <View
-                  style={{ backgroundColor: colors.primary + '20' }}
-                  className="px-3 py-1 rounded-full mr-2">
-                  <Text style={{ color: colors.primary }}>{item}</Text>
-                </View>
-              )}
-            />
-          </View>
-        )}
-
         {/* Generated Images Grid */}
         <View className="flex-1 pb-5">
           <FlashList
@@ -442,7 +450,7 @@ const HomeScreen = () => {
         </View>
 
         {/* Bottom Input Area */}
-        <View className="absolute bottom-[100px] left-0 right-0 px-4 py-2 z-10">
+        <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
             style={{
@@ -476,6 +484,28 @@ const HomeScreen = () => {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Selected Styles Pills */}
+            {selectedStyles.length > 0 && (
+              <View className="flex-row flex-wrap gap-1.5 px-4 pb-2">
+                {selectedStyles.map(style => (
+                  <TouchableOpacity
+                    key={style}
+                    style={{ backgroundColor: colors.primary + '15' }}
+                    onPress={() => setSelectedStyles(styles => styles.filter(s => s !== style))}
+                    className="py-1 px-3 rounded-full flex-row items-center">
+                    <Text style={{ color: colors.primary }} className="text-xs">
+                      {style}
+                    </Text>
+                    <View
+                      className="ml-1.5">
+                      <Icon name="close" size={12} color={colors.primary} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             <View
               className="flex-row justify-end p-2 border-t gap-2"
               style={{ borderColor: colors.surface }}>
