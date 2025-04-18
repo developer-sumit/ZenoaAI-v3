@@ -4,14 +4,13 @@ import {
   View,
   Text,
   ActivityIndicator,
-  StyleSheet,
   ViewStyle,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import {GeneratedImage} from '@src/types';
-import {useThemeStore} from '@src/store/themeStore';
-import {theme} from '@src/theme/Theme';
-import {Animated, Easing} from 'react-native';
+import { GeneratedImage } from '@src/types';
+import { useThemeStore } from '@src/store/themeStore';
+import { theme } from '@src/theme/Theme';
+import { Animated, Easing } from 'react-native';
 import Icon from './Icon';
 
 interface ImageCardProps {
@@ -20,7 +19,7 @@ interface ImageCardProps {
   style?: ViewStyle;
 }
 
-const SyncIndicator = ({color}: {color: string}) => {
+const SyncIndicator = ({ color }: { color: string }) => {
   const rotateValue = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -43,21 +42,21 @@ const SyncIndicator = ({color}: {color: string}) => {
   });
 
   return (
-    <Animated.View style={{transform: [{rotate}]}}>
+    <Animated.View style={{ transform: [{ rotate }] }}>
       <Icon name="sync" size={16} color={color} />
     </Animated.View>
   );
 };
 
-const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
-  const {isDark} = useThemeStore();
+const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
+  const { isDark } = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
 
   const getAspectRatio = (): number => {
     // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) return 1;
+    if (!image?.aspectRatio?.ratio) { return 1; }
 
     try {
       const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
@@ -73,34 +72,39 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       // For placeholder, we use flexible height based on aspect ratio
       const aspectRatio = getAspectRatio();
 
-      return {
-        aspectRatio,
-      };
+      return { aspectRatio };
     }
 
     // For loaded images, we just fill the container (which is sized by the parent)
     return {
-      width: '100%' as any,
-      height: '100%' as any,
+      width: "100%",
+      height: "100%",
       flex: 1,
-    };
+    } as any;
   }, [image.uri, image.aspectRatio]);
 
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
-      style={[styles.container, style]}>
+      className="rounded-2xl overflow-hidden"
+      style={[{ backgroundColor: '#f0f0f0' }, style]}>
       {isLoading && !loadError && image.uri !== 'placeholder' && (
-        <View style={[styles.overlay, {backgroundColor: colors.surface}]}>
+        <View
+          className="absolute inset-0 justify-center items-center z-10"
+          style={{ backgroundColor: colors.surface }}>
           <ActivityIndicator color={colors.primary} />
         </View>
       )}
 
       {loadError && (
-        <View style={[styles.overlay, {backgroundColor: colors.surface}]}>
+        <View
+          className="absolute inset-0 justify-center items-center z-10"
+          style={{ backgroundColor: colors.surface }}>
           <Icon name="broken-image" size={32} color="#ef4444" />
-          <Text style={[styles.errorText, {color: colors.secondaryText}]}>
+          <Text
+            className="mt-2 text-xs"
+            style={{ color: colors.secondaryText }}>
             Failed to load
           </Text>
         </View>
@@ -108,7 +112,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
 
       {image.uri !== 'placeholder' ? (
         <FastImage
-          source={{uri: image.uri}}
+          source={{ uri: image.uri }}
           style={contentStyle}
           resizeMode={FastImage.resizeMode.cover}
           onLoadStart={() => setIsLoading(true)}
@@ -120,64 +124,27 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
         />
       ) : (
         <View
+          className="justify-center items-center w-full"
           style={[
-            styles.placeholderContainer,
             contentStyle,
-            {backgroundColor: colors.surface},
+            { backgroundColor: colors.surface },
           ]}>
           <ActivityIndicator color={colors.primary} size="large" />
-          <Text style={[styles.loadingText, {color: colors.secondaryText}]}>
+          <Text
+            className="mt-2 text-xs"
+            style={{ color: colors.secondaryText }}>
             Loading...
           </Text>
         </View>
       )}
 
       {image.synced === false && (
-        <View style={styles.syncIndicator}>
+        <View className="absolute top-2 right-2 bg-black/50 p-1 rounded-xl">
           <SyncIndicator color="white" />
         </View>
       )}
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  placeholderContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  errorText: {
-    marginTop: 8,
-    fontSize: 12,
-  },
-  loadingText: {
-    marginTop: 8,
-    fontSize: 12,
-  },
-  syncIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 4,
-    borderRadius: 12,
-  },
-});
 
 export default ImageCard;
