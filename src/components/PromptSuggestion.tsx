@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import Icon from './Icon';
+import CloseIcon from '@src/assets/icons/CloseIcon';
 
 interface PromptSuggestionsProps {
   onSelectPrompt: (prompt: string) => void;
@@ -76,7 +76,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
           onPress={() => setVisible(false)}
           className="p-1 rounded-full"
           style={{ backgroundColor: colors.background + '60' }}>
-          <Icon name="close" size={20} color={colors.secondaryText} />
+          <CloseIcon size={20} color={colors.secondaryText} />
         </TouchableOpacity>
       </View>
 

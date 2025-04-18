@@ -13,13 +13,14 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { BlurView } from '@react-native-community/blur';
 
-import Icon from './Icon';
 import { theme } from '@src/theme/Theme';
 import { artStyles } from '@src/data/styles';
 import { aspectRatios } from '@src/data/ratio';
 import { AdvancedSettingsProps } from '@src/types';
 import { useThemeStore } from '@src/store/themeStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CloseIcon from '@src/assets/icons/CloseIcon';
+import CheckmarkIcon from '@src/assets/icons/CheckmarkIcon';
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   visible,
@@ -85,7 +86,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             <View
               style={{ backgroundColor: colors.primary }}
               className="absolute top-2 right-2 p-1 rounded-full">
-              <Icon name="checkmark" size={16} color="white" />
+              <CheckmarkIcon size={16} color="white" />
             </View>
           )}
         </View>
@@ -227,7 +228,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             }}
             style={{ backgroundColor: colors.surface }}
             className="p-2 rounded-full">
-            <Icon name="close" size={24} color={colors.text} />
+            <CloseIcon size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 

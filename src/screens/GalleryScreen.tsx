@@ -17,7 +17,7 @@ import { imageService } from '@src/services/imageService';
 import { GeneratedImage } from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
 import Toast from 'react-native-toast-message';
-import Icon from '@src/components/Icon';
+import PhotoLibraryIcon from '@src/assets/icons/PhotoLibraryIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const NUM_COLUMNS = 2;
@@ -142,7 +142,7 @@ const GalleryScreen = () => {
   const EmptyState = useCallback(
     () => (
       <View className="flex-1 justify-center items-center px-8">
-        <Icon name="photo-library" size={60} color={colors.primary} />
+        <PhotoLibraryIcon size={60} color={colors.primary} />
         <Text className="text-xl font-bold mt-4 mb-2" style={{ color: colors.text }}>
           No images yet
         </Text>

@@ -2,21 +2,33 @@ import React from 'react';
 import { BlurView } from '@react-native-community/blur';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import Icon from './Icon';
 import { theme } from '@src/theme/Theme';
 import Routes from '@src/constants/routes';
 import { useThemeStore } from '@src/store/themeStore';
 
-const getIconName = (routeName: string, focused: boolean) => {
+import RobotIcon from '@src/assets/icons/RobotIcon';
+import RobotOutlineIcon from '@src/assets/icons/RobotOutlineIcon';
+import ImageMultipleIcon from '@src/assets/icons/ImageMultipleIcon';
+import ImageMultipleOutlineIcon from '@src/assets/icons/ImageMultipleOutlineIcon';
+import AccountIcon from '@src/assets/icons/AccountIcon';
+import AccountOutlineIcon from '@src/assets/icons/AccountOutlineIcon';
+
+const getIcon = (routeName: string, focused: boolean, size: number, color: string) => {
   switch (routeName) {
     case Routes.HOME:
-      return focused ? 'robot' : 'robot-outline';
+      return focused ?
+        <RobotIcon size={size} color={color} /> :
+        <RobotOutlineIcon size={size} color={color} />;
     case Routes.GALLERY:
-      return focused ? 'image-multiple' : 'image-multiple-outline';
+      return focused ?
+        <ImageMultipleIcon size={size} color={color} /> :
+        <ImageMultipleOutlineIcon size={size} color={color} />;
     case Routes.SETTINGS:
-      return focused ? 'account' : 'account-outline';
+      return focused ?
+        <AccountIcon size={size} color={color} /> :
+        <AccountOutlineIcon size={size} color={color} />;
     default:
-      return 'circle';
+      return null;
   }
 };
 
@@ -38,7 +50,7 @@ export default function CustomTabBar({ state, navigation }: any) {
     >
       <BlurView
         style={{ position: 'absolute', height: '100%', width: '100%', }}
-        blurType="light"
+        blurType={isDark ? "dark" : "light"}
         blurAmount={20}
         overlayColor="transparent"
       />
@@ -63,20 +75,22 @@ export default function CustomTabBar({ state, navigation }: any) {
               key={route.name}
               onPress={onPress}
               className="flex-1 items-center justify-center"
+              activeOpacity={0.7}
             >
               <View
-                className="w-14 h-14 aspect-square rounded-full items-center justify-center overflow-hidden"
+                className="w-14 h-14 rounded-full items-center justify-center overflow-hidden"
                 style={{
                   backgroundColor: isFocused
                     ? colors.primary + '15'
                     : 'transparent',
                 }}
               >
-                <Icon
-                  name={getIconName(route.name, isFocused)}
-                  size={28}
-                  color={isFocused ? colors.primary : '#64748b'}
-                />
+                {getIcon(
+                  route.name,
+                  isFocused,
+                  28,
+                  isFocused ? colors.primary : '#64748b'
+                )}
               </View>
 
               {isFocused && (

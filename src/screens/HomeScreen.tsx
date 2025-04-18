@@ -26,8 +26,13 @@ import AdvancedSettings from '@src/components/AdvancedSettings';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import Toast from 'react-native-toast-message';
-import Icon from '@src/components/Icon';
 import EmptyState from '@src/components/EmptyState';
+import MagicWand from '@src/assets/icons/MagicWandIcon';
+import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
+import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
+import CloseIcon from '@src/assets/icons/CloseIcon';
+import TuneIcon from '@src/assets/icons/TuneIcon';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -347,7 +352,7 @@ const HomeScreen = () => {
             width: '100%',
             height: imageHeight,
           }}>
-          <Icon name="error-outline" size={40} color="#ef4444" />
+          <ErrorOutlineIcon size={40} color="#ef4444" />
           <Text style={{ color: colors.secondaryText }} className="text-xs mt-2">
             Generation failed
           </Text>
@@ -385,7 +390,7 @@ const HomeScreen = () => {
             onPress={() => reusePromptAndSettings(item)}
             className="p-2 rounded-full"
             style={{ backgroundColor: colors.surface }}>
-            <Icon name="refresh" size={20} color={colors.primary} />
+            <RefreshIcon size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -476,11 +481,7 @@ const HomeScreen = () => {
                 <TouchableOpacity
                   onPress={() => setShowPromptSuggestions(true)}
                   className="pr-4">
-                  <Icon
-                    name="lightbulb-outline"
-                    size={24}
-                    color={colors.secondaryText}
-                  />
+                  <LightbulbOutlineIcon size={24} color={colors.secondaryText} />
                 </TouchableOpacity>
               )}
             </View>
@@ -499,7 +500,7 @@ const HomeScreen = () => {
                     </Text>
                     <View
                       className="ml-1.5">
-                      <Icon name="close" size={12} color={colors.primary} />
+                      <CloseIcon size={12} color={colors.primary} />
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -514,7 +515,7 @@ const HomeScreen = () => {
                 onPress={() => setShowAdvanced(true)}
                 className="p-3 rounded-2xl"
                 style={{ backgroundColor: colors.primary + '20' }}>
-                <Icon name="tune" size={24} color={colors.primary} />
+                <TuneIcon size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -531,7 +532,7 @@ const HomeScreen = () => {
                     <Text className="text-white mr-2 font-medium">
                       Generate
                     </Text>
-                    <Icon name="magic-wand" color="white" />
+                    <MagicWand color="white" />
                   </>
                 )}
               </TouchableOpacity>

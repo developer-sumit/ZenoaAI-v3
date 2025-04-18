@@ -1,6 +1,6 @@
 import React from 'react';
-import {View, Text, Animated, Easing} from 'react-native';
-import Icon from './Icon';
+import { View, Text, Animated, Easing } from 'react-native';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
 
 interface LoadingAnimationProps {
   color?: string;
@@ -35,13 +35,13 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
     <View className="items-center justify-center">
       <Animated.View
         style={{
-          transform: [{rotate: spin}],
+          transform: [{ rotate: spin }],
           width: size,
           height: size,
         }}>
-        <Icon name="refresh" size={size} color={color} />
+        <RefreshIcon size={size} color={color} />
       </Animated.View>
-      <Text className="text-xs mt-3" style={{color}}>
+      <Text className="text-xs mt-3" style={{ color }}>
         {text}
       </Text>
     </View>
