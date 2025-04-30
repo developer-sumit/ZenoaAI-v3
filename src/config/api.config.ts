@@ -19,6 +19,6 @@ export const generateImage = async ({
       `?width=${width}` +
       `&height=${height}` +
       `&steps=${quality}&sampler=${sampler}` +
-      `&seed=${seed}&nologo=true`,
+      `&seed=${seed}&nologo=true&enhance=true`,
   );
 };

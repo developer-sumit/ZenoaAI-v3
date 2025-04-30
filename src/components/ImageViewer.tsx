@@ -1,9 +1,9 @@
 import React from 'react';
 import RNFS from 'react-native-fs';
-import { BlurView } from '@react-native-community/blur';
+import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
-import { GeneratedImage } from '@src/types';
-import { theme } from '@src/theme/Theme';
+import {GeneratedImage} from '@src/types';
+import {theme} from '@src/theme/Theme';
 import {
   ActivityIndicator,
   Alert,
@@ -18,12 +18,12 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
-import { useThemeStore } from '@src/store/themeStore';
-import { useAuthStore } from '@src/store/authStore';
+import {useThemeStore} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
 import appConfig from '@src/config/app.config';
-import { imageService } from '@src/services/imageService';
+import {imageService} from '@src/services/imageService';
 import Toast from 'react-native-toast-message';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import ContentCopyIcon from '@src/assets/icons/ContentCopyIcon';
@@ -51,8 +51,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onClose,
   onImageDeleted,
 }) => {
-  const { isDark } = useThemeStore();
-  const { user } = useAuthStore();
+  const {isDark} = useThemeStore();
+  const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
   const imageUri = image?.uri || '';
 
@@ -78,7 +78,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
-      backAction
+      backAction,
     );
 
     return () => backHandler.remove();
@@ -99,13 +99,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDeletePress = () => {
-    if (!image || !user?.id) { return; }
+    if (!image || !user?.id) {
+      return;
+    }
 
     Alert.alert(
       'Delete Image',
       'Are you sure you want to delete this image? This cannot be undone.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete',
           style: 'destructive',
@@ -120,7 +122,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const deleteImage = async (image: GeneratedImage) => {
-    if (!user?.id || !image.timestamp || !image.seed) { return; }
+    if (!user?.id || !image.timestamp || !image.seed) {
+      return;
+    }
 
     try {
       setDeleting(true);
@@ -132,8 +136,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         text1: 'Image deleted',
         visibilityTime: 2000,
       });
-      if (onImageDeleted) { onImageDeleted(); }
-      if (onClose) { onClose(); }
+      if (onImageDeleted) {
+        onImageDeleted();
+      }
+      if (onClose) {
+        onClose();
+      }
     } catch (error) {
       console.error('Error deleting image:', error);
       Toast.show({
@@ -175,9 +183,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         Platform.OS === 'ios'
           ? `${RNFS.DocumentDirectoryPath}/${appConfig.name.replace(/\s/g, '')}`
           : `${RNFS.PicturesDirectoryPath}/${appConfig.name.replace(
-            /\s/g,
-            '',
-          )}`;
+              /\s/g,
+              '',
+            )}`;
 
       await RNFS.mkdir(path);
       const filePath = `${path}/${fileName}`;
@@ -215,16 +223,22 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   // Calculate aspect ratio safely
   const getAspectRatio = () => {
-    if (!image?.aspectRatio.ratio) { return 1; }
+    if (!image?.aspectRatio.ratio) {
+      return 1;
+    }
 
     try {
       const parts = image.aspectRatio.ratio.split(':');
-      if (parts.length !== 2) { return 1; }
+      if (parts.length !== 2) {
+        return 1;
+      }
 
       const width = parseFloat(parts[0]);
       const height = parseFloat(parts[1]);
 
-      if (isNaN(width) || isNaN(height) || height === 0) { return 1; }
+      if (isNaN(width) || isNaN(height) || height === 0) {
+        return 1;
+      }
 
       return width / height;
     } catch (error) {
@@ -241,11 +255,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         transparent={false}
         animationType="fade"
         onRequestClose={() => setFullscreenMode(false)}
-        statusBarTranslucent
-      >
+        statusBarTranslucent>
         <View className="flex-1 bg-black justify-center items-center">
           <Image
-            source={{ uri: imageUri }}
+            source={{uri: imageUri}}
             style={{
               width: screenWidth,
               height: screenHeight,
@@ -258,8 +271,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <TouchableOpacity
             onPress={() => setFullscreenMode(false)}
             className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
-            style={{ top: StatusBar.currentHeight || 40 }}
-          >
+            style={{top: StatusBar.currentHeight || 40}}>
             <CloseIcon size={28} color="white" />
           </TouchableOpacity>
         </View>
@@ -273,8 +285,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       transparent
       animationType="fade"
       onRequestClose={() => onClose?.()}
-      statusBarTranslucent
-    >
+      statusBarTranslucent>
       <BlurView
         style={{
           flex: 1,
@@ -294,8 +305,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <TouchableOpacity
             onPress={onClose}
             className="p-2.5 rounded-full"
-            style={{ backgroundColor: colors.surface }}
-          >
+            style={{backgroundColor: colors.surface}}>
             <CloseIcon size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -303,15 +313,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         {/* Image Display */}
         <View
           className="flex-1 justify-center overflow-hidden rounded-3xl mb-4 bg-black/5"
-          style={expandedPrompt ? { flex: 0.7 } : {}}
-        >
+          style={expandedPrompt ? {flex: 0.7} : {}}>
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={toggleFullscreen}
-            className="w-full h-full justify-center items-center"
-          >
+            className="w-full h-full justify-center items-center">
             <FastImage
-              source={{ uri: imageUri }}
+              source={{uri: imageUri}}
               style={{
                 borderRadius: 24,
                 width: '100%',
@@ -333,7 +341,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {!imageLoaded && (
             <View className="absolute inset-0 justify-center items-center">
               <ActivityIndicator color={colors.primary} size="large" />
-              <Text className="mt-3 text-base" style={{ color: colors.text }}>Loading image...</Text>
+              <Text className="mt-3 text-base" style={{color: colors.text}}>
+                Loading image...
+              </Text>
             </View>
           )}
         </View>
@@ -341,33 +351,29 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         {/* Metadata Panel */}
         <View
           className="rounded-3xl p-4 mb-4"
-          style={{ backgroundColor: colors.background }}
-        >
+          style={{backgroundColor: colors.background}}>
           {/* Prompt with expansion toggle */}
           <View className="flex-row justify-between items-start mb-4">
             <Text
-              className={`text-base font-semibold flex-1 ${!expandedPrompt ? 'max-h-[66px]' : ''}`}
-              style={{ color: colors.primary }}
+              className={`text-base font-semibold flex-1 ${
+                !expandedPrompt ? 'max-h-[66px]' : ''
+              }`}
+              style={{color: colors.primary}}
               numberOfLines={expandedPrompt ? undefined : 3}
-              onPress={togglePromptExpansion}
-            >
-              {image?.prompt}
+              onPress={togglePromptExpansion}>
+              {image?.prompt || ''}
             </Text>
             <View className="flex-row items-center">
-              <TouchableOpacity
-                onPress={togglePromptExpansion}
-                className="p-1"
-              >
-                {expandedPrompt ?
+              <TouchableOpacity onPress={togglePromptExpansion} className="p-1">
+                {expandedPrompt ? (
                   <ChevronUpIcon size={18} color={colors.secondaryText} />
-                  :
+                ) : (
                   <ChevronDownIcon size={18} color={colors.secondaryText} />
-                }
+                )}
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => copyToClipboard(image?.prompt || '')}
-                className="p-1 ml-2"
-              >
+                onPress={() => copyToClipboard(image?.fullPrompt || image?.prompt || '')}
+                className="p-1 ml-2">
                 <ContentCopyIcon size={18} color={colors.secondaryText} />
               </TouchableOpacity>
             </View>
@@ -404,10 +410,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               <View
                 key={index}
                 className="flex-row items-center rounded-full px-3 py-1.5"
-                style={{ backgroundColor: colors.primary + '20' }}
-              >
+                style={{backgroundColor: colors.primary + '20'}}>
                 <PaletteIcon size={14} color={colors.primary} />
-                <Text className="ml-1 text-sm" style={{ color: colors.primary }}>
+                <Text className="ml-1 text-sm" style={{color: colors.primary}}>
                   {style}
                 </Text>
               </View>
@@ -421,14 +426,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               onPress={handleDeletePress}
               disabled={deleting}
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{ backgroundColor: colors.surface }}
-            >
+              style={{backgroundColor: colors.surface}}>
               {deleting ? (
                 <ActivityIndicator color={colors.secondary} size="small" />
               ) : (
                 <>
                   <DeleteOutlineIcon size={22} color="#ef4444" />
-                  <Text style={{ color: '#ef4444', fontWeight: '500', fontSize: 15 }}>
+                  <Text className="font-bold" style={{color: '#ef4444'}}>
                     Delete
                   </Text>
                 </>
@@ -439,10 +443,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             <TouchableOpacity
               onPress={toggleFullscreen}
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{ backgroundColor: colors.surface }}
-            >
+              style={{backgroundColor: colors.surface}}>
               <FullscreenIcon size={22} color={colors.text} />
-              <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }}>
+              <Text className="font-bold" style={{color: colors.text}}>
                 Fullscreen
               </Text>
             </TouchableOpacity>
@@ -452,16 +455,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               onPress={handleDownloadPress}
               disabled={downloading}
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{ backgroundColor: colors.primary }}
-            >
+              style={{backgroundColor: colors.primary}}>
               {downloading ? (
                 <ActivityIndicator color="white" />
               ) : (
                 <>
                   <DownloadIcon size={22} color="white" />
-                  <View>
-                    <Text className="text-white font-medium text-[15px]">Download</Text>
-                  </View>
+                  <Text className="text-white font-bold">Download</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -483,7 +483,7 @@ const MetadataItem = ({
   value: string;
   onCopy?: () => void;
 }) => {
-  const { isDark } = useThemeStore();
+  const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
 
   const renderIcon = () => {
@@ -504,22 +504,18 @@ const MetadataItem = ({
   return (
     <View
       className="flex-row items-center gap-2 rounded-2xl p-2.5 flex-1 min-w-[45%]"
-      style={{ backgroundColor: colors.surface }}
-    >
+      style={{backgroundColor: colors.surface}}>
       {renderIcon()}
       <View className="flex-1">
-        <Text className="text-xs" style={{ color: colors.secondaryText }}>
+        <Text className="text-xs" style={{color: colors.secondaryText}}>
           {label}
         </Text>
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm" style={{ color: colors.text }}>
+          <Text className="text-sm" style={{color: colors.text}}>
             {value}
           </Text>
           {onCopy && (
-            <TouchableOpacity
-              onPress={onCopy}
-              className="p-1"
-            >
+            <TouchableOpacity onPress={onCopy} className="p-1">
               <ContentCopyIcon size={14} color={colors.text} />
             </TouchableOpacity>
           )}
@@ -529,6 +525,6 @@ const MetadataItem = ({
   );
 };
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 
 export default ImageViewer;
