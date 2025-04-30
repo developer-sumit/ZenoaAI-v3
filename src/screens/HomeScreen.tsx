@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, {useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -10,18 +10,18 @@ import {
   Keyboard,
   Dimensions,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import {FlashList} from '@shopify/flash-list';
 
-import { theme } from '@src/theme/Theme';
-import { aspectRatios } from '@src/data/ratio';
+import {theme} from '@src/theme/Theme';
+import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
-import { useThemeStore } from '@src/store/themeStore';
-import { useAuthStore } from '@src/store/authStore';
-import { generateImage } from '@src/config/api.config';
-import { imageService } from '@src/services/imageService';
-import { AspectRatioType, GeneratedImage, QualityPresetType } from '../types';
+import {useThemeStore} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
+import {generateImage} from '@src/config/api.config';
+import {imageService} from '@src/services/imageService';
+import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
 import AdvancedSettings from '@src/components/AdvancedSettings';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
@@ -33,14 +33,15 @@ import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
+import {getStylePrompt} from '@src/data/stylePrompts';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
-  const { isDark } = useThemeStore();
-  const { user } = useAuthStore();
+  const {isDark} = useThemeStore();
+  const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showPromptSuggestions, setShowPromptSuggestions] =
@@ -67,9 +68,9 @@ const HomeScreen = () => {
   const flashListRef = useRef(null);
 
   const qualityPresets: QualityPresetType[] = [
-    { label: 'Fast', value: 15 },
-    { label: 'Standard', value: 25 },
-    { label: 'Premium', value: 50 },
+    {label: 'Fast', value: 15},
+    {label: 'Standard', value: 25},
+    {label: 'Premium', value: 50},
   ];
 
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
@@ -82,7 +83,9 @@ const HomeScreen = () => {
   }, [user?.id]);
 
   const loadUserImages = async () => {
-    if (!user?.id) { return; }
+    if (!user?.id) {
+      return;
+    }
 
     try {
       const images = await imageService.getUserImages(user.id);
@@ -109,7 +112,9 @@ const HomeScreen = () => {
 
   const getAspectRatio = (image: GeneratedImage): number => {
     // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) { return 1; }
+    if (!image?.aspectRatio?.ratio) {
+      return 1;
+    }
 
     const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
     return width / height;
@@ -157,12 +162,20 @@ const HomeScreen = () => {
       // Create placeholder images first
       for (let i = 0; i < numberOfImages; i++) {
         const currentSeed = baseSeed + i;
-        const styleString = selectedStyles.join(', ');
-        const fullPrompt = `${prompt}${styleString ? ' ' + styleString : ''}`;
+
+        // Generate professional style prompts
+        const stylePrompts = selectedStyles
+          .map(style => getStylePrompt(style))
+          .join(', ');
+        const userPrompt = prompt.trim();
+        const fullPrompt = `${userPrompt}${
+          stylePrompts ? ', ' + stylePrompts : ''
+        }`;
 
         const tempImage: GeneratedImage = {
           uri: 'placeholder',
-          prompt: fullPrompt,
+          prompt: userPrompt,
+          fullPrompt: fullPrompt,
           styles: selectedStyles,
           aspectRatio,
           quality,
@@ -182,8 +195,15 @@ const HomeScreen = () => {
       // Then generate each image and update one by one
       for (let i = 0; i < numberOfImages; i++) {
         const currentSeed = baseSeed + i;
-        const styleString = selectedStyles.join(', ');
-        const fullPrompt = `${prompt}${styleString ? ' ' + styleString : ''}`;
+
+        // Use the same professional prompt construction
+        const stylePrompts = selectedStyles
+          .map(style => getStylePrompt(style))
+          .join(', ');
+        const userPrompt = prompt.trim();
+        const fullPrompt = `${userPrompt}${
+          stylePrompts ? ', ' + stylePrompts : ''
+        }`;
 
         try {
           const response = await generateImage({
@@ -198,7 +218,8 @@ const HomeScreen = () => {
 
           const generatedImage: GeneratedImage = {
             uri: response.url,
-            prompt: fullPrompt,
+            prompt: userPrompt, // Original prompt
+            fullPrompt: fullPrompt, // Full prompt with promptTemplates
             styles: selectedStyles,
             aspectRatio,
             quality,
@@ -231,7 +252,7 @@ const HomeScreen = () => {
           setGeneratedImages(prev =>
             prev.map(img =>
               img.timestamp === generationTimestamp && img.index === i
-                ? { ...img, loading: false, error: true }
+                ? {...img, loading: false, error: true}
                 : img,
             ),
           );
@@ -284,7 +305,7 @@ const HomeScreen = () => {
     // Auto scroll to input
     setTimeout(() => {
       if (flashListRef.current) {
-        flashListRef.current.scrollToOffset({ offset: 0, animated: true });
+        flashListRef.current.scrollToOffset({offset: 0, animated: true});
       }
     }, 300);
 
@@ -296,7 +317,7 @@ const HomeScreen = () => {
   };
 
   const groupImagesByParameters = (images: GeneratedImage[]) => {
-    const groups: { [key: string]: GeneratedImage[] } = {};
+    const groups: {[key: string]: GeneratedImage[]} = {};
 
     images.forEach(image => {
       // Group by timestamp to keep generation batches separate
@@ -353,7 +374,7 @@ const HomeScreen = () => {
             height: imageHeight,
           }}>
           <ErrorOutlineIcon size={40} color="#ef4444" />
-          <Text style={{ color: colors.secondaryText }} className="text-xs mt-2">
+          <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
             Generation failed
           </Text>
         </View>
@@ -363,7 +384,7 @@ const HomeScreen = () => {
         <ImageCard
           image={image}
           onPress={() => setSelectedImage(image)}
-          style={{ width: '100%', height: imageHeight }}
+          style={{width: '100%', height: imageHeight}}
         />
       );
     }
@@ -379,7 +400,7 @@ const HomeScreen = () => {
       <View className="px-4">
         <View className="flex-row items-center justify-between gap-3">
           <Text
-            style={{ color: colors.text }}
+            style={{color: colors.text}}
             className="text-lg font-semibold mb-2 flex-1"
             numberOfLines={1}
             ellipsizeMode="tail">
@@ -389,7 +410,7 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
             className="p-2 rounded-full"
-            style={{ backgroundColor: colors.surface }}>
+            style={{backgroundColor: colors.surface}}>
             <RefreshIcon size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -401,8 +422,8 @@ const HomeScreen = () => {
               <View
                 key={style}
                 className="py-1 px-3 rounded-full"
-                style={{ backgroundColor: colors.primary + '15' }}>
-                <Text style={{ color: colors.primary }} className="text-xs">
+                style={{backgroundColor: colors.primary + '15'}}>
+                <Text style={{color: colors.primary}} className="text-xs">
                   {style}
                 </Text>
               </View>
@@ -430,11 +451,11 @@ const HomeScreen = () => {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
-      style={{ backgroundColor: colors.background }}>
+      style={{backgroundColor: colors.background}}>
       <View className="flex-1">
         {/* Header with Settings */}
         <View className="flex-row justify-between items-center p-4">
-          <Text className="text-3xl font-bold" style={{ color: colors.text }}>
+          <Text className="text-3xl font-bold" style={{color: colors.text}}>
             {appConfig.name}
           </Text>
         </View>
@@ -446,7 +467,7 @@ const HomeScreen = () => {
             data={groupImagesByParameters(generatedImages)}
             estimatedItemSize={300}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 200 }}
+            contentContainerStyle={{paddingBottom: 200}}
             renderItem={renderGroup}
             ListEmptyComponent={<EmptyState colors={colors} />}
             keyboardShouldPersistTaps="handled"
@@ -461,7 +482,7 @@ const HomeScreen = () => {
             style={{
               backgroundColor: colors.surface,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
+              shadowOffset: {width: 0, height: 2},
               shadowOpacity: 0.1,
               shadowRadius: 3,
               elevation: 12,
@@ -473,7 +494,7 @@ const HomeScreen = () => {
                 placeholder="Describe your vision..."
                 placeholderTextColor="#94a3b8"
                 className="text-lg p-4 max-h-[120px] flex-1"
-                style={{ color: colors.text }}
+                style={{color: colors.text}}
                 multiline
                 numberOfLines={3}
               />
@@ -481,7 +502,10 @@ const HomeScreen = () => {
                 <TouchableOpacity
                   onPress={() => setShowPromptSuggestions(true)}
                   className="pr-4">
-                  <LightbulbOutlineIcon size={24} color={colors.secondaryText} />
+                  <LightbulbOutlineIcon
+                    size={24}
+                    color={colors.secondaryText}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -492,14 +516,17 @@ const HomeScreen = () => {
                 {selectedStyles.map(style => (
                   <TouchableOpacity
                     key={style}
-                    style={{ backgroundColor: colors.primary + '15' }}
-                    onPress={() => setSelectedStyles(styles => styles.filter(s => s !== style))}
+                    style={{backgroundColor: colors.primary + '15'}}
+                    onPress={() =>
+                      setSelectedStyles(styles =>
+                        styles.filter(s => s !== style),
+                      )
+                    }
                     className="py-1 px-3 rounded-full flex-row items-center">
-                    <Text style={{ color: colors.primary }} className="text-xs">
+                    <Text style={{color: colors.primary}} className="text-xs">
                       {style}
                     </Text>
-                    <View
-                      className="ml-1.5">
+                    <View className="ml-1.5">
                       <CloseIcon size={12} color={colors.primary} />
                     </View>
                   </TouchableOpacity>
@@ -509,12 +536,12 @@ const HomeScreen = () => {
 
             <View
               className="flex-row justify-end p-2 border-t gap-2"
-              style={{ borderColor: colors.surface }}>
+              style={{borderColor: colors.surface}}>
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => setShowAdvanced(true)}
                 className="p-3 rounded-2xl"
-                style={{ backgroundColor: colors.primary + '20' }}>
+                style={{backgroundColor: colors.primary + '20'}}>
                 <TuneIcon size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
@@ -523,7 +550,9 @@ const HomeScreen = () => {
                 disabled={loading}
                 className="py-3 px-6 rounded-3xl flex-row items-center justify-center"
                 style={{
-                  backgroundColor: loading ? colors.primary + '20' : colors.primary,
+                  backgroundColor: loading
+                    ? colors.primary + '20'
+                    : colors.primary,
                 }}>
                 {loading ? (
                   <ActivityIndicator color="white" />

@@ -67,6 +67,7 @@ export interface AdvancedSettingsProps {
 export interface GeneratedImage {
   uri: string;
   prompt: string;
+  fullPrompt?: string;
   styles: string[];
   aspectRatio: AspectRatioType;
   quality: number;
