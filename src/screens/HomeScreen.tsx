@@ -447,6 +447,25 @@ const HomeScreen = () => {
     </View>
   );
 
+  const clearInputs = () => {
+    setPrompt('');
+    setSelectedStyles([]);
+    // Optionally reset other settings to defaults
+    setAspectRatio({
+      ratio: aspectRatios[0].ratio,
+      sizes: aspectRatios[0].sizes,
+      size: 'medium',
+    });
+    setSeed('');
+    setNegativePrompt('');
+
+    Toast.show({
+      type: 'info',
+      text1: 'All cleared',
+      text2: 'Ready for a new creation',
+    });
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -538,6 +557,19 @@ const HomeScreen = () => {
               className="flex-row justify-end p-2 border-t gap-2"
               style={{borderColor: colors.surface}}>
               <TouchableOpacity
+                onPress={clearInputs}
+                disabled={loading || prompt.trim().length === 0}
+                style={{
+                  opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
+                  backgroundColor: colors.surface,
+                }}
+                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center">
+                <RefreshIcon size={20} color={colors.text} />
+                <Text style={{color: colors.text}} className="ml-2 font-medium">
+                  Clear
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => setShowAdvanced(true)}
                 className="p-3 rounded-2xl"
@@ -545,15 +577,13 @@ const HomeScreen = () => {
                 <TuneIcon size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
-                activeOpacity={0.8}
                 onPress={handleImageGeneration}
-                disabled={loading}
-                className="py-3 px-6 rounded-3xl flex-row items-center justify-center"
+                disabled={loading || prompt.trim().length === 0}
                 style={{
-                  backgroundColor: loading
-                    ? colors.primary + '20'
-                    : colors.primary,
-                }}>
+                  opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
+                  backgroundColor: colors.primary,
+                }}
+                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1">
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
