@@ -7,6 +7,8 @@ import {GoogleAuthProvider, signInWithCredential} from 'firebase/auth';
 // Keys for token storage
 const AUTH_USER_KEY = 'auth_user';
 const AUTH_REFRESH_TOKEN = 'auth_refresh_token';
+const AUTH_LAST_REFRESH = 'auth_last_refresh';
+const TOKEN_REFRESH_INTERVAL = 45 * 60 * 1000; // Refresh token every 45 minutes
 
 export const authManager = {
   /**
@@ -21,7 +23,10 @@ export const authManager = {
     }
 
     try {
-      // Store user ID and email for quick access
+      // Store login timestamp 
+      const loginTime = new Date().toISOString();
+      
+      // Store user data
       authStorage.set(
         AUTH_USER_KEY,
         JSON.stringify({
@@ -29,7 +34,7 @@ export const authManager = {
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
-          lastLoginAt: new Date().toISOString(),
+          lastLoginAt: loginTime,
         }),
       );
 
@@ -37,6 +42,9 @@ export const authManager = {
       if (refreshToken) {
         authStorage.set(AUTH_REFRESH_TOKEN, refreshToken);
       }
+
+      // Store current time as last refresh
+      authStorage.set(AUTH_LAST_REFRESH, loginTime);
 
       console.log('Auth data stored successfully');
     } catch (error) {
@@ -65,6 +73,53 @@ export const authManager = {
   },
 
   /**
+   * Check if token needs refreshing
+   */
+  shouldRefreshToken(): boolean {
+    try {
+      const lastRefreshStr = authStorage.getString(AUTH_LAST_REFRESH);
+      if (!lastRefreshStr) {
+        return true;
+      }
+
+      const lastRefresh = new Date(lastRefreshStr).getTime();
+      const now = new Date().getTime();
+
+      return now - lastRefresh > TOKEN_REFRESH_INTERVAL;
+    } catch (error) {
+      console.error('Error checking token refresh time:', error);
+      return true; // Refresh token on error to be safe
+    }
+  },
+
+  /**
+   * Proactively refresh Firebase token to prevent expiration
+   */
+  async refreshTokenIfNeeded(): Promise<boolean> {
+    if (!this.shouldRefreshToken()) {
+      return true; // No refresh needed
+    }
+
+    try {
+      if (auth.currentUser) {
+        // Force token refresh
+        await auth.currentUser.getIdToken(true);
+
+        // Update last refresh time
+        authStorage.set(AUTH_LAST_REFRESH, new Date().toISOString());
+        console.log('Firebase token refreshed successfully');
+        return true;
+      } else {
+        // Try to restore session if no current user
+        return await this.restoreAuthSession();
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  },
+
+  /**
    * Restore auth session on app startup
    */
   async restoreAuthSession(): Promise<boolean> {
@@ -72,6 +127,11 @@ export const authManager = {
       // First check if Firebase already has an active user
       if (auth.currentUser) {
         console.log('Firebase already has authenticated user');
+
+        // Refresh the token to ensure it's valid
+        await auth.currentUser.getIdToken(true);
+        authStorage.set(AUTH_LAST_REFRESH, new Date().toISOString());
+
         return true;
       }
 
@@ -79,14 +139,42 @@ export const authManager = {
       const googleUser = await GoogleSignin.getCurrentUser();
       if (googleUser?.idToken) {
         console.log('Found stored Google session, attempting to restore');
-        // Create credential and sign in with Firebase
-        const credential = GoogleAuthProvider.credential(googleUser.idToken);
-        const userCredential = await signInWithCredential(auth, credential);
+        try {
+          // Create credential and sign in with Firebase
+          const credential = GoogleAuthProvider.credential(googleUser.idToken);
+          const userCredential = await signInWithCredential(auth, credential);
 
-        if (userCredential?.user) {
-          // Store refreshed auth data
-          this.storeAuthData(userCredential.user);
-          return true;
+          if (userCredential?.user) {
+            // Store refreshed auth data
+            this.storeAuthData(userCredential.user);
+            return true;
+          }
+        } catch (signInError) {
+          console.log(
+            'Failed to restore with stored token, attempting refresh',
+          );
+
+          // Try getting fresh tokens from Google
+          try {
+            // Force a refresh of Google tokens
+            await GoogleSignin.hasPlayServices();
+            const {idToken} = await GoogleSignin.getTokens();
+
+            if (idToken) {
+              const freshCredential = GoogleAuthProvider.credential(idToken);
+              const userCredential = await signInWithCredential(
+                auth,
+                freshCredential,
+              );
+
+              if (userCredential?.user) {
+                this.storeAuthData(userCredential.user);
+                return true;
+              }
+            }
+          } catch (refreshError) {
+            console.error('Failed to refresh Google tokens:', refreshError);
+          }
         }
       }
 
@@ -104,5 +192,6 @@ export const authManager = {
   clearAuthData(): void {
     authStorage.delete(AUTH_USER_KEY);
     authStorage.delete(AUTH_REFRESH_TOKEN);
+    authStorage.delete(AUTH_LAST_REFRESH);
   },
 };

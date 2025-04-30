@@ -9,6 +9,7 @@ import {
   Platform,
   Keyboard,
   Dimensions,
+  ToastAndroid,
 } from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 
@@ -25,7 +26,6 @@ import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
 import AdvancedSettings from '@src/components/AdvancedSettings';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
-import Toast from 'react-native-toast-message';
 import EmptyState from '@src/components/EmptyState';
 import MagicWand from '@src/assets/icons/MagicWandIcon';
 import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
@@ -34,6 +34,7 @@ import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
 import {getStylePrompt} from '@src/data/stylePrompts';
+import {useToast} from '@masumdev/rn-toast';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -41,6 +42,7 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
   const {isDark} = useThemeStore();
+  const {showToast} = useToast();
   const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
   const [showAdvanced, setShowAdvanced] = React.useState(false);
@@ -102,11 +104,7 @@ const HomeScreen = () => {
       setGeneratedImages(validImages);
     } catch (error) {
       console.error('Failed to load images:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error fetching images',
-        text2: 'Please try again later',
-      });
+      showToast('Error fetching images', 'error');
     }
   };
 
@@ -132,20 +130,12 @@ const HomeScreen = () => {
 
   const handleImageGeneration = async () => {
     if (!prompt.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: 'Please enter a description',
-        text2: 'Describe what you want to see in the image',
-      });
+      showToast('Please enter a description', 'error');
       return;
     }
 
     if (!user?.id) {
-      Toast.show({
-        type: 'error',
-        text1: 'Sign In Required',
-        text2: 'Please sign in to generate images',
-      });
+      showToast('Sign In Required', 'error');
       return;
     }
 
@@ -257,28 +247,16 @@ const HomeScreen = () => {
             ),
           );
 
-          Toast.show({
-            type: 'error',
-            text1: 'Generation Failed',
-            text2: 'An error occurred while generating images',
-          });
+          showToast('Generation Failed', 'error');
         }
       }
 
       if (newImages.length > 0) {
-        Toast.show({
-          type: 'success',
-          text1: 'Images Generated',
-          text2: 'Check the grid below for your new images',
-        });
+        showToast('Images Generated', 'success');
       }
     } catch (error) {
       console.error('Generation error:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Generation Failed',
-        text2: 'An error occurred while generating images',
-      });
+      showToast('Generation Failed', 'error');
 
       // Remove all placeholder images
       setGeneratedImages(prev =>
@@ -309,11 +287,11 @@ const HomeScreen = () => {
       }
     }, 300);
 
-    Toast.show({
-      type: 'info',
-      text1: 'Settings copied',
-      text2: 'Ready to generate new images',
-    });
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+    } else {
+      showToast('All cleared');
+    }
   };
 
   const groupImagesByParameters = (images: GeneratedImage[]) => {
@@ -459,11 +437,11 @@ const HomeScreen = () => {
     setSeed('');
     setNegativePrompt('');
 
-    Toast.show({
-      type: 'info',
-      text1: 'All cleared',
-      text2: 'Ready for a new creation',
-    });
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+    } else {
+      showToast('All cleared');
+    }
   };
 
   return (

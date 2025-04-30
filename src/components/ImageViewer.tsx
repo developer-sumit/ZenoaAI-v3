@@ -17,12 +17,12 @@ import {
   Dimensions,
   StatusBar,
   Image,
+  ToastAndroid,
 } from 'react-native';
 import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import appConfig from '@src/config/app.config';
 import {imageService} from '@src/services/imageService';
-import Toast from 'react-native-toast-message';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -37,6 +37,7 @@ import SeedIcon from '@src/assets/icons/SeedIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
 import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
 import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
+import {Toaster, useToast} from '@masumdev/rn-toast';
 
 type IconName = 'seed' | 'tune' | 'aspect-ratio' | 'chart-donut';
 
@@ -52,6 +53,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onImageDeleted,
 }) => {
   const {isDark} = useThemeStore();
+  const {showToast} = useToast();
   const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
   const imageUri = image?.uri || '';
@@ -90,12 +92,21 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDownloadPress = () => {
-    if (!image) {
+    if (!image || !image?.uri) {
       console.log('No image to download');
       return;
     }
 
-    downloadImage(image);
+    try {
+      setDownloading(true);
+
+      downloadImage(image);
+      showToast('Image downloaded', 'success');
+    } catch (error) {
+      showToast('Failed to download image', 'error');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleDeletePress = () => {
@@ -131,24 +142,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       const imageId = `${image.timestamp}_${image.seed}`;
       await imageService.deleteImage(user.id, imageId);
 
-      Toast.show({
-        type: 'success',
-        text1: 'Image deleted',
-        visibilityTime: 2000,
-      });
+      showToast('Image deleted', 'success');
+
       if (onImageDeleted) {
         onImageDeleted();
       }
-      if (onClose) {
-        onClose();
-      }
+      onClose?.();
     } catch (error) {
       console.error('Error deleting image:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to delete image',
-        visibilityTime: 2000,
-      });
+      showToast('Failed to delete image', 'error');
     } finally {
       setDeleting(false);
     }
@@ -196,17 +198,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         await RNFS.scanFile(filePath);
       }
 
-      Toast.show({
-        type: 'success',
-        text1: 'Image downloaded',
-        visibilityTime: 2000,
-      });
+      showToast('Image downloaded', 'success');
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to download image',
-        visibilityTime: 2000,
-      });
+      showToast('Failed to download image', 'error');
     } finally {
       setDownloading(false);
     }
@@ -214,11 +208,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const copyToClipboard = (text: string) => {
     Clipboard.setString(text);
-    Toast.show({
-      type: 'info',
-      text1: 'Copied to clipboard',
-      visibilityTime: 1000,
-    });
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+    } else {
+      showToast('Copied to clipboard');
+    }
   };
 
   // Calculate aspect ratio safely
@@ -372,7 +366,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => copyToClipboard(image?.fullPrompt || image?.prompt || '')}
+                onPress={() =>
+                  copyToClipboard(image?.fullPrompt || image?.prompt || '')
+                }
                 className="p-1 ml-2">
                 <ContentCopyIcon size={18} color={colors.secondaryText} />
               </TouchableOpacity>
@@ -468,6 +464,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           </View>
         </View>
       </SafeAreaView>
+
+      <Toaster
+        customColors={{
+          success: {background: '#E7F5E9', text: '#256029'},
+          error: {background: '#FDECEA', text: '#B3261E'},
+          info: {background: '#E3F2FD', text: '#1E88E5'},
+        }}
+      />
     </Modal>
   );
 };
