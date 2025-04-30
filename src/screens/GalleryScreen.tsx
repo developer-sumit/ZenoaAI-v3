@@ -18,10 +18,10 @@ import {useAuthStore} from '@src/store/authStore';
 import {imageService} from '@src/services/imageService';
 import {GeneratedImage} from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
-import Toast from 'react-native-toast-message';
 import PhotoLibraryIcon from '@src/assets/icons/PhotoLibraryIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
+import {useToast} from '@masumdev/rn-toast';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
@@ -33,6 +33,7 @@ const GalleryScreen = () => {
   const {isDark} = useThemeStore();
   const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
+  const {showToast} = useToast();
 
   const [images, setImages] = useState<GeneratedImage[]>([]);
   const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
@@ -95,7 +96,8 @@ const GalleryScreen = () => {
       setImages(typedImages);
       setFilteredImages(typedImages);
     } catch (error) {
-      Toast.show({type: 'error', text1: 'Error fetching images'});
+      console.error('Failed to load images:', error);
+      showToast('Error fetching images', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);

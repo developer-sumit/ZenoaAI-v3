@@ -43,11 +43,11 @@ import HomeScreen from '@src/screens/HomeScreen';
 import ProfileScreen from '@src/screens/ProfileScreen';
 import GalleryScreen from '@src/screens/GalleryScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
-import Toast from 'react-native-toast-message';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import Config from 'react-native-config';
 import {authManager} from '@src/services/authManager';
 import {tokenService} from '@src/services/tokenService';
+import {Toaster} from '@masumdev/rn-toast';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -80,7 +80,7 @@ function App() {
   useEffect(() => {
     const initializeAuthState = async () => {
       try {
-        // Configure Google Sign In only once at app startup
+        // Configure Google Sign In
         GoogleSignin.configure({
           webClientId: Config.GOOGLE_WEB_CLIENT_ID,
           offlineAccess: true,
@@ -90,32 +90,36 @@ function App() {
         // Wait for Firebase auth to fully initialize
         await auth.authStateReady();
 
-        // Try to restore the auth session
-        const isRestored = await authManager.restoreAuthSession();
-
-        // Now check the auth state
+        // First try to use Firebase's native persistence
         const firebaseUser = auth.currentUser;
         if (firebaseUser) {
-          console.log('User already logged in:', firebaseUser.email);
+          console.log(
+            'User already logged in via Firebase:',
+            firebaseUser.email,
+          );
 
-          try {
-            const tokenResult = await firebaseUser.getIdTokenResult(true);
-            if (tokenResult.claims.revoked) {
-              await handleLogout();
-              return;
-            }
+          // Force token refresh to ensure it's valid
+          await firebaseUser.getIdToken(true);
 
-            // Initialize token refresh service when user is authenticated
+          // Initialize token refresh service
+          tokenService.init();
+
+          await restoreSession();
+        } else {
+          // Try to restore from our own storage
+          const isRestored = await authManager.restoreAuthSession();
+
+          if (isRestored) {
+            console.log('Session restored successfully');
+
+            // Initialize token service after restoration
             tokenService.init();
 
             await restoreSession();
-          } catch (error) {
-            console.error('Token validation error:', error);
-            // If token refresh fails, try logout and make user sign in again
-            await handleLogout();
+          } else {
+            console.log('No valid auth session found');
+            useAuthStore.setState({isLoading: false, user: null});
           }
-        } else {
-          useAuthStore.setState({isLoading: false, user: null});
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -144,38 +148,42 @@ function App() {
   };
 
   return (
-    <>
-      <SafeAreaView
-        className="flex-1"
-        style={{
-          backgroundColor: isDark
-            ? theme.dark.background
-            : theme.light.background,
-        }}>
-        <StatusBar
-          barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor="transparent"
-          translucent
-        />
-        <NavigationContainer>
-          {isLoading ? (
-            <Stack.Navigator screenOptions={{headerShown: false}}>
-              <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
-            </Stack.Navigator>
-          ) : (
-            <Stack.Navigator screenOptions={{headerShown: false}}>
-              {user ? (
-                <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
-              ) : (
-                <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
-              )}
-            </Stack.Navigator>
-          )}
-        </NavigationContainer>
-      </SafeAreaView>
+    <SafeAreaView
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? theme.dark.background
+          : theme.light.background,
+      }}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+      <NavigationContainer>
+        {isLoading ? (
+          <Stack.Navigator screenOptions={{headerShown: false}}>
+            <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
+          </Stack.Navigator>
+        ) : (
+          <Stack.Navigator screenOptions={{headerShown: false}}>
+            {user ? (
+              <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
+            ) : (
+              <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
+            )}
+          </Stack.Navigator>
+        )}
+      </NavigationContainer>
 
-      <Toast />
-    </>
+      <Toaster
+        customColors={{
+          success: {background: '#E7F5E9', text: '#256029'},
+          error: {background: '#FDECEA', text: '#B3261E'},
+          info: {background: '#E3F2FD', text: '#1E88E5'},
+        }}
+      />
+    </SafeAreaView>
   );
 }
 
