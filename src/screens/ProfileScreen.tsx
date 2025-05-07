@@ -218,7 +218,7 @@ const ProfileScreen = () => {
         </Text>
 
         <TouchableOpacity
-          onPress={openTermsOfService}
+          onPress={openPrivacyPolicy}
           className="flex-row items-center py-2 justify-between">
           <Text style={{color: colors.text}} className="text-base">
             Privacy Policy
@@ -226,7 +226,7 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={openPrivacyPolicy}
+          onPress={openTermsOfService}
           className="flex-row items-center py-2 justify-between">
           <Text style={{color: colors.text}} className="text-base">
             Terms of Service
