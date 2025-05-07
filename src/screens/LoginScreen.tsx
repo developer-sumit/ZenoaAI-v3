@@ -22,6 +22,7 @@ import {tokenService} from '@src/services/tokenService';
 import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
 import {useToast} from '@masumdev/rn-toast';
+import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -81,7 +82,7 @@ const LoginScreen = () => {
 
       await login(userData);
       tokenService.init();
-      navigation.replace(Routes.MAIN as never);
+      navigation.replace(Routes.MAIN);
     } catch (error) {
       console.error('Sign-in error:', error);
       showToast('Sign-in failed', 'error');
@@ -159,8 +160,13 @@ const LoginScreen = () => {
           className="text-center text-base px-8 mt-8"
           style={{color: colors.secondaryText}}>
           By continuing, you agree to our{' '}
-          <Text style={{color: colors.primary}}>Terms of Service</Text> and{' '}
-          <Text style={{color: colors.primary}}>Privacy Policy</Text>
+          <TouchableOpacity onPress={openTermsOfService}>
+            <Text style={{color: colors.primary}}>Terms of Service</Text>
+          </TouchableOpacity>{' '}
+          and{' '}
+          <TouchableOpacity onPress={openPrivacyPolicy}>
+            <Text style={{color: colors.primary}}>Privacy Policy</Text>
+          </TouchableOpacity>
         </Text>
       </Animated.View>
     </View>
