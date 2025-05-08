@@ -159,7 +159,12 @@ const GalleryScreen = () => {
         dimensions: {width: number; height: number; aspectRatio: number};
       };
     }) => (
-      <TouchableOpacity className="mb-3" onPress={() => setSelectedImage(item)}>
+      <TouchableOpacity
+        className="mb-3"
+        onPress={() => setSelectedImage(item)}
+        accessible={true}
+        accessibilityLabel={`Image of ${item.prompt}`}
+        accessibilityHint="Double tap to view image details">
         <View
           className="overflow-hidden rounded-2xl"
           style={{
@@ -216,7 +221,9 @@ const GalleryScreen = () => {
             onPress={() => {
               setSearchQuery('');
               setSelectedFilter(null);
-            }}>
+            }}
+            accessible={true}
+            accessibilityLabel="Clear all filters">
             <Text className="text-white font-medium">Clear Filters</Text>
           </TouchableOpacity>
         )}
@@ -247,11 +254,16 @@ const GalleryScreen = () => {
             placeholderTextColor={colors.secondaryText}
             className="flex-1 py-3 h-14"
             style={{color: colors.text}}
+            accessible={true}
+            accessibilityLabel="Search images"
+            accessibilityHint="Enter text to search images by prompt or style"
           />
           {searchQuery ? (
             <TouchableOpacity
               onPress={() => setSearchQuery('')}
-              className="px-3 justify-center">
+              className="px-3 justify-center"
+              accessible={true}
+              accessibilityLabel="Clear search">
               <CloseIcon size={18} color={colors.secondaryText} />
             </TouchableOpacity>
           ) : null}
@@ -278,7 +290,15 @@ const GalleryScreen = () => {
                 style={{
                   backgroundColor:
                     selectedFilter === style ? colors.primary : colors.surface,
-                }}>
+                }}
+                accessible={true}
+                accessibilityLabel={`Filter by ${style} style`}
+                accessibilityState={{selected: selectedFilter === style}}
+                accessibilityHint={
+                  selectedFilter === style
+                    ? 'Double tap to remove filter'
+                    : 'Double tap to filter by this style'
+                }>
                 <Text
                   style={{
                     color:

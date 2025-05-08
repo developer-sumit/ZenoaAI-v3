@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import {View, Text, TouchableOpacity, ScrollView} from 'react-native';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 
 interface PromptSuggestionsProps {
@@ -55,7 +50,9 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   visible,
   setVisible,
 }) => {
-  if (!visible) { return null; }
+  if (!visible) {
+    return null;
+  }
 
   return (
     <View
@@ -63,19 +60,21 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
       style={{
         backgroundColor: colors.surface,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: {width: 0, height: 2},
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
         elevation: 5,
       }}>
       <View className="flex-row justify-between items-center mb-3">
-        <Text style={{ color: colors.text }} className="text-lg font-semibold">
+        <Text style={{color: colors.text}} className="text-lg font-semibold">
           Try a sample prompt
         </Text>
         <TouchableOpacity
           onPress={() => setVisible(false)}
           className="p-1 rounded-full"
-          style={{ backgroundColor: colors.background + '60' }}>
+          style={{backgroundColor: colors.background + '60'}}
+          accessible={true}
+          accessibilityLabel="Close prompt suggestions">
           <CloseIcon size={20} color={colors.secondaryText} />
         </TouchableOpacity>
       </View>
@@ -86,7 +85,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
         {samplePrompts.map((category, index) => (
           <View key={index} className="mb-4">
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="mb-2 text-sm">
               {category.category}
             </Text>
@@ -97,9 +96,11 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                   onSelectPrompt(prompt);
                   setVisible(false);
                 }}
-                style={{ backgroundColor: colors.background + '50' }}
+                style={{backgroundColor: colors.background + '50'}}
+                accessible={true}
+                accessibilityLabel={`Use prompt suggestion: ${prompt}`}
                 className="p-3 mb-2 rounded-xl">
-                <Text style={{ color: colors.text }}>{prompt}</Text>
+                <Text style={{color: colors.text}}>{prompt}</Text>
               </TouchableOpacity>
             ))}
           </View>
