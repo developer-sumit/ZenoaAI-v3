@@ -350,7 +350,9 @@ const HomeScreen = () => {
             backgroundColor: colors.surface,
             width: '100%',
             height: imageHeight,
-          }}>
+          }}
+          accessible={true}
+          accessibilityLabel="Image generation failed">
           <ErrorOutlineIcon size={40} color="#ef4444" />
           <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
             Generation failed
@@ -388,7 +390,10 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
             className="p-2 rounded-full"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: colors.surface}}
+            accessible={true}
+            accessibilityLabel="Reuse this prompt and settings"
+            accessibilityHint="Applies this prompt and style settings to generate new images">
             <RefreshIcon size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -397,14 +402,22 @@ const HomeScreen = () => {
         {item.parameters.styles.length > 0 && (
           <View className="flex-row flex-wrap gap-1.5 mb-1.5">
             {item.parameters.styles.map(style => (
-              <View
+              <TouchableOpacity
                 key={style}
-                className="py-1 px-3 rounded-full"
-                style={{backgroundColor: colors.primary + '15'}}>
+                style={{backgroundColor: colors.primary + '15'}}
+                onPress={() =>
+                  setSelectedStyles(styles => styles.filter(s => s !== style))
+                }
+                className="py-1 px-3 rounded-full flex-row items-center"
+                accessible={true}
+                accessibilityLabel={`Remove ${style} style`}>
                 <Text style={{color: colors.primary}} className="text-xs">
                   {style}
                 </Text>
-              </View>
+                <View className="ml-1.5">
+                  <CloseIcon size={12} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -494,11 +507,17 @@ const HomeScreen = () => {
                 style={{color: colors.text}}
                 multiline
                 numberOfLines={3}
+                accessible={true}
+                accessibilityLabel="Image description input"
+                accessibilityHint="Enter a description of the image you want to generate"
               />
               {prompt.length === 0 && (
                 <TouchableOpacity
                   onPress={() => setShowPromptSuggestions(true)}
-                  className="pr-4">
+                  className="pr-4"
+                  accessible={true}
+                  accessibilityLabel="Prompt suggestions"
+                  accessibilityHint="Opens a list of prompt suggestions to help you get started">
                   <LightbulbOutlineIcon
                     size={24}
                     color={colors.secondaryText}
@@ -519,7 +538,9 @@ const HomeScreen = () => {
                         styles.filter(s => s !== style),
                       )
                     }
-                    className="py-1 px-3 rounded-full flex-row items-center">
+                    className="py-1 px-3 rounded-full flex-row items-center"
+                    accessible={true}
+                    accessibilityLabel={`Remove ${style} style`}>
                     <Text style={{color: colors.primary}} className="text-xs">
                       {style}
                     </Text>
@@ -541,7 +562,12 @@ const HomeScreen = () => {
                   opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
                   backgroundColor: colors.surface,
                 }}
-                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center">
+                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
+                accessible={true}
+                accessibilityLabel="Clear all inputs"
+                accessibilityState={{
+                  disabled: loading || prompt.trim().length === 0,
+                }}>
                 <RefreshIcon size={20} color={colors.text} />
                 <Text style={{color: colors.text}} className="ml-2 font-medium">
                   Clear
@@ -551,7 +577,10 @@ const HomeScreen = () => {
                 activeOpacity={0.8}
                 onPress={() => setShowAdvanced(true)}
                 className="p-3 rounded-2xl"
-                style={{backgroundColor: colors.primary + '20'}}>
+                style={{backgroundColor: colors.primary + '20'}}
+                accessible={true}
+                accessibilityLabel="Advanced settings"
+                accessibilityHint="Opens advanced settings for image generation">
                 <TuneIcon size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
@@ -561,7 +590,14 @@ const HomeScreen = () => {
                   opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
                   backgroundColor: colors.primary,
                 }}
-                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1">
+                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
+                accessible={true}
+                accessibilityLabel="Generate image"
+                accessibilityState={{
+                  disabled: loading || prompt.trim().length === 0,
+                  busy: loading,
+                }}
+                accessibilityHint="Generates images based on your description and selected settings">
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (

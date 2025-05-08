@@ -145,7 +145,10 @@ const ProfileScreen = () => {
         <TouchableOpacity
           className="py-3 border-b"
           style={{borderColor: colors.secondaryText + '50'}}
-          onPress={handleEditProfile}>
+          onPress={handleEditProfile}
+          accessible={true}
+          accessibilityLabel="Edit profile"
+          accessibilityHint="Go to profile editing screen">
           <View className="flex-row justify-between items-center">
             <View className="flex-row items-center">
               <PersonIcon
@@ -180,7 +183,13 @@ const ProfileScreen = () => {
           <TouchableOpacity
             className="w-14 h-8 rounded-full p-1.5"
             style={{backgroundColor: isDark ? colors.primary : '#cbd5e1'}}
-            onPress={toggleTheme}>
+            onPress={toggleTheme}
+            accessible={true}
+            accessibilityLabel={
+              isDark ? 'Switch to light mode' : 'Switch to dark mode'
+            }
+            accessibilityRole="switch"
+            accessibilityState={{checked: isDark}}>
             <View
               className={`w-5 h-5 rounded-full bg-white ${
                 isDark ? 'ml-6' : 'ml-0'
@@ -227,7 +236,10 @@ const ProfileScreen = () => {
 
         <TouchableOpacity
           onPress={openTermsOfService}
-          className="flex-row items-center py-2 justify-between">
+          className="flex-row items-center py-2 justify-between"
+          accessible={true}
+          accessibilityLabel="View terms of service"
+          accessibilityHint="Opens the terms of service in your browser">
           <Text style={{color: colors.text}} className="text-base">
             Terms of Service
           </Text>
@@ -238,7 +250,10 @@ const ProfileScreen = () => {
       <TouchableOpacity
         className="p-4 rounded-2xl mb-4 items-center"
         style={{backgroundColor: colors.surface}}
-        onPress={logout}>
+        onPress={logout}
+        accessible={true}
+        accessibilityLabel="Sign out"
+        accessibilityHint="Signs you out of your account">
         <Text style={{color: '#e11d48'}} className="font-medium">
           Sign Out
         </Text>
