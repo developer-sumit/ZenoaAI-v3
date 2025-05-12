@@ -89,7 +89,9 @@ const EditProfileScreen = () => {
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{backgroundColor: colors.surface}}
-            onPress={() => navigation.goBack()}>
+            onPress={() => navigation.goBack()}
+            accessible={true}
+            accessibilityLabel="Go back">
             <ArrowBackIcon size={20} color={colors.text} />
           </TouchableOpacity>
           <Text
@@ -100,7 +102,9 @@ const EditProfileScreen = () => {
           <TouchableOpacity
             className="rounded-full px-5 py-2.5"
             style={{backgroundColor: colors.primary}}
-            onPress={saveProfile}>
+            onPress={saveProfile}
+            accessible={true}
+            accessibilityLabel="Save profile changes">
             <Text className="text-white font-medium text-sm">Save</Text>
           </TouchableOpacity>
         </View>
@@ -151,6 +155,9 @@ const EditProfileScreen = () => {
             }}
             placeholder="Your name"
             placeholderTextColor={colors.secondaryText}
+            accessible={true}
+            accessibilityLabel="Name input"
+            accessibilityHint="Enter your display name"
           />
 
           <Text
@@ -190,7 +197,10 @@ const EditProfileScreen = () => {
           <TouchableOpacity
             className="py-3 px-6 rounded-lg"
             style={{backgroundColor: '#e11d4810'}}
-            onPress={() => setShowDeleteModal(true)}>
+            onPress={() => setShowDeleteModal(true)}
+            accessible={true}
+            accessibilityLabel="Delete my account"
+            accessibilityHint="Opens confirmation dialog to delete your account">
             <Text className="text-sm" style={{color: '#e11d48'}}>
               Delete my account
             </Text>
@@ -236,7 +246,9 @@ const EditProfileScreen = () => {
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
                     style={{backgroundColor: colors.surface}}
-                    onPress={() => setShowDeleteModal(false)}>
+                    onPress={() => setShowDeleteModal(false)}
+                    accessible={true}
+                    accessibilityLabel="Cancel account deletion">
                     <Text
                       className="text-center font-medium"
                       style={{color: colors.text}}>
@@ -249,7 +261,10 @@ const EditProfileScreen = () => {
                     onPress={() => {
                       handleAccountDeletion();
                       setShowDeleteModal(false);
-                    }}>
+                    }}
+                    accessible={true}
+                    accessibilityLabel="Confirm account deletion"
+                    accessibilityHint="Permanently deletes your account">
                     <Text className="text-white font-medium text-center">
                       Delete
                     </Text>

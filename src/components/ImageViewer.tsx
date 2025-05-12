@@ -299,7 +299,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <TouchableOpacity
             onPress={onClose}
             className="p-2.5 rounded-full"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: colors.surface}}
+            accessible={true}
+            accessibilityLabel="Close image viewer">
             <CloseIcon size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -311,7 +313,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={toggleFullscreen}
-            className="w-full h-full justify-center items-center">
+            className="w-full h-full justify-center items-center"
+            accessible={true}
+            accessibilityLabel={`Image of ${
+              image?.prompt || 'generated content'
+            }`}
+            accessibilityHint="Double tap to toggle fullscreen view">
             <FastImage
               source={{uri: imageUri}}
               style={{
@@ -354,11 +361,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               }`}
               style={{color: colors.primary}}
               numberOfLines={expandedPrompt ? undefined : 3}
-              onPress={togglePromptExpansion}>
+              onPress={togglePromptExpansion}
+              accessible={true}
+              accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
+              accessibilityHint="Double tap to expand or collapse prompt">
               {image?.prompt || ''}
             </Text>
             <View className="flex-row items-center">
-              <TouchableOpacity onPress={togglePromptExpansion} className="p-1">
+              <TouchableOpacity
+                onPress={togglePromptExpansion}
+                className="p-1"
+                accessible={true}
+                accessibilityLabel={
+                  expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
+                }>
                 {expandedPrompt ? (
                   <ChevronUpIcon size={18} color={colors.secondaryText} />
                 ) : (
@@ -369,7 +385,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 onPress={() =>
                   copyToClipboard(image?.fullPrompt || image?.prompt || '')
                 }
-                className="p-1 ml-2">
+                className="p-1 ml-2"
+                accessible={true}
+                accessibilityLabel="Copy prompt to clipboard">
                 <ContentCopyIcon size={18} color={colors.secondaryText} />
               </TouchableOpacity>
             </View>
@@ -422,7 +440,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               onPress={handleDeletePress}
               disabled={deleting}
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{backgroundColor: colors.surface}}>
+              style={{backgroundColor: colors.surface}}
+              accessible={true}
+              accessibilityLabel="Delete image"
+              accessibilityState={{disabled: deleting}}
+              accessibilityHint="Permanently removes this image">
               {deleting ? (
                 <ActivityIndicator color={colors.secondary} size="small" />
               ) : (
@@ -439,7 +461,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             <TouchableOpacity
               onPress={toggleFullscreen}
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{backgroundColor: colors.surface}}>
+              style={{backgroundColor: colors.surface}}
+              accessible={true}
+              accessibilityLabel="Toggle fullscreen"
+              accessibilityHint="View image in fullscreen mode">
               <FullscreenIcon size={22} color={colors.text} />
               <Text className="font-bold" style={{color: colors.text}}>
                 Fullscreen
@@ -451,7 +476,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               onPress={handleDownloadPress}
               disabled={downloading}
               className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{backgroundColor: colors.primary}}>
+              style={{backgroundColor: colors.primary}}
+              accessible={true}
+              accessibilityLabel="Download image"
+              accessibilityState={{disabled: downloading}}
+              accessibilityHint="Saves image to your device">
               {downloading ? (
                 <ActivityIndicator color="white" />
               ) : (
