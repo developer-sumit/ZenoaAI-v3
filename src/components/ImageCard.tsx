@@ -7,10 +7,10 @@ import {
   ViewStyle,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { GeneratedImage } from '@src/types';
-import { useThemeStore } from '@src/store/themeStore';
-import { theme } from '@src/theme/Theme';
-import { Animated, Easing } from 'react-native';
+import {GeneratedImage} from '@src/types';
+import {useThemeStore} from '@src/store/themeStore';
+import {theme} from '@src/theme/Theme';
+import {Animated, Easing} from 'react-native';
 import SyncIcon from '@src/assets/icons/SyncIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
 
@@ -20,7 +20,7 @@ interface ImageCardProps {
   style?: ViewStyle;
 }
 
-const SyncIndicator = ({ color }: { color: string }) => {
+const SyncIndicator = ({color}: {color: string}) => {
   const rotateValue = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -43,21 +43,23 @@ const SyncIndicator = ({ color }: { color: string }) => {
   });
 
   return (
-    <Animated.View style={{ transform: [{ rotate }] }}>
+    <Animated.View style={{transform: [{rotate}]}}>
       <SyncIcon size={16} color={color} />
     </Animated.View>
   );
 };
 
-const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
-  const { isDark } = useThemeStore();
+const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
+  const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
 
   const getAspectRatio = (): number => {
     // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) { return 1; }
+    if (!image?.aspectRatio?.ratio) {
+      return 1;
+    }
 
     try {
       const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
@@ -73,13 +75,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
       // For placeholder, we use flexible height based on aspect ratio
       const aspectRatio = getAspectRatio();
 
-      return { aspectRatio };
+      return {aspectRatio};
     }
 
     // For loaded images, we just fill the container (which is sized by the parent)
     return {
-      width: "100%",
-      height: "100%",
+      width: '100%',
+      height: '100%',
       flex: 1,
     } as any;
   }, [image.uri, image.aspectRatio]);
@@ -89,11 +91,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
       activeOpacity={0.9}
       onPress={onPress}
       className="rounded-2xl overflow-hidden"
-      style={[{ backgroundColor: '#f0f0f0' }, style]}>
+      style={[{backgroundColor: '#f0f0f0'}, style]}
+      accessible={true}
+      accessibilityLabel={
+        image.prompt ? `Generated image of ${image.prompt}` : 'Generated image'
+      }
+      accessibilityHint="Tap to view image details">
       {isLoading && !loadError && image.uri !== 'placeholder' && (
         <View
           className="absolute inset-0 justify-center items-center z-10"
-          style={{ backgroundColor: colors.surface }}>
+          style={{backgroundColor: colors.surface}}
+          accessible={true}
+          accessibilityLabel="Image loading">
           <ActivityIndicator color={colors.primary} />
         </View>
       )}
@@ -101,11 +110,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
       {loadError && (
         <View
           className="absolute inset-0 justify-center items-center z-10"
-          style={{ backgroundColor: colors.surface }}>
+          style={{backgroundColor: colors.surface}}
+          accessible={true}
+          accessibilityLabel="Failed to load image">
           <BrokenImageIcon size={32} color="#ef4444" />
-          <Text
-            className="mt-2 text-xs"
-            style={{ color: colors.secondaryText }}>
+          <Text className="mt-2 text-xs" style={{color: colors.secondaryText}}>
             Failed to load
           </Text>
         </View>
@@ -113,7 +122,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
 
       {image.uri !== 'placeholder' ? (
         <FastImage
-          source={{ uri: image.uri }}
+          source={{uri: image.uri}}
           style={contentStyle}
           resizeMode={FastImage.resizeMode.cover}
           onLoadStart={() => setIsLoading(true)}
@@ -126,14 +135,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onPress, style }) => {
       ) : (
         <View
           className="justify-center items-center w-full"
-          style={[
-            contentStyle,
-            { backgroundColor: colors.surface },
-          ]}>
+          style={[contentStyle, {backgroundColor: colors.surface}]}
+          accessible={true}
+          accessibilityLabel="Loading image">
           <ActivityIndicator color={colors.primary} size="large" />
-          <Text
-            className="mt-2 text-xs"
-            style={{ color: colors.secondaryText }}>
+          <Text className="mt-2 text-xs" style={{color: colors.secondaryText}}>
             Loading...
           </Text>
         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,15 @@ import {
   Image,
   BackHandler,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { BlurView } from '@react-native-community/blur';
+import {FlashList} from '@shopify/flash-list';
+import {BlurView} from '@react-native-community/blur';
 
-import { theme } from '@src/theme/Theme';
-import { artStyles } from '@src/data/styles';
-import { aspectRatios } from '@src/data/ratio';
-import { AdvancedSettingsProps } from '@src/types';
-import { useThemeStore } from '@src/store/themeStore';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {theme} from '@src/theme/Theme';
+import {artStyles} from '@src/data/styles';
+import {aspectRatios} from '@src/data/ratio';
+import {AdvancedSettingsProps} from '@src/types';
+import {useThemeStore} from '@src/store/themeStore';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import CheckmarkIcon from '@src/assets/icons/CheckmarkIcon';
 
@@ -42,7 +42,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   qualityPresets,
   samplers,
 }) => {
-  const { isDark } = useThemeStore();
+  const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
   const [selectedRatio, setSelectedRatio] = useState(aspectRatio);
   const [showQualityPicker, setShowQualityPicker] = useState(false);
@@ -64,11 +64,19 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   };
 
   const renderStyleItem = React.useCallback(
-    ({ item }: { item: any; index: number }) => (
+    ({item}: {item: any; index: number}) => (
       <TouchableOpacity
         activeOpacity={0.8}
         className="w-full h-full mb-2 p-1"
-        onPress={() => toggleStyle(item.name)}>
+        onPress={() => toggleStyle(item.name)}
+        accessible={true}
+        accessibilityLabel={`${item.name} style`}
+        accessibilityState={{selected: selectedStyles.includes(item.name)}}
+        accessibilityHint={
+          selectedStyles.includes(item.name)
+            ? 'Double tap to deselect this style'
+            : 'Double tap to select this style'
+        }>
         <View className="w-full aspect-square">
           <View
             className="w-full h-full rounded-[20px] overflow-hidden"
@@ -79,18 +87,20 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             <Image
               source={item.image}
               className="w-full h-full"
-              style={{ borderRadius: selectedStyles.includes(item.name) ? 16 : 20 }}
+              style={{
+                borderRadius: selectedStyles.includes(item.name) ? 16 : 20,
+              }}
             />
           </View>
           {selectedStyles.includes(item.name) && (
             <View
-              style={{ backgroundColor: colors.primary }}
+              style={{backgroundColor: colors.primary}}
               className="absolute top-2 right-2 p-1 rounded-full">
               <CheckmarkIcon size={16} color="white" />
             </View>
           )}
         </View>
-        <Text className="font-medium mt-1" style={{ color: colors.text }}>
+        <Text className="font-medium mt-1" style={{color: colors.text}}>
           {item.name}
         </Text>
       </TouchableOpacity>
@@ -121,7 +131,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             key={index}
             onPress={() => {
               LayoutAnimation.spring();
-              setAspectRatio({ ...ratio, size: 'medium' });
+              setAspectRatio({...ratio, size: 'medium'});
               setSelectedRatio(ratio);
             }}
             style={{
@@ -131,8 +141,13 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                   ? colors.primary
                   : colors.surface,
             }}
-            className={`px-5 py-3 rounded-2xl ${aspectRatio.ratio === ratio.ratio ? 'elevation-xl' : ''
-              }`}>
+            className={`px-5 py-3 rounded-2xl ${
+              aspectRatio.ratio === ratio.ratio ? 'elevation-xl' : ''
+            }`}
+            accessible={true}
+            accessibilityLabel={`Aspect ratio ${ratio.ratio}`}
+            accessibilityState={{selected: aspectRatio.ratio === ratio.ratio}}
+            accessibilityHint="Sets the width to height ratio of generated images">
             <Text
               style={{
                 color:
@@ -167,7 +182,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
     const backAction = () => {
       console.log('Back button pressed, modal visible:', visible); // Debug logging
 
-      if (!visible) { return false; }
+      if (!visible) {
+        return false;
+      }
 
       // First handle open pickers
       if (showQualityPicker || showSamplerPicker) {
@@ -185,7 +202,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
     // Add event listener with higher priority
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
-      backAction
+      backAction,
     );
 
     // Make sure to clean up
@@ -193,7 +210,13 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
       console.log('Removing back handler');
       backHandler.remove();
     };
-  }, [visible, showQualityPicker, showSamplerPicker, onClose, dismissAllPickers]);
+  }, [
+    visible,
+    showQualityPicker,
+    showSamplerPicker,
+    onClose,
+    dismissAllPickers,
+  ]);
 
   return (
     <Modal
@@ -210,15 +233,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
         }
       }}>
       <BlurView
-        style={{ flex: 1, position: 'absolute', width: '100%', height: '100%' }}
-        blurType={isDark ? "dark" : "light"}
+        style={{flex: 1, position: 'absolute', width: '100%', height: '100%'}}
+        blurType={isDark ? 'dark' : 'light'}
         blurAmount={10}
       />
       <SafeAreaView className="flex-1">
         {/* Header */}
         <View className="flex-row justify-between items-center py-3 px-7">
           <View className="w-12 h-12" />
-          <Text style={{ color: colors.text }} className="font-bold text-base">
+          <Text style={{color: colors.text}} className="font-bold text-base">
             Advanced Settings
           </Text>
           <TouchableOpacity
@@ -226,8 +249,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               dismissAllPickers();
               onClose();
             }}
-            style={{ backgroundColor: colors.surface }}
-            className="p-2 rounded-full">
+            style={{backgroundColor: colors.surface}}
+            className="p-2 rounded-full"
+            accessible={true}
+            accessibilityLabel="Close advanced settings">
             <CloseIcon size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -235,9 +260,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
         <ScrollView
           showsVerticalScrollIndicator={false}
           className="flex-1 m-4 rounded-3xl"
-          style={{ elevation: 100 }}
+          style={{elevation: 100}}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ backgroundColor: colors.background }}
+          contentContainerStyle={{backgroundColor: colors.background}}
           contentContainerClassName="gap-7 rounded-3xl px-4 py-5 bg-white elevation-xl"
           removeClippedSubviews={false}
           scrollEventThrottle={16}
@@ -245,7 +270,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Style Grid */}
           <View className="gap-4">
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="text-lg font-medium">
               Art Styles
             </Text>
@@ -255,7 +280,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Aspect Ratio Section */}
           <View>
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="text-lg font-medium mb-4">
               Aspect Ratio
             </Text>
@@ -265,7 +290,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Size Selection */}
           <View>
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="text-lg font-medium mb-3">
               Image Size
             </Text>
@@ -287,8 +312,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         ? colors.primary
                         : colors.surface,
                   }}
-                  className={`flex-1 p-3 rounded-2xl ${aspectRatio.size === size ? 'elevation-xl' : ''
-                    }`}>
+                  className={`flex-1 p-3 rounded-2xl ${
+                    aspectRatio.size === size ? 'elevation-xl' : ''
+                  }`}
+                  accessible={true}
+                  accessibilityLabel={`${
+                    size.charAt(0).toUpperCase() + size.slice(1)
+                  } size, ${resolution}`}
+                  accessibilityState={{selected: aspectRatio.size === size}}
+                  accessibilityHint="Sets the resolution of generated images">
                   <Text
                     style={{
                       color:
@@ -321,7 +353,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Batch Count */}
           <View>
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="text-lg font-medium mb-3">
               Batch Count
             </Text>
@@ -339,8 +371,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         ? colors.primary
                         : colors.surface,
                   }}
-                  className={`w-16 h-16 items-center justify-center rounded-2xl ${numberOfImages === count ? 'elevation-xl' : ''
-                    }`}>
+                  className={`w-16 h-16 items-center justify-center rounded-2xl ${
+                    numberOfImages === count ? 'elevation-xl' : ''
+                  }`}
+                  accessible={true}
+                  accessibilityLabel={`Generate ${count} image${
+                    count > 1 ? 's' : ''
+                  }`}
+                  accessibilityState={{selected: numberOfImages === count}}
+                  accessibilityHint="Sets the number of images to generate at once">
                   <Text
                     style={{
                       shadowColor: colors.primary,
@@ -363,7 +402,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             {/* Quality Picker */}
             <View className="flex-1">
               <Text
-                style={{ color: colors.secondaryText }}
+                style={{color: colors.secondaryText}}
                 className="text-lg font-medium mb-3">
                 Quality
               </Text>
@@ -375,16 +414,21 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                   setShowQualityPicker(!showQualityPicker);
                   setShowSamplerPicker(false); // Close other picker
                 }}
-                style={{ backgroundColor: colors.surface }}
-                className="p-5 rounded-2xl">
-                <Text style={{ color: colors.text }} className="text-lg">
+                style={{backgroundColor: colors.surface}}
+                className="p-5 rounded-2xl"
+                accessible={true}
+                accessibilityLabel={`Quality: ${
+                  qualityPresets.find(q => q.value === quality)?.label
+                }`}
+                accessibilityHint="Open menu to select image quality">
+                <Text style={{color: colors.text}} className="text-lg">
                   {qualityPresets.find(q => q.value === quality)?.label}
                 </Text>
               </TouchableOpacity>
 
               {showQualityPicker && (
                 <View
-                  style={{ backgroundColor: colors.surface }}
+                  style={{backgroundColor: colors.surface}}
                   className="absolute bottom-0 translate-y-0 w-full z-10 rounded-2xl overflow-hidden">
                   {qualityPresets.map((q, index) => (
                     <TouchableOpacity
@@ -395,7 +439,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         setShowQualityPicker(false);
                       }}
                       className="p-5 border-b border-gray-200 dark:border-gray-700">
-                      <Text style={{ color: colors.text }} className="text-lg">
+                      <Text style={{color: colors.text}} className="text-lg">
                         {q.label}
                       </Text>
                     </TouchableOpacity>
@@ -407,7 +451,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
             {/* Sampler Picker */}
             <View className="flex-1">
               <Text
-                style={{ color: colors.secondaryText }}
+                style={{color: colors.secondaryText}}
                 className="text-lg font-medium mb-3">
                 Sampler
               </Text>
@@ -419,16 +463,19 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                   setShowSamplerPicker(!showSamplerPicker);
                   setShowQualityPicker(false); // Close other picker
                 }}
-                style={{ backgroundColor: colors.surface }}
-                className="p-5 rounded-2xl">
-                <Text style={{ color: colors.text }} className="text-lg">
+                style={{backgroundColor: colors.surface}}
+                className="p-5 rounded-2xl"
+                accessible={true}
+                accessibilityLabel={`Sampler: ${sampler}`}
+                accessibilityHint="Open menu to select sampling method">
+                <Text style={{color: colors.text}} className="text-lg">
                   {sampler}
                 </Text>
               </TouchableOpacity>
 
               {showSamplerPicker && (
                 <View
-                  style={{ backgroundColor: colors.surface }}
+                  style={{backgroundColor: colors.surface}}
                   className="absolute bottom-0 translate-y-0 w-full z-10 rounded-2xl overflow-hidden">
                   {samplers.map((s, index) => (
                     <TouchableOpacity
@@ -439,7 +486,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
                         setShowSamplerPicker(false);
                       }}
                       className="p-5 border-b">
-                      <Text style={{ color: colors.text }} className="text-base">
+                      <Text style={{color: colors.text}} className="text-base">
                         {s}
                       </Text>
                     </TouchableOpacity>
@@ -452,7 +499,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
           {/* Seed Input */}
           <View>
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="text-lg font-medium mb-3">
               Seed
             </Text>
@@ -463,15 +510,18 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               placeholder="Random"
               keyboardType="numeric"
               className="p-5 rounded-2xl"
-              style={{ backgroundColor: colors.surface, color: colors.text }}
+              style={{backgroundColor: colors.surface, color: colors.text}}
               placeholderTextColor="#6B7280"
+              accessible={true}
+              accessibilityLabel="Seed value input"
+              accessibilityHint="Enter a number to create reproducible images or leave empty for random results"
             />
           </View>
 
           {/* Negative Prompt */}
           <View>
             <Text
-              style={{ color: colors.secondaryText }}
+              style={{color: colors.secondaryText}}
               className="text-lg font-medium mb-3">
               Negative Prompt
             </Text>
@@ -484,8 +534,15 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
               numberOfLines={4}
               className="p-5 rounded-2xl"
               textAlignVertical="top"
-              style={{ backgroundColor: colors.surface, color: colors.text, minHeight: 100 }}
+              style={{
+                backgroundColor: colors.surface,
+                color: colors.text,
+                minHeight: 100,
+              }}
               placeholderTextColor="#6B7280"
+              accessible={true}
+              accessibilityLabel="Negative prompt input"
+              accessibilityHint="Enter terms to exclude from the generated image"
             />
           </View>
         </ScrollView>

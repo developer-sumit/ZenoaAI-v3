@@ -139,7 +139,10 @@ const LoginScreen = () => {
           <TouchableOpacity
             onPress={handleGoogleSignIn}
             style={{backgroundColor: colors.surface}}
-            className="flex-row items-center justify-center p-4 rounded-2xl mb-4">
+            className="flex-row items-center justify-center p-4 rounded-2xl mb-4"
+            accessible={true}
+            accessibilityLabel="Continue with Google"
+            accessibilityHint="Sign in using your Google account">
             <GoogleLogoIcon size={24} color={colors.text} />
             <Text style={{color: colors.text}} className="ml-3 text-lg">
               Continue with Google
@@ -160,11 +163,17 @@ const LoginScreen = () => {
           className="text-center text-base px-8 mt-8"
           style={{color: colors.secondaryText}}>
           By continuing, you agree to our{' '}
-          <TouchableOpacity onPress={openTermsOfService}>
+          <TouchableOpacity
+            onPress={openTermsOfService}
+            accessible={true}
+            accessibilityLabel="View Terms of Service">
             <Text style={{color: colors.primary}}>Terms of Service</Text>
           </TouchableOpacity>{' '}
           and{' '}
-          <TouchableOpacity onPress={openPrivacyPolicy}>
+          <TouchableOpacity
+            onPress={openPrivacyPolicy}
+            accessible={true}
+            accessibilityLabel="View Privacy Policy">
             <Text style={{color: colors.primary}}>Privacy Policy</Text>
           </TouchableOpacity>
         </Text>
