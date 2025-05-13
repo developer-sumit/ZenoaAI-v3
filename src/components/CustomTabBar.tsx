@@ -106,13 +106,11 @@ export default function CustomTabBar({state, navigation}: any) {
                 )}
               </View>
 
-              {isFocused && (
-                <Text
-                  className="text-xs mt-1 font-medium"
-                  style={{color: colors.text}}>
-                  {route.name}
-                </Text>
-              )}
+              <Text
+                className="text-xs mt-1 font-medium"
+                style={{color: colors.text}}>
+                {route.name}
+              </Text>
             </TouchableOpacity>
           );
         })}

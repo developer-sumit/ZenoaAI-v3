@@ -48,6 +48,9 @@ import Config from 'react-native-config';
 import {authManager} from '@src/services/authManager';
 import {tokenService} from '@src/services/tokenService';
 import {Toaster} from '@masumdev/rn-toast';
+import {analyticsService} from '@src/services/analyticsService';
+import {crashlyticsService} from '@src/services/crashlyticsService';
+import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -135,6 +138,31 @@ function App() {
     };
   }, [restoreSession]);
 
+  useEffect(() => {
+    // Initialize analytics and crashlytics
+    analyticsService.setAnalyticsCollectionEnabled(true);
+    crashlyticsService.setCrashlyticsCollectionEnabled(true);
+
+    // Log initial app launch
+    analyticsService.logEvent('app_launched', {
+      timestamp: new Date().toISOString(),
+    });
+
+    return () => {
+      // Cleanup if needed
+      analyticsService.setAnalyticsCollectionEnabled(false);
+      crashlyticsService.setCrashlyticsCollectionEnabled(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      // Set user properties for analytics and crashlytics
+      analyticsService.setUserProperties(user);
+      crashlyticsService.setUserInfo(user);
+    }
+  }, [user]);
+
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -172,6 +200,11 @@ function App() {
             ) : (
               <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
             )}
+            <Stack.Screen
+              name="AdvancedSettingsScreen"
+              component={(props: any) => <AdvancedSettingsScreen {...props} />}
+              options={{headerShown: false}}
+            />
           </Stack.Navigator>
         )}
       </NavigationContainer>
