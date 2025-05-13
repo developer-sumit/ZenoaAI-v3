@@ -19,10 +19,10 @@ export const stylePrompts: Record<string, StylePrompt> = {
     promptTemplate:
       'anime style, vibrant colors, distinct outlines, expressive features, japanese animation aesthetic, cel shaded, manga inspired, studio quality',
   },
-  '3D Emoji': {
-    name: '3D Emoji',
+  Sticker: {
+    name: 'Sticker',
     promptTemplate:
-      '3D emoji style, rounded forms, glossy surfaces, cute character design, vibrant colors, playful aesthetic, expressive, bubbly design',
+      'sticker art style, clean vector design, flat colors with subtle gradients, bold outlines, adhesive appearance, die-cut shape, glossy finish, playful and expressive character design, commercially printable quality, decorative illustration, white border edge, slightly raised surface effect, vibrant colors, professional graphic design, eye-catching simple background',
   },
   Watercolor: {
     name: 'Watercolor',
@@ -74,10 +74,10 @@ export const stylePrompts: Record<string, StylePrompt> = {
     promptTemplate:
       'low poly style, geometric triangular faces, 3D modeling aesthetic, faceted surfaces, clean edges, minimal texturing, stylized reduction, modern digital art',
   },
-  '3D Art': {
-    name: '3D Art',
+  '3D Figurine': {
+    name: '3D Figurine',
     promptTemplate:
-      '3D rendered art, volumetric lighting, ray tracing, detailed textures, studio quality 3D, computer generated imagery, realistic materials, professional rendering',
+      '3D figurine in transparent display box, collectible toy aesthetic, miniature character in plastic packaging, product photography, action figure style, detailed vinyl toy, clear blister pack, studio lighting, character collectible, designer toy, vinyl art toy, product showcase, high-end collectible presentation, ultra detailed 3D modeling, professional product render',
   },
   'Charcoal Sketch': {
     name: 'Charcoal Sketch',
@@ -114,8 +114,8 @@ export const stylePrompts: Record<string, StylePrompt> = {
     promptTemplate:
       'retro art style, vintage color palette, nostalgic aesthetic, mid-century design, old-school illustration, classic advertising style, aged texture, 70s-80s inspired',
   },
-  'Manga Panels': {
-    name: 'Manga Panels',
+  'Manga': {
+    name: 'Manga',
     promptTemplate:
       'manga panel style, Japanese comic art, dynamic composition, expressive linework, dramatic perspective, speed lines, emotional storytelling, monochrome with screen tones',
   },
@@ -128,6 +128,161 @@ export const stylePrompts: Record<string, StylePrompt> = {
     name: 'Pokemon',
     promptTemplate:
       'Pokemon style, anime creature design, vibrant colors, cute monsters, simplified anatomy, Japanese animation aesthetic, game-inspired characters, collectible creature art',
+  },
+  Impressionism: {
+    name: 'Impressionism',
+    promptTemplate:
+      'impressionist painting style, loose brushwork, emphasis on light and movement, en plein air technique, Claude Monet inspired, vibrant color palette, capturing fleeting moments, atmospheric quality',
+  },
+  Cubism: {
+    name: 'Cubism',
+    promptTemplate:
+      'cubist art style, geometric fragmentation, multiple viewpoints simultaneously, abstract forms, Pablo Picasso inspired, Georges Braque inspired, deconstructed subjects, angular shapes',
+  },
+  'Art Nouveau': {
+    name: 'Art Nouveau',
+    promptTemplate:
+      'art nouveau style, organic flowing curves, natural forms and structures, ornamental elements, decorative aesthetic, Alphonse Mucha inspired, sinuous lines, stylized floral patterns',
+  },
+  'Art Deco': {
+    name: 'Art Deco',
+    promptTemplate:
+      'art deco style, geometric patterns, bold shapes, symmetrical composition, luxurious appearance, sleek lines, vibrant colors, 1920s-30s aesthetic, glamorous and modern',
+  },
+  Renaissance: {
+    name: 'Renaissance',
+    promptTemplate:
+      'renaissance art style, classical composition, realistic human anatomy, oil painting technique, dramatic lighting, rich color palette, religious or mythological themes, perspective and depth',
+  },
+  Baroque: {
+    name: 'Baroque',
+    promptTemplate:
+      'baroque art style, dramatic lighting, rich deep colors, grandeur and opulence, emotional intensity, dynamic composition, Caravaggio inspired, Rembrandt inspired, theatrical quality',
+  },
+  'Ukiyo-e': {
+    name: 'Ukiyo-e',
+    promptTemplate:
+      'ukiyo-e Japanese woodblock print style, flat colors, bold outlines, detailed patterns, traditional Japanese aesthetic, Hokusai inspired, Hiroshige inspired, floating world scenes',
+  },
+  Bauhaus: {
+    name: 'Bauhaus',
+    promptTemplate:
+      'bauhaus design style, geometric abstraction, primary colors, minimalist approach, functional aesthetic, clean lines, typography integration, industrial materials, modernist principles',
+  },
+  Gothic: {
+    name: 'Gothic',
+    promptTemplate:
+      'gothic art style, medieval aesthetic, religious iconography, elaborate detail, rich jewel tones, dramatic emotional expressions, architectural elements, manuscript illumination style',
+  },
+  Expressionism: {
+    name: 'Expressionism',
+    promptTemplate:
+      'expressionist art style, intense emotional quality, distorted forms, vivid unnatural colors, bold brushwork, psychological depth, Edvard Munch inspired, Ernst Ludwig Kirchner inspired',
+  },
+  Fauvism: {
+    name: 'Fauvism',
+    promptTemplate:
+      'fauvist art style, wildly vibrant non-naturalistic colors, bold brushstrokes, simplified forms, emotional expression over realism, Henri Matisse inspired, André Derain inspired',
+  },
+  Vaporwave: {
+    name: 'Vaporwave',
+    promptTemplate:
+      'vaporwave aesthetic, 80s-90s nostalgia, glitch art elements, pastel pink and blue palette, Greek classical statues, retro computer graphics, japanese text elements, surreal digital landscape',
+  },
+  Rococo: {
+    name: 'Rococo',
+    promptTemplate:
+      'rococo art style, light pastel colors, elaborate ornamentation, playful themes, asymmetrical designs, gilded details, Jean-Honoré Fragonard inspired, decorative and whimsical',
+  },
+  Dadaism: {
+    name: 'Dadaism',
+    promptTemplate:
+      'dadaist art style, absurdist elements, found objects, photomontage, anti-art sentiment, Marcel Duchamp inspired, Hannah Höch inspired, nonsensical juxtapositions, provocative imagery',
+  },
+  'De Stijl': {
+    name: 'De Stijl',
+    promptTemplate:
+      'de stijl art style, primary colors with black and white, geometric abstraction, Piet Mondrian inspired, straight horizontal and vertical lines, rectangular forms, minimal elements',
+  },
+  'Optical Illusion': {
+    name: 'Optical Illusion',
+    promptTemplate:
+      'op art style, optical illusion, geometric abstract patterns, black and white or vivid colors, Victor Vasarely inspired, Bridget Riley inspired, visual movement effect, perceptual experience',
+  },
+  'Memphis Design': {
+    name: 'Memphis Design',
+    promptTemplate:
+      'memphis design style, 1980s aesthetic, bold geometric patterns, bright contrasting colors, asymmetrical shapes, playful composition, Ettore Sottsass inspired, postmodern design elements',
+  },
+  Brutalism: {
+    name: 'Brutalism',
+    promptTemplate:
+      'brutalist design style, raw concrete textures, monolithic forms, minimalist geometric shapes, austere appearance, strong shadows, imposing scale, utilitarian aesthetic',
+  },
+  Suprematism: {
+    name: 'Suprematism',
+    promptTemplate:
+      'suprematist art style, geometric abstraction, limited color palette, floating shapes on white background, non-objective art, Kazimir Malevich inspired, mathematical forms, pure abstraction',
+  },
+  Constructivism: {
+    name: 'Constructivism',
+    promptTemplate:
+      'constructivist art style, geometric shapes, dynamic composition, bold typography, Russian avant-garde, industrial aesthetic, propaganda poster style, El Lissitzky inspired, Alexander Rodchenko inspired',
+  },
+  'Art Brut': {
+    name: 'Art Brut',
+    promptTemplate:
+      'art brut style, raw outsider art, naive technique, unconventional materials, Jean Dubuffet inspired, primitive quality, untrained expression, spontaneous composition, intense authenticity',
+  },
+  Neoclassicism: {
+    name: 'Neoclassicism',
+    promptTemplate:
+      'neoclassical art style, Greek and Roman influences, idealized figures, historical scenes, refined technique, Jacques-Louis David inspired, harmonious composition, sculptural quality',
+  },
+  'Studio Ghibli': {
+    name: 'Studio Ghibli',
+    promptTemplate:
+      'Studio Ghibli animation style, Hayao Miyazaki inspired, whimsical hand-drawn aesthetic, pastel color palette, natural environments, magical realism, ethereal lighting, expressive characters',
+  },
+  'Disney Animation': {
+    name: 'Disney Animation',
+    promptTemplate:
+      'Disney animation style, expressive characters, vibrant colors, smooth motion aesthetic, magical atmosphere, detailed backgrounds, classic fairy tale quality, emotional storytelling',
+  },
+  Synthwave: {
+    name: 'Synthwave',
+    promptTemplate:
+      'synthwave aesthetic, 80s retro futurism, neon pinks and purples, low sun, grid landscapes, wireframe elements, sunset silhouettes, VHS quality, outrun style',
+  },
+  'Film Noir': {
+    name: 'Film Noir',
+    promptTemplate:
+      'film noir style, high contrast black and white, dramatic shadows, venetian blinds lighting effect, mysterious atmosphere, 1940s aesthetic, dramatic side lighting, moody cinematic quality',
+  },
+  'Art of Diablo': {
+    name: 'Art of Diablo',
+    promptTemplate:
+      'Diablo game art style, dark fantasy, gothic horror elements, dramatic lighting, gritty textures, ominous atmosphere, demonic creatures, rich dark color palette',
+  },
+  'Wes Anderson': {
+    name: 'Wes Anderson',
+    promptTemplate:
+      'Wes Anderson film style, symmetrical composition, pastel color palette, whimsical set design, vintage aesthetic, quirky characters, meticulous detail, Grand Budapest Hotel inspired',
+  },
+  'Tim Burton': {
+    name: 'Tim Burton',
+    promptTemplate:
+      'Tim Burton style, gothic whimsy, black and white striped elements, spiraling shapes, exaggerated thin figures, dark fantasy elements, Edward Scissorhands inspired, quirky macabre',
+  },
+  Minecraft: {
+    name: 'Minecraft',
+    promptTemplate:
+      'Minecraft voxel style, blocky pixel art, cube-based geometry, limited textures, sandbox game aesthetic, distinctive pixelated shapes, 8-bit inspired 3D design',
+  },
+  'Borderlands Cel Shaded': {
+    name: 'Borderlands Cel Shaded',
+    promptTemplate:
+      'Borderlands game art style, cel shaded technique, comic book outlines, exaggerated proportions, vibrant colors, detailed hand-drawn textures, distinctive black edge lines',
   },
 };
 

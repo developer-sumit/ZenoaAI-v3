@@ -22,6 +22,8 @@ export interface UserProfile {
   };
 }
 
+export type AspectRatioSizeType = 'small' | 'medium' | 'large';
+
 export interface AspectRatioType {
   ratio: string;
   sizes: {
@@ -29,7 +31,7 @@ export interface AspectRatioType {
     medium: string;
     large: string;
   };
-  size?: 'small' | 'medium' | 'large';
+  size?: AspectRatioSizeType;
 }
 
 export interface ArtStyleType {
