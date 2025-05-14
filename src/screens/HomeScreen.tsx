@@ -23,7 +23,6 @@ import {useAuthStore} from '@src/store/authStore';
 import {generateImage} from '@src/config/api.config';
 import {imageService} from '@src/services/imageService';
 import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
-import AdvancedSettings from '@src/components/AdvancedSettings';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
@@ -35,6 +34,8 @@ import CloseIcon from '@src/assets/icons/CloseIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
 import {getStylePrompt} from '@src/data/stylePrompts';
 import {useToast} from '@masumdev/rn-toast';
+import useAppNavigation from '@src/hooks/useAppNavigation';
+import Routes from '@src/constants/routes';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -44,6 +45,7 @@ const HomeScreen = () => {
   const {isDark} = useThemeStore();
   const {showToast} = useToast();
   const {user} = useAuthStore();
+  const navigator = useAppNavigation();
   const colors = isDark ? theme.dark : theme.light;
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showPromptSuggestions, setShowPromptSuggestions] =
@@ -575,7 +577,32 @@ const HomeScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setShowAdvanced(true)}
+                onPress={() =>
+                  navigator.navigate({
+                    route: Routes.ADVANCED_SETTINGS,
+                    params: {
+                      selectedStyles,
+                      setSelectedStyles: (styles: string[]) =>
+                        setSelectedStyles(styles),
+                      aspectRatio,
+                      setAspectRatio: (ratio: AspectRatioType) =>
+                        setAspectRatio(ratio),
+                      numberOfImages,
+                      setNumberOfImages: (count: number) =>
+                        setNumberOfImages(count),
+                      quality,
+                      setQuality: (value: number) => setQuality(value),
+                      seed,
+                      setSeed: (value: string) => setSeed(value),
+                      sampler,
+                      setSampler: (value: string) => setSampler(value),
+                      negativePrompt,
+                      setNegativePrompt: (value: string) =>
+                        setNegativePrompt(value),
+                      samplers,
+                    },
+                  })
+                }
                 className="p-3 rounded-2xl"
                 style={{backgroundColor: colors.primary + '20'}}
                 accessible={true}
@@ -619,28 +646,6 @@ const HomeScreen = () => {
           setVisible={setShowPromptSuggestions}
           onSelectPrompt={handleSelectPrompt}
           colors={colors}
-        />
-
-        {/* Modals */}
-        <AdvancedSettings
-          visible={showAdvanced}
-          onClose={() => setShowAdvanced(false)}
-          selectedStyles={selectedStyles}
-          setSelectedStyles={setSelectedStyles}
-          aspectRatio={aspectRatio}
-          setAspectRatio={setAspectRatio}
-          numberOfImages={numberOfImages}
-          setNumberOfImages={setNumberOfImages}
-          quality={quality}
-          setQuality={setQuality}
-          seed={seed}
-          setSeed={setSeed}
-          sampler={sampler}
-          setSampler={setSampler}
-          negativePrompt={negativePrompt}
-          setNegativePrompt={setNegativePrompt}
-          qualityPresets={qualityPresets}
-          samplers={samplers}
         />
 
         {selectedImage && (

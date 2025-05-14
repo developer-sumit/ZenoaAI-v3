@@ -201,7 +201,7 @@ function App() {
               <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
             )}
             <Stack.Screen
-              name="AdvancedSettingsScreen"
+              name={Routes.ADVANCED_SETTINGS}
               component={(props: any) => <AdvancedSettingsScreen {...props} />}
               options={{headerShown: false}}
             />
