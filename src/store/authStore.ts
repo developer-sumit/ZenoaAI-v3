@@ -12,6 +12,7 @@ interface AuthState {
   restoreSession: () => Promise<void>;
   login: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updatedUser: User) => void;
 }
 
 export const useAuthStore = create<AuthState>(set => ({
@@ -116,4 +117,10 @@ export const useAuthStore = create<AuthState>(set => ({
       throw error;
     }
   },
+
+  updateUser: (updatedUser: User) =>
+    set(state => ({
+      ...state,
+      user: updatedUser,
+    })),
 }));

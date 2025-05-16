@@ -1,4 +1,11 @@
-import React, {useState, useEffect, useCallback, useMemo, memo} from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  memo,
+  useRef,
+} from 'react';
 import {
   View,
   Text,
@@ -10,6 +17,8 @@ import {
   UIManager,
   Modal,
   Dimensions,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
@@ -26,6 +35,8 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import InfoDialog from '@src/components/InfoDialog';
 import FastImage from 'react-native-fast-image';
+import CloseIcon from '@src/assets/icons/CloseIcon';
+import SearchIcon from '@src/assets/icons/SearchIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -125,6 +136,8 @@ const StyleItem = memo(
           style={{
             borderWidth: isSelected ? 3 : 0,
             borderColor: colors.primary,
+            shadowColor: colors.primary,
+            elevation: isSelected ? 8 : 0,
           }}>
           <FastImage
             style={{
@@ -300,6 +313,21 @@ const ArtStylesDialog = memo(
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
   }) => {
+    // Add state for search query
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Filter styles based on search query
+    const filteredStyles = useMemo(() => {
+      if (!searchQuery.trim()) {
+        return artStyles;
+      }
+
+      const query = searchQuery.toLowerCase().trim();
+      return artStyles.filter(style =>
+        style.name.toLowerCase().includes(query),
+      );
+    }, [searchQuery, artStyles]);
+
     return (
       <Modal
         visible={visible}
@@ -311,7 +339,7 @@ const ArtStylesDialog = memo(
           className="flex-1"
           style={{backgroundColor: colors.background}}>
           {/* Header */}
-          <View className="flex-row items-center justify-between p-4 border-b">
+          <View className="flex-row items-center justify-between p-4">
             <TouchableOpacity
               onPress={onClose}
               className="w-10 h-10 rounded-full items-center justify-center"
@@ -324,27 +352,68 @@ const ArtStylesDialog = memo(
             <View style={{width: 40}} />
           </View>
 
-          {/* All Art Styles Grid */}
-          <StylesGrid
-            data={artStyles}
-            selectedStyles={selectedStyles}
-            toggleStyle={toggleStyle}
-            colors={colors}
-            isDark={isDark}
-            scrollEnabled={true}
-          />
+          {/* Search Bar */}
+          <View
+            className="mx-4 my-3 rounded-xl flex-row items-center px-3"
+            style={{backgroundColor: colors.surface}}>
+            <SearchIcon size={28} color={colors.secondaryText} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search styles..."
+              placeholderTextColor={colors.secondaryText}
+              className="flex-1 py-3 px-2 h-12 text-lg"
+              style={{color: colors.text}}
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+              returnKeyType="search"
+              accessible={true}
+              accessibilityLabel="Search art styles"
+              accessibilityHint="Type to filter art styles by name"
+            />
+            {searchQuery ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                accessible={true}
+                accessibilityLabel="Clear search"
+                accessibilityRole="button">
+                <CloseIcon size={18} color={colors.secondaryText} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* Filtered Styles Grid */}
+          {filteredStyles.length > 0 ? (
+            <StylesGrid
+              data={filteredStyles}
+              selectedStyles={selectedStyles}
+              toggleStyle={toggleStyle}
+              colors={colors}
+              isDark={isDark}
+              scrollEnabled={true}
+            />
+          ) : (
+            <View className="flex-1 justify-center items-center p-4">
+              <Text
+                style={{color: colors.secondaryText}}
+                className="text-lg text-center">
+                No styles found matching "{searchQuery}"
+              </Text>
+            </View>
+          )}
 
           {/* Selected Styles Counter */}
           {selectedStyles.length > 0 && (
             <View className="px-4 py-2.5 bg-orange-500 border border-white flex-row justify-between items-center absolute bottom-5 self-center w-[90%] rounded-2xl">
               <Text className="text-white font-medium">
-                {selectedStyles.length} style
-                {selectedStyles.length !== 1 ? 's' : ''} selected
+                {selectedStyles.length}{' '}
+                {selectedStyles.length === 1 ? 'style' : 'styles'} selected
               </Text>
               <TouchableOpacity
                 onPress={onClose}
                 className="bg-white py-2.5 px-4 rounded-full">
-                <Text className="text-orange-500 font-bold">Done</Text>
+                <Text style={{color: '#f97316', fontWeight: 'bold'}}>Done</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -361,6 +430,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const navigation = useNavigation();
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
+
+  // Add refs for TextInputs to maintain focus
+  const seedInputRef = useRef<TextInput>(null);
+  const negativePromptRef = useRef<TextInput>(null);
 
   // Create local state that mirrors the parent state
   const [localSelectedStyles, setLocalSelectedStyles] = useState<string[]>(
@@ -387,6 +460,30 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogContent, setDialogContent] = useState({title: '', message: ''});
   const [artStylesDialogVisible, setArtStylesDialogVisible] = useState(false);
+
+  // Add state to track if keyboard is showing
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+      },
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+      },
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   // Memoize expensive functions
   const showInfoDialog = useCallback((feature: keyof typeof featureInfo) => {
@@ -459,402 +556,438 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
         <View style={{width: 40}} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        className="flex-1 px-4"
-        keyboardShouldPersistTaps="handled"
-        removeClippedSubviews={true}>
-        {/* Art Styles Section */}
-        <View
-          className="py-4 px-3 mt-4 rounded-2xl"
-          style={{backgroundColor: colors.surface}}>
-          <SectionHeader
-            title="Art Styles"
-            feature="artStyles"
-            subtitle="Select one or more styles to apply to your image"
-            showInfoDialog={showInfoDialog}
-            colors={colors}
-          />
+      {/* Wrap the scrollview in KeyboardAvoidingView */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{flex: 1}}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          className="flex-1 px-4"
+          keyboardShouldPersistTaps="always" // Important: Change this to 'always'
+          keyboardDismissMode="none" // Don't dismiss on scroll
+          contentInsetAdjustmentBehavior="always" // Adjust content inset when keyboard shows
+          removeClippedSubviews={false} // Important: Set to false to maintain input state
+        >
+          {/* Art Styles Section */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
+            <SectionHeader
+              title="Art Styles"
+              feature="artStyles"
+              subtitle="Select one or more styles to apply to your image"
+              showInfoDialog={showInfoDialog}
+              colors={colors}
+            />
 
-          <StylesGrid
-            data={stylesToShow}
-            selectedStyles={localSelectedStyles}
-            toggleStyle={toggleStyle}
-            colors={colors}
-            isDark={isDark}
-            showButton={true}
-            onShowAllPress={() => setArtStylesDialogVisible(true)}
-          />
-        </View>
-
-        {/* Quality Toggle */}
-        <View
-          className="py-4 px-3 mt-4 rounded-2xl"
-          style={{backgroundColor: colors.surface}}>
-          <SectionHeader
-            title="Quality"
-            feature="quality"
-            showInfoDialog={showInfoDialog}
-            colors={colors}
-          />
-
-          <View className="flex-row justify-between items-center py-2">
-            <View>
-              <Text style={{color: colors.text}} className="text-lg">
-                Premium Images
-              </Text>
-              <Text style={{color: colors.secondaryText}} className="text-xs">
-                Generate higher quality images (50 steps)
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              className="w-14 h-8 rounded-full p-1.5"
-              style={{
-                backgroundColor:
-                  localQuality === 50 ? colors.primary : '#cbd5e1',
-              }}
-              onPress={() => {
-                LayoutAnimation.spring();
-                const newQuality = localQuality === 50 ? 25 : 50;
-                setLocalQuality(newQuality);
-                params.setQuality(newQuality);
-              }}
-              accessible={true}
-              accessibilityLabel={
-                localQuality === 50
-                  ? 'Turn off premium quality'
-                  : 'Turn on premium quality'
-              }
-              accessibilityRole="switch"
-              accessibilityState={{checked: localQuality === 50}}>
-              <View
-                className={`w-5 h-5 rounded-full bg-white ${
-                  localQuality === 50 ? 'ml-6' : 'ml-0'
-                }`}
-              />
-            </TouchableOpacity>
+            <StylesGrid
+              data={stylesToShow}
+              selectedStyles={localSelectedStyles}
+              toggleStyle={toggleStyle}
+              colors={colors}
+              isDark={isDark}
+              showButton={true}
+              onShowAllPress={() => setArtStylesDialogVisible(true)}
+            />
           </View>
-        </View>
 
-        {/* Batch Count */}
-        <View
-          className="py-4 px-3 mt-4 rounded-2xl"
-          style={{backgroundColor: colors.surface}}>
-          <SectionHeader
-            title="Batch Count"
-            feature="batchCount"
-            showInfoDialog={showInfoDialog}
-            colors={colors}
-          />
+          {/* Quality Toggle */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
+            <SectionHeader
+              title="Quality"
+              feature="quality"
+              showInfoDialog={showInfoDialog}
+              colors={colors}
+            />
 
-          <View className="flex-row flex-wrap gap-2">
-            {[1, 2, 4, 6, 8, 10].map((count, index) => (
+            <View className="flex-row justify-between items-center py-2">
+              <View>
+                <Text style={{color: colors.text}} className="text-lg">
+                  Premium Images
+                </Text>
+                <Text style={{color: colors.secondaryText}} className="text-xs">
+                  Generate higher quality images (50 steps)
+                </Text>
+              </View>
+
               <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  LayoutAnimation.spring();
-                  setLocalNumberOfImages(count);
-                  params.setNumberOfImages(count);
-                }}
+                className="w-14 h-8 rounded-full p-1.5"
                 style={{
                   backgroundColor:
-                    localNumberOfImages === count
-                      ? colors.primary
-                      : colors.background,
-                  minWidth: 55,
-                  width: '15%',
+                    localQuality === 50 ? colors.primary : '#cbd5e1',
                 }}
-                className="px-5 py-2.5 items-center justify-center rounded-xl">
-                <Text
-                  style={{
-                    color:
-                      localNumberOfImages === count
-                        ? isDark
-                          ? colors.text
-                          : 'white'
-                        : colors.secondaryText,
-                  }}
-                  className="text-lg">
-                  {count}
-                </Text>
+                onPress={() => {
+                  LayoutAnimation.spring();
+                  const newQuality = localQuality === 50 ? 25 : 50;
+                  setLocalQuality(newQuality);
+                  params.setQuality(newQuality);
+                }}
+                accessible={true}
+                accessibilityLabel={
+                  localQuality === 50
+                    ? 'Turn off premium quality'
+                    : 'Turn on premium quality'
+                }
+                accessibilityRole="switch"
+                accessibilityState={{checked: localQuality === 50}}>
+                <View
+                  className={`w-5 h-5 rounded-full bg-white ${
+                    localQuality === 50 ? 'ml-6' : 'ml-0'
+                  }`}
+                />
               </TouchableOpacity>
-            ))}
+            </View>
           </View>
-        </View>
 
-        {/* Aspect Ratio and Size */}
-        <View
-          className="py-4 px-3 mt-4 rounded-2xl"
-          style={{backgroundColor: colors.surface}}>
-          {/* Aspect Ratio Section */}
-          <View className="mb-5">
+          {/* Batch Count */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
             <SectionHeader
-              title="Aspect Ratio"
-              feature="aspectRatio"
+              title="Batch Count"
+              feature="batchCount"
               showInfoDialog={showInfoDialog}
               colors={colors}
             />
 
             <View className="flex-row flex-wrap gap-2">
-              {aspectRatios.map((ratio, index) => {
-                // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
-                const [width, height] = ratio.ratio.split(':').map(Number);
-
-                // Base size for the visual representation
-                const BASE_SIZE = 24;
-                let displayWidth, displayHeight;
-
-                // Calculate dimensions while maintaining aspect ratio
-                if (width >= height) {
-                  // Landscape or square orientation
-                  displayWidth = BASE_SIZE;
-                  displayHeight = (height / width) * BASE_SIZE;
-                } else {
-                  // Portrait orientation
-                  displayHeight = BASE_SIZE;
-                  displayWidth = (width / height) * BASE_SIZE;
-                }
-
-                // Scale up smaller dimension for better visibility
-                const SCALE_FACTOR = 1.5;
-                if (displayWidth < 12) displayWidth *= SCALE_FACTOR;
-                if (displayHeight < 12) displayHeight *= SCALE_FACTOR;
-
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => {
-                      LayoutAnimation.spring();
-                      const newRatio = {
-                        ...ratio,
-                        size: 'medium' as AspectRatioSizeType,
-                      };
-                      setLocalAspectRatio(newRatio);
-                      params.setAspectRatio(newRatio);
-                    }}
+              {[1, 2, 4, 6, 8, 10].map((count, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    LayoutAnimation.spring();
+                    setLocalNumberOfImages(count);
+                    params.setNumberOfImages(count);
+                  }}
+                  style={{
+                    backgroundColor:
+                      localNumberOfImages === count
+                        ? colors.primary
+                        : colors.background,
+                    shadowColor: colors.primary,
+                    elevation: localNumberOfImages === count ? 8 : 0,
+                    minWidth: 55,
+                    width: '15%',
+                  }}
+                  className="px-5 py-2.5 items-center justify-center rounded-xl">
+                  <Text
                     style={{
-                      backgroundColor:
-                        localAspectRatio.ratio === ratio.ratio
-                          ? colors.primary
-                          : colors.background,
+                      color:
+                        localNumberOfImages === count
+                          ? isDark
+                            ? colors.text
+                            : 'white'
+                          : colors.secondaryText,
                     }}
-                    className="px-4 py-3 rounded-xl">
-                    {/* Aspect ratio visual icon */}
-                    <View
-                      className="mb-2 items-center justify-center"
+                    className="text-lg">
+                    {count}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Aspect Ratio and Size */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
+            {/* Aspect Ratio Section */}
+            <View className="mb-5">
+              <SectionHeader
+                title="Aspect Ratio"
+                feature="aspectRatio"
+                showInfoDialog={showInfoDialog}
+                colors={colors}
+              />
+
+              <View className="flex-row flex-wrap gap-2">
+                {aspectRatios.map((ratio, index) => {
+                  // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
+                  const [width, height] = ratio.ratio.split(':').map(Number);
+
+                  // Base size for the visual representation
+                  const BASE_SIZE = 24;
+                  let displayWidth, displayHeight;
+
+                  // Calculate dimensions while maintaining aspect ratio
+                  if (width >= height) {
+                    // Landscape or square orientation
+                    displayWidth = BASE_SIZE;
+                    displayHeight = (height / width) * BASE_SIZE;
+                  } else {
+                    // Portrait orientation
+                    displayHeight = BASE_SIZE;
+                    displayWidth = (width / height) * BASE_SIZE;
+                  }
+
+                  // Scale up smaller dimension for better visibility
+                  const SCALE_FACTOR = 1.5;
+                  if (displayWidth < 12) displayWidth *= SCALE_FACTOR;
+                  if (displayHeight < 12) displayHeight *= SCALE_FACTOR;
+
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => {
+                        LayoutAnimation.spring();
+                        const newRatio = {
+                          ...ratio,
+                          size: 'medium' as AspectRatioSizeType,
+                        };
+                        setLocalAspectRatio(newRatio);
+                        params.setAspectRatio(newRatio);
+                      }}
                       style={{
-                        width: 40,
-                        height: 30,
-                      }}>
+                        backgroundColor:
+                          localAspectRatio.ratio === ratio.ratio
+                            ? colors.primary
+                            : colors.background,
+                        shadowColor: colors.primary,
+                        elevation:
+                          localAspectRatio.ratio === ratio.ratio ? 8 : 0,
+                      }}
+                      className="px-4 py-3 rounded-xl">
+                      {/* Aspect ratio visual icon */}
                       <View
+                        className="mb-2 items-center justify-center"
+                        style={{width: 40, height: 30}}>
+                        <View
+                          style={{
+                            width: displayWidth,
+                            height: displayHeight,
+                            borderWidth: 2,
+                            borderColor:
+                              localAspectRatio.ratio === ratio.ratio
+                                ? isDark
+                                  ? colors.text
+                                  : 'white'
+                                : colors.secondaryText,
+                            borderRadius: 3,
+                          }}
+                        />
+                      </View>
+                      <Text
                         style={{
-                          width: displayWidth,
-                          height: displayHeight,
-                          borderWidth: 2,
-                          borderColor:
+                          color:
                             localAspectRatio.ratio === ratio.ratio
                               ? isDark
                                 ? colors.text
                                 : 'white'
                               : colors.secondaryText,
-                          borderRadius: 3,
+                          textAlign: 'center',
                         }}
-                      />
-                    </View>
-                    <Text
-                      style={{
-                        color:
-                          localAspectRatio.ratio === ratio.ratio
-                            ? isDark
-                              ? colors.text
-                              : 'white'
-                            : colors.secondaryText,
-                        textAlign: 'center',
+                        className="text-base font-medium">
+                        {ratio.ratio}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Size Selection */}
+            <View>
+              <SectionHeader
+                title="Image Size"
+                feature="imageSize"
+                showInfoDialog={showInfoDialog}
+                colors={colors}
+              />
+
+              <View className="flex-row gap-2">
+                {Object.entries(localAspectRatio.sizes).map(
+                  ([size, resolution]) => (
+                    <TouchableOpacity
+                      key={size}
+                      onPress={() => {
+                        LayoutAnimation.spring();
+                        const newRatio = {
+                          ...localAspectRatio,
+                          size: size as 'small' | 'medium' | 'large',
+                        };
+                        setLocalAspectRatio(newRatio);
+                        params.setAspectRatio(newRatio);
                       }}
-                      className="text-base font-medium">
-                      {ratio.ratio}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      style={{
+                        backgroundColor:
+                          localAspectRatio.size === size
+                            ? colors.primary
+                            : colors.background,
+                        shadowColor: colors.primary,
+                        elevation: localAspectRatio.size === size ? 8 : 0,
+                      }}
+                      className="flex-1 p-3 rounded-xl">
+                      <Text
+                        style={{
+                          color:
+                            localAspectRatio.size === size
+                              ? isDark
+                                ? colors.text
+                                : 'white'
+                              : colors.secondaryText,
+                        }}
+                        className="text-center text-lg">
+                        {size.charAt(0).toUpperCase() + size.slice(1)}
+                      </Text>
+                      <Text
+                        style={{
+                          color:
+                            localAspectRatio.size === size
+                              ? isDark
+                                ? colors.text
+                                : 'white'
+                              : colors.secondaryText,
+                        }}
+                        className="text-center text-sm">
+                        {resolution}
+                      </Text>
+                    </TouchableOpacity>
+                  ),
+                )}
+              </View>
             </View>
           </View>
 
-          {/* Size Selection */}
-          <View>
-            <SectionHeader
-              title="Image Size"
-              feature="imageSize"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
-            />
+          {/* Sampler, Seed, and Negative Prompt */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
+            {/* Sampler Picker */}
+            <View className="mb-5">
+              <SectionHeader
+                title="Sampler"
+                feature="sampler"
+                showInfoDialog={showInfoDialog}
+                colors={colors}
+              />
 
-            <View className="flex-row gap-2">
-              {Object.entries(localAspectRatio.sizes).map(
-                ([size, resolution]) => (
-                  <TouchableOpacity
-                    key={size}
-                    onPress={() => {
-                      LayoutAnimation.spring();
-                      const newRatio = {
-                        ...localAspectRatio,
-                        size: size as 'small' | 'medium' | 'large',
-                      };
-                      setLocalAspectRatio(newRatio);
-                      params.setAspectRatio(newRatio);
-                    }}
-                    style={{
-                      backgroundColor:
-                        localAspectRatio.size === size
-                          ? colors.primary
-                          : colors.background,
-                    }}
-                    className="flex-1 p-3 rounded-xl">
-                    <Text
-                      style={{
-                        color:
-                          localAspectRatio.size === size
-                            ? isDark
-                              ? colors.text
-                              : 'white'
-                            : colors.secondaryText,
+              <TouchableOpacity
+                onPress={() => {
+                  LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut,
+                  );
+                  setShowSamplerPicker(!showSamplerPicker);
+                }}
+                style={{backgroundColor: colors.background}}
+                className="p-4 rounded-xl flex-row justify-between items-center">
+                <Text style={{color: colors.text}} className="text-lg">
+                  {localSampler}
+                </Text>
+                <ChevronDownIcon
+                  size={16}
+                  color={colors.secondaryText}
+                  style={{
+                    transform: [
+                      {rotate: showSamplerPicker ? '180deg' : '0deg'},
+                    ],
+                  }}
+                />
+              </TouchableOpacity>
+
+              {showSamplerPicker && (
+                <View
+                  style={{backgroundColor: colors.background}}
+                  className="mt-2 rounded-xl overflow-hidden">
+                  {params.samplers.map((s, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => {
+                        LayoutAnimation.spring();
+                        setLocalSampler(s);
+                        params.setSampler(s);
+                        setShowSamplerPicker(false);
                       }}
-                      className="text-center text-lg">
-                      {size.charAt(0).toUpperCase() + size.slice(1)}
-                    </Text>
-                    <Text
-                      style={{
-                        color:
-                          localAspectRatio.size === size
-                            ? isDark
-                              ? colors.text
-                              : 'white'
-                            : colors.secondaryText,
-                      }}
-                      className="text-center text-sm">
-                      {resolution}
-                    </Text>
-                  </TouchableOpacity>
-                ),
+                      className="p-4 border-b"
+                      style={{borderColor: colors.surface}}>
+                      <Text style={{color: colors.text}} className="text-base">
+                        {s}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
             </View>
-          </View>
-        </View>
 
-        {/* Sampler, Seed, and Negative Prompt */}
-        <View
-          className="py-4 px-3 mt-4 rounded-2xl"
-          style={{backgroundColor: colors.surface}}>
-          {/* Sampler Picker */}
-          <View className="mb-5">
-            <SectionHeader
-              title="Sampler"
-              feature="sampler"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
-            />
-
-            <TouchableOpacity
-              onPress={() => {
-                LayoutAnimation.configureNext(
-                  LayoutAnimation.Presets.easeInEaseOut,
-                );
-                setShowSamplerPicker(!showSamplerPicker);
-              }}
-              style={{backgroundColor: colors.background}}
-              className="p-4 rounded-xl flex-row justify-between items-center">
-              <Text style={{color: colors.text}} className="text-lg">
-                {localSampler}
-              </Text>
-              <ChevronDownIcon
-                size={16}
-                color={colors.secondaryText}
-                style={{
-                  transform: [{rotate: showSamplerPicker ? '180deg' : '0deg'}],
-                }}
+            {/* Seed Input */}
+            <View className="mb-5">
+              <SectionHeader
+                title="Seed"
+                feature="seed"
+                showInfoDialog={showInfoDialog}
+                colors={colors}
               />
-            </TouchableOpacity>
 
-            {showSamplerPicker && (
-              <View
-                style={{backgroundColor: colors.background}}
-                className="mt-2 rounded-xl overflow-hidden">
-                {params.samplers.map((s, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => {
-                      LayoutAnimation.spring();
-                      setLocalSampler(s);
-                      params.setSampler(s);
-                      setShowSamplerPicker(false);
-                    }}
-                    className="p-4 border-b"
-                    style={{borderColor: colors.surface}}>
-                    <Text style={{color: colors.text}} className="text-base">
-                      {s}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+              <TextInput
+                ref={seedInputRef}
+                value={localSeed}
+                onChangeText={text => {
+                  setLocalSeed(text);
+                  params.setSeed(text);
+                }}
+                placeholder="Random"
+                keyboardType="numeric"
+                className="p-4 rounded-xl text-lg"
+                style={{backgroundColor: colors.background, color: colors.text}}
+                placeholderTextColor="#6B7280"
+                accessible={true}
+                accessibilityLabel="Seed value input"
+                accessibilityHint="Enter a number to create reproducible images or leave empty for random results"
+                // Add these props:
+                blurOnSubmit={false}
+                caretHidden={false}
+                autoCorrect={false}
+                spellCheck={false}
+              />
+            </View>
+
+            {/* Negative Prompt */}
+            <View>
+              <SectionHeader
+                title="Negative Prompt"
+                feature="negativePrompt"
+                showInfoDialog={showInfoDialog}
+                colors={colors}
+              />
+
+              <TextInput
+                ref={negativePromptRef}
+                value={localNegativePrompt}
+                onChangeText={text => {
+                  setLocalNegativePrompt(text);
+                  params.setNegativePrompt(text);
+                }}
+                placeholder="What to exclude from your image..."
+                multiline
+                numberOfLines={4}
+                className="p-4 rounded-xl text-lg"
+                textAlignVertical="top"
+                style={{
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  minHeight: 100,
+                }}
+                placeholderTextColor="#6B7280"
+                accessible={true}
+                accessibilityLabel="Negative prompt input"
+                accessibilityHint="Enter terms to exclude from the generated image"
+                // Add these props:
+                blurOnSubmit={false}
+                scrollEnabled={true} // For multiline input
+                maxLength={500} // Optional, to prevent very long inputs
+                returnKeyType="default"
+              />
+            </View>
           </View>
 
-          {/* Seed Input */}
-          <View className="mb-5">
-            <SectionHeader
-              title="Seed"
-              feature="seed"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
-            />
+          {/* Add extra space at the bottom when keyboard is visible */}
+          <View className={keyboardVisible ? 'mb-20' : 'mb-4'} />
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-            <TextInput
-              value={localSeed}
-              onChangeText={text => {
-                setLocalSeed(text);
-                params.setSeed(text);
-              }}
-              placeholder="Random"
-              keyboardType="numeric"
-              className="p-4 rounded-xl text-lg"
-              style={{backgroundColor: colors.background, color: colors.text}}
-              placeholderTextColor="#6B7280"
-            />
-          </View>
-
-          {/* Negative Prompt */}
-          <View>
-            <SectionHeader
-              title="Negative Prompt"
-              feature="negativePrompt"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
-            />
-
-            <TextInput
-              value={localNegativePrompt}
-              onChangeText={text => {
-                setLocalNegativePrompt(text);
-                params.setNegativePrompt(text);
-              }}
-              placeholder="What to exclude from your image..."
-              multiline
-              numberOfLines={4}
-              className="p-4 rounded-xl text-lg"
-              textAlignVertical="top"
-              style={{
-                backgroundColor: colors.background,
-                color: colors.text,
-                minHeight: 100,
-              }}
-              placeholderTextColor="#6B7280"
-            />
-          </View>
-        </View>
-
-        <View className="mb-12" />
-      </ScrollView>
+      <View className="mb-12" />
 
       {/* Info Dialog */}
       <InfoDialog

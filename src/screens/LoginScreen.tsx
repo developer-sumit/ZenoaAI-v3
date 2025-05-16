@@ -163,19 +163,21 @@ const LoginScreen = () => {
           className="text-center text-base px-8 mt-8"
           style={{color: colors.secondaryText}}>
           By continuing, you agree to our{' '}
-          <TouchableOpacity
+          <Text
             onPress={openTermsOfService}
             accessible={true}
-            accessibilityLabel="View Terms of Service">
-            <Text style={{color: colors.primary}}>Terms of Service</Text>
-          </TouchableOpacity>{' '}
+            accessibilityLabel="View Terms of Service"
+            style={{color: colors.primary}}>
+            Terms of Service
+          </Text>{' '}
           and{' '}
-          <TouchableOpacity
+          <Text
             onPress={openPrivacyPolicy}
             accessible={true}
-            accessibilityLabel="View Privacy Policy">
-            <Text style={{color: colors.primary}}>Privacy Policy</Text>
-          </TouchableOpacity>
+            accessibilityLabel="View Privacy Policy"
+            style={{color: colors.primary}}>
+            Privacy Policy
+          </Text>
         </Text>
       </Animated.View>
     </View>
