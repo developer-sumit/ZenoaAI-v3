@@ -6,7 +6,6 @@ import {GeneratedImage} from '@src/types';
 import {theme} from '@src/theme/Theme';
 import {
   ActivityIndicator,
-  Alert,
   BackHandler,
   Clipboard,
   Modal,
@@ -62,13 +61,19 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const [deleting, setDeleting] = React.useState(false);
   const [expandedPrompt, setExpandedPrompt] = React.useState(false);
   const [fullscreenMode, setFullscreenMode] = React.useState(false);
-
   const [imageLoaded, setImageLoaded] = React.useState(false);
+  
+  // Add state for delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
   React.useEffect(() => {
     const backAction = () => {
       if (fullscreenMode) {
         setFullscreenMode(false);
+        return true;
+      }
+      if (showDeleteDialog) {
+        setShowDeleteDialog(false);
         return true;
       }
       if (image) {
@@ -84,7 +89,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     );
 
     return () => backHandler.remove();
-  }, [image, onClose, fullscreenMode]);
+  }, [image, onClose, fullscreenMode, showDeleteDialog]);
 
   // Toggle fullscreen mode
   const toggleFullscreen = () => {
@@ -110,22 +115,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDeletePress = () => {
-    if (!image || !user?.id) {
-      return;
-    }
-
-    Alert.alert(
-      'Delete Image',
-      'Are you sure you want to delete this image? This cannot be undone.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteImage(image),
-        },
-      ],
-    );
+    setShowDeleteDialog(true);
   };
 
   const togglePromptExpansion = () => {
@@ -140,7 +130,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     try {
       setDeleting(true);
       const imageId = `${image.timestamp}_${image.seed}`;
-      await imageService.deleteImage(user.id, imageId);
+      
+      // Instead of fully deleting, just mark as deleted
+      await imageService.markImageAsDeleted(user.id, imageId);
 
       showToast('Image deleted', 'success');
 
@@ -153,6 +145,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       showToast('Failed to delete image', 'error');
     } finally {
       setDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -265,7 +258,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <TouchableOpacity
             onPress={() => setFullscreenMode(false)}
             className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
-            style={{top: StatusBar.currentHeight || 40}}>
+            style={{top: StatusBar.currentHeight || 40}}
+            accessible={true}
+            accessibilityLabel="Close fullscreen view"
+            accessibilityRole="button">
             <CloseIcon size={28} color="white" />
           </TouchableOpacity>
         </View>
@@ -274,234 +270,300 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   }
 
   return (
-    <Modal
-      visible={!!image}
-      transparent
-      animationType="fade"
-      onRequestClose={() => onClose?.()}
-      statusBarTranslucent>
-      <BlurView
-        style={{
-          flex: 1,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-        blurType={isDark ? 'dark' : 'light'}
-        blurAmount={20}
-      />
+    <>
+      <Modal
+        visible={!!image}
+        transparent
+        animationType="fade"
+        onRequestClose={() => onClose?.()}
+        statusBarTranslucent>
+        <BlurView
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+          blurType={isDark ? 'dark' : 'light'}
+          blurAmount={20}
+        />
 
-      <SafeAreaView className="flex-1 p-4 pt-0">
-        {/* Header */}
-        <View className="flex-row justify-between items-center mb-4">
-          <TouchableOpacity
-            onPress={onClose}
-            className="p-2.5 rounded-full"
-            style={{backgroundColor: colors.surface}}
-            accessible={true}
-            accessibilityLabel="Close image viewer">
-            <CloseIcon size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Image Display */}
-        <View
-          className="flex-1 justify-center overflow-hidden rounded-3xl mb-4 bg-black/5"
-          style={expandedPrompt ? {flex: 0.7} : {}}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={toggleFullscreen}
-            className="w-full h-full justify-center items-center"
-            accessible={true}
-            accessibilityLabel={`Image of ${
-              image?.prompt || 'generated content'
-            }`}
-            accessibilityHint="Double tap to toggle fullscreen view">
-            <FastImage
-              source={{uri: imageUri}}
-              style={{
-                borderRadius: 24,
-                width: '100%',
-                height: '100%',
-                aspectRatio: getAspectRatio(),
-              }}
-              resizeMode={FastImage.resizeMode.contain}
-              onLoadStart={() => setImageLoaded(false)}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => console.error('Image error')}
-            />
-            {imageLoaded && (
-              <View className="absolute top-2.5 right-2.5 bg-black/40 rounded-3xl p-2">
-                <FullscreenIcon size={24} color="white" />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {!imageLoaded && (
-            <View className="absolute inset-0 justify-center items-center">
-              <ActivityIndicator color={colors.primary} size="large" />
-              <Text className="mt-3 text-base" style={{color: colors.text}}>
-                Loading image...
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Metadata Panel */}
-        <View
-          className="rounded-3xl p-4 mb-4"
-          style={{backgroundColor: colors.background}}>
-          {/* Prompt with expansion toggle */}
-          <View className="flex-row justify-between items-start mb-4">
-            <Text
-              className={`text-base font-semibold flex-1 ${
-                !expandedPrompt ? 'max-h-[66px]' : ''
-              }`}
-              style={{color: colors.primary}}
-              numberOfLines={expandedPrompt ? undefined : 3}
-              onPress={togglePromptExpansion}
+        <SafeAreaView className="flex-1 p-4 pt-0">
+          {/* Header */}
+          <View className="flex-row justify-between items-center mb-4">
+            <TouchableOpacity
+              onPress={onClose}
+              className="p-2.5 rounded-full"
+              style={{backgroundColor: colors.surface}}
               accessible={true}
-              accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
-              accessibilityHint="Double tap to expand or collapse prompt">
-              {image?.prompt || ''}
-            </Text>
-            <View className="flex-row items-center">
-              <TouchableOpacity
-                onPress={togglePromptExpansion}
-                className="p-1"
-                accessible={true}
-                accessibilityLabel={
-                  expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
-                }>
-                {expandedPrompt ? (
-                  <ChevronUpIcon size={18} color={colors.secondaryText} />
-                ) : (
-                  <ChevronDownIcon size={18} color={colors.secondaryText} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() =>
-                  copyToClipboard(image?.fullPrompt || image?.prompt || '')
-                }
-                className="p-1 ml-2"
-                accessible={true}
-                accessibilityLabel="Copy prompt to clipboard">
-                <ContentCopyIcon size={18} color={colors.secondaryText} />
-              </TouchableOpacity>
-            </View>
+              accessibilityLabel="Close image viewer">
+              <CloseIcon size={24} color={colors.text} />
+            </TouchableOpacity>
           </View>
 
-          {/* Metadata Grid */}
-          <View className="flex-row flex-wrap gap-3">
-            <MetadataItem
-              icon="seed"
-              label="Seed"
-              value={image?.seed.toString() || ''}
-              onCopy={() => copyToClipboard(image?.seed.toString() || '')}
-            />
-            <MetadataItem
-              icon="tune"
-              label="Sampler"
-              value={image?.sampler || ''}
-            />
-            <MetadataItem
-              icon="aspect-ratio"
-              label="Aspect Ratio"
-              value={image?.aspectRatio.ratio || ''}
-            />
-            <MetadataItem
-              icon="chart-donut"
-              label="Quality"
-              value={`${image?.quality} steps`}
-            />
-          </View>
+          {/* Image Display */}
+          <View
+            className="flex-1 justify-center overflow-hidden rounded-3xl mb-4 bg-black/5"
+            style={expandedPrompt ? {flex: 0.7} : {}}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={toggleFullscreen}
+              className="w-full h-full justify-center items-center"
+              accessible={true}
+              accessibilityLabel={`Image of ${
+                image?.prompt || 'generated content'
+              }`}
+              accessibilityHint="Double tap to toggle fullscreen view">
+              <FastImage
+                source={{uri: imageUri}}
+                style={{
+                  borderRadius: 24,
+                  width: '100%',
+                  height: '100%',
+                  aspectRatio: getAspectRatio(),
+                }}
+                resizeMode={FastImage.resizeMode.contain}
+                onLoadStart={() => setImageLoaded(false)}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => console.error('Image error')}
+              />
+              {imageLoaded && (
+                <View className="absolute top-2.5 right-2.5 bg-black/40 rounded-3xl p-2">
+                  <FullscreenIcon size={24} color="white" />
+                </View>
+              )}
+            </TouchableOpacity>
 
-          {/* Style Chips */}
-          <View className="flex-row flex-wrap gap-2 mt-4">
-            {image?.styles.map((style, index) => (
-              <View
-                key={index}
-                className="flex-row items-center rounded-full px-3 py-1.5"
-                style={{backgroundColor: colors.primary + '20'}}>
-                <PaletteIcon size={14} color={colors.primary} />
-                <Text className="ml-1 text-sm" style={{color: colors.primary}}>
-                  {style}
+            {!imageLoaded && (
+              <View className="absolute inset-0 justify-center items-center">
+                <ActivityIndicator color={colors.primary} size="large" />
+                <Text className="mt-3 text-base" style={{color: colors.text}}>
+                  Loading image...
                 </Text>
               </View>
-            ))}
+            )}
           </View>
 
-          {/* Action Buttons */}
-          <View className="flex-row justify-between mt-5 gap-1.5">
-            {/* Delete Button */}
-            <TouchableOpacity
-              onPress={handleDeletePress}
-              disabled={deleting}
-              className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{backgroundColor: colors.surface}}
-              accessible={true}
-              accessibilityLabel="Delete image"
-              accessibilityState={{disabled: deleting}}
-              accessibilityHint="Permanently removes this image">
-              {deleting ? (
-                <ActivityIndicator color={colors.secondary} size="small" />
-              ) : (
-                <>
-                  <DeleteOutlineIcon size={22} color="#ef4444" />
-                  <Text className="font-bold" style={{color: '#ef4444'}}>
-                    Delete
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Fullscreen Button */}
-            <TouchableOpacity
-              onPress={toggleFullscreen}
-              className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{backgroundColor: colors.surface}}
-              accessible={true}
-              accessibilityLabel="Toggle fullscreen"
-              accessibilityHint="View image in fullscreen mode">
-              <FullscreenIcon size={22} color={colors.text} />
-              <Text className="font-bold" style={{color: colors.text}}>
-                Fullscreen
+          {/* Metadata Panel */}
+          <View
+            className="rounded-3xl p-4 mb-4"
+            style={{backgroundColor: colors.background}}>
+            {/* Prompt with expansion toggle */}
+            <View className="flex-row justify-between items-start mb-4">
+              <Text
+                className={`text-base font-semibold flex-1 ${
+                  !expandedPrompt ? 'max-h-[66px]' : ''
+                }`}
+                style={{color: colors.primary}}
+                numberOfLines={expandedPrompt ? undefined : 3}
+                onPress={togglePromptExpansion}
+                accessible={true}
+                accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
+                accessibilityHint="Double tap to expand or collapse prompt">
+                {image?.prompt || ''}
               </Text>
-            </TouchableOpacity>
+              <View className="flex-row items-center">
+                <TouchableOpacity
+                  onPress={togglePromptExpansion}
+                  className="p-1"
+                  accessible={true}
+                  accessibilityLabel={
+                    expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
+                  }>
+                  {expandedPrompt ? (
+                    <ChevronUpIcon size={18} color={colors.secondaryText} />
+                  ) : (
+                    <ChevronDownIcon size={18} color={colors.secondaryText} />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    copyToClipboard(image?.fullPrompt || image?.prompt || '')
+                  }
+                  className="p-1 ml-2"
+                  accessible={true}
+                  accessibilityLabel="Copy prompt to clipboard">
+                  <ContentCopyIcon size={18} color={colors.secondaryText} />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            {/* Download Button */}
-            <TouchableOpacity
-              onPress={handleDownloadPress}
-              disabled={downloading}
-              className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-              style={{backgroundColor: colors.primary}}
-              accessible={true}
-              accessibilityLabel="Download image"
-              accessibilityState={{disabled: downloading}}
-              accessibilityHint="Saves image to your device">
-              {downloading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <DownloadIcon size={22} color="white" />
-                  <Text className="text-white font-bold">Download</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {/* Metadata Grid */}
+            <View className="flex-row flex-wrap gap-3">
+              <MetadataItem
+                icon="seed"
+                label="Seed"
+                value={image?.seed.toString() || ''}
+                onCopy={() => copyToClipboard(image?.seed.toString() || '')}
+              />
+              <MetadataItem
+                icon="tune"
+                label="Sampler"
+                value={image?.sampler || ''}
+              />
+              <MetadataItem
+                icon="aspect-ratio"
+                label="Aspect Ratio"
+                value={image?.aspectRatio.ratio || ''}
+              />
+              <MetadataItem
+                icon="chart-donut"
+                label="Quality"
+                value={`${image?.quality} steps`}
+              />
+            </View>
+
+            {/* Style Chips */}
+            <View className="flex-row flex-wrap gap-2 mt-4">
+              {image?.styles.map((style, index) => (
+                <View
+                  key={index}
+                  className="flex-row items-center rounded-full px-3 py-1.5"
+                  style={{backgroundColor: colors.primary + '20'}}>
+                  <PaletteIcon size={14} color={colors.primary} />
+                  <Text className="ml-1 text-sm" style={{color: colors.primary}}>
+                    {style}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Action Buttons */}
+            <View className="flex-row justify-between mt-5 gap-1.5">
+              {/* Delete Button */}
+              <TouchableOpacity
+                onPress={handleDeletePress}
+                disabled={deleting}
+                className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                style={{backgroundColor: colors.surface}}
+                accessible={true}
+                accessibilityLabel="Delete image"
+                accessibilityState={{disabled: deleting}}
+                accessibilityHint="Will open a dialog to confirm image deletion">
+                {deleting ? (
+                  <ActivityIndicator color="#ef4444" size="small" />
+                ) : (
+                  <>
+                    <DeleteOutlineIcon size={22} color="#ef4444" />
+                    <Text className="font-bold" style={{color: '#ef4444'}}>
+                      Delete
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Fullscreen Button */}
+              <TouchableOpacity
+                onPress={toggleFullscreen}
+                className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                style={{backgroundColor: colors.surface}}
+                accessible={true}
+                accessibilityLabel="Toggle fullscreen"
+                accessibilityHint="View image in fullscreen mode">
+                <FullscreenIcon size={22} color={colors.text} />
+                <Text className="font-bold" style={{color: colors.text}}>
+                  Fullscreen
+                </Text>
+              </TouchableOpacity>
+
+              {/* Download Button */}
+              <TouchableOpacity
+                onPress={handleDownloadPress}
+                disabled={downloading}
+                className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                style={{backgroundColor: colors.primary}}
+                accessible={true}
+                accessibilityLabel="Download image"
+                accessibilityState={{disabled: downloading}}
+                accessibilityHint="Saves image to your device">
+                {downloading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <DownloadIcon size={22} color="white" />
+                    <Text className="text-white font-bold">Download</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
 
-      <Toaster
-        customColors={{
-          success: {background: '#E7F5E9', text: '#256029'},
-          error: {background: '#FDECEA', text: '#B3261E'},
-          info: {background: '#E3F2FD', text: '#1E88E5'},
-        }}
-      />
-    </Modal>
+        <Toaster
+          customColors={{
+            success: {background: '#E7F5E9', text: '#256029'},
+            error: {background: '#FDECEA', text: '#B3261E'},
+            info: {background: '#E3F2FD', text: '#1E88E5'},
+          }}
+        />
+      </Modal>
+
+      {/* Custom Delete Confirmation Dialog */}
+      <Modal visible={showDeleteDialog} transparent animationType="fade">
+        <BlurView
+          style={{flex: 1}}
+          blurType={isDark ? 'dark' : 'light'}
+          blurAmount={10}>
+          <View className="flex-1 justify-center items-center p-6">
+            <View
+              className="w-full max-w-md rounded-3xl overflow-hidden"
+              style={{
+                backgroundColor: colors.background,
+                shadowColor: '#000',
+                shadowOffset: {width: 0, height: 10},
+                shadowOpacity: 0.2,
+                shadowRadius: 20,
+                elevation: 10,
+              }}>
+              <View
+                className="w-full h-1.5"
+                style={{backgroundColor: '#ef4444'}}
+              />
+              <View className="p-6">
+                <Text
+                  className="text-2xl font-semibold mb-3 text-center"
+                  style={{color: colors.text}}>
+                  Delete Image?
+                </Text>
+                <Text
+                  className="text-base mb-8 text-center leading-6"
+                  style={{color: colors.secondaryText}}>
+                  This image will be permanently removed. This action cannot be undone.
+                </Text>
+
+                <View className="flex-row justify-between">
+                  <TouchableOpacity
+                    className="py-3.5 px-6 rounded-xl flex-1 mr-3"
+                    style={{backgroundColor: colors.surface}}
+                    onPress={() => setShowDeleteDialog(false)}
+                    accessible={true}
+                    accessibilityLabel="Cancel image deletion">
+                    <Text
+                      className="text-center font-medium"
+                      style={{color: colors.text}}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="py-3.5 px-6 rounded-xl flex-1"
+                    style={{backgroundColor: '#ef4444'}}
+                    onPress={() => deleteImage(image!)}
+                    accessible={true}
+                    accessibilityLabel="Confirm image deletion"
+                    accessibilityHint="Permanently deletes this image">
+                    <Text className="text-white font-medium text-center">
+                      Delete
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </BlurView>
+      </Modal>
+    </>
   );
 };
 

@@ -81,6 +81,10 @@ export interface GeneratedImage {
   loading?: boolean;
   error?: boolean;
   index?: number;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  lastUpdated?: string;
+  createdAt?: string;
 }
 
 export type RootStackParamList = {

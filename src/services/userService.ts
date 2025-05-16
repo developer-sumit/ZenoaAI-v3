@@ -364,9 +364,12 @@ export const userService = {
     profileData: Partial<User>,
   ): Promise<User | null> {
     try {
+      console.log(`Starting profile update for userId: ${userId}`, profileData);
+
       // Get existing user data
       const existingUser = await this.getUser(userId);
       if (!existingUser) {
+        console.error('User not found for update operation');
         throw new Error('User not found');
       }
 
@@ -377,10 +380,19 @@ export const userService = {
         lastUpdated: new Date().toISOString(),
       };
 
+      console.log('Merged user data:', updatedUser);
+
       // Save to Firestore if connected
       const isConnected = await NetInfo.fetch().then(
         state => state.isConnected,
       );
+
+      console.log(
+        `Network connection status: ${
+          isConnected ? 'Connected' : 'Disconnected'
+        }`,
+      );
+
       if (isConnected) {
         try {
           // Check if Firebase authenticated
@@ -390,6 +402,9 @@ export const userService = {
               'No Firebase authentication, updating local storage only',
             );
           } else {
+            console.log(`Firebase user authenticated: ${currentUser.uid}`);
+            console.log(`Updating Firestore document for user: ${userId}`);
+
             // If using Firebase Auth, make sure userId matches Firebase UID
             const userDocRef = doc(firestore, 'users', userId);
 
@@ -403,7 +418,7 @@ export const userService = {
               {merge: true},
             );
 
-            console.log('Profile updated in Firestore');
+            console.log('Profile successfully updated in Firestore');
           }
         } catch (firestoreError) {
           console.error('Error updating profile in Firestore:', firestoreError);
@@ -412,6 +427,7 @@ export const userService = {
       }
 
       // Always save to local storage
+      console.log('Saving updated profile to local storage');
       await EncryptedStorage.setItem(
         `user_${userId}`,
         JSON.stringify(updatedUser),

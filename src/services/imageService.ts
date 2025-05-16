@@ -90,7 +90,7 @@ export const imageService = {
   },
 
   /**
-   * Get all user images, combining from both local storage and Firestore
+   * Get all user images, combining from both local storage and Firestore, excluding deleted ones
    */
   async getUserImages(userId: string): Promise<any[]> {
     try {
@@ -125,17 +125,16 @@ export const imageService = {
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
-            const firestoreImages = querySnapshot.docs.map(d => {
-              const data = d.data();
-              // Convert Firestore timestamp to ISO string if present
-              if (data.createdAt && data.createdAt instanceof Timestamp) {
-                data.createdAt = data.createdAt.toDate().toISOString();
-              }
-              return {
-                id: d.id,
-                ...data,
-              };
-            });
+            const firestoreImages = querySnapshot.docs
+              .map(d => {
+                const data = d.data();
+                // Convert Firestore timestamp to ISO string if present
+                if (data.createdAt && data.createdAt instanceof Timestamp) {
+                  data.createdAt = data.createdAt.toDate().toISOString();
+                }
+                return {id: d.id, ...data};
+              })
+              .filter(img => !img.isDeleted); // Filter out deleted images
 
             console.log(`Found ${firestoreImages.length} images in Firestore`);
 
@@ -145,18 +144,23 @@ export const imageService = {
               JSON.stringify(firestoreImages),
             );
 
-            return firestoreImages;
+            const allImages = firestoreImages;
+
+            return allImages.filter(img => !img.isDeleted);
           } else {
             console.log('No images found in Firestore');
-            return localImages;
+            const allImages = localImages;
+            return allImages.filter(img => !img.isDeleted);
           }
         } catch (error) {
           console.error('Error fetching images from Firestore:', error);
-          return localImages;
+          const allImages = localImages;
+          return allImages.filter(img => !img.isDeleted);
         }
       } else {
         console.log('Offline mode: Using cached images');
-        return localImages;
+        const allImages = localImages;
+        return allImages.filter(img => !img.isDeleted);
       }
     } catch (error) {
       console.error('Error in getUserImages:', error);
@@ -289,6 +293,52 @@ export const imageService = {
       }
     } catch (error) {
       console.error('Error deleting image:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Mark an image as deleted (soft delete)
+   */
+  async markImageAsDeleted(userId: string, imageId: string): Promise<void> {
+    try {
+      // First, update locally
+      const localImages = await this.getLocalUserImages(userId);
+      const updatedImages = localImages.map(img =>
+        img.imageId === imageId
+          ? {...img, isDeleted: true, deletedAt: new Date().toISOString()}
+          : img,
+      );
+
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(updatedImages),
+      );
+
+      // Try to update in Firestore
+      const isConnected = await NetInfo.fetch().then(
+        state => state.isConnected,
+      );
+
+      if (isConnected) {
+        const imageRef = doc(
+          collection(firestore, 'users', userId, 'images'),
+          imageId,
+        );
+
+        await setDoc(
+          imageRef,
+          {isDeleted: true, deletedAt: serverTimestamp()},
+          {merge: true},
+        );
+
+        console.log('Image marked as deleted in Firestore');
+      } else {
+        // Mark for sync later
+        this.markImagesForSync(userId);
+      }
+    } catch (error) {
+      console.error('Error marking image as deleted:', error);
       throw error;
     }
   },

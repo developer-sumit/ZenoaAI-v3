@@ -36,6 +36,8 @@ import {getStylePrompt} from '@src/data/stylePrompts';
 import {useToast} from '@masumdev/rn-toast';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
+import InfoIcon from '@src/assets/icons/InfoIcon';
+import TipIcon from '@src/assets/icons/TipIcon';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -47,7 +49,6 @@ const HomeScreen = () => {
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
   const colors = isDark ? theme.dark : theme.light;
-  const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -79,6 +80,34 @@ const HomeScreen = () => {
 
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
 
+  // New state for first-time users
+  const [isFirstTimeUser, setIsFirstTimeUser] = React.useState(false);
+
+  // Add state for tutorial visibility
+  const [showOnboarding, setShowOnboarding] = React.useState(true);
+
+  // Check if user is new when component mounts
+  useEffect(() => {
+    const checkFirstTimeUser = async () => {
+      if (user?.id) {
+        try {
+          // Check if user has any generated images
+          const hasImages = await imageService.hasUserGeneratedImages(user.id);
+          setIsFirstTimeUser(!hasImages);
+          // Only show onboarding by default for first-time users
+          setShowOnboarding(!hasImages);
+        } catch (error) {
+          console.error('Error checking first-time user status:', error);
+          // Default to showing first-time experience if we can't check
+          setIsFirstTimeUser(true);
+          setShowOnboarding(true);
+        }
+      }
+    };
+
+    checkFirstTimeUser();
+  }, [user?.id]);
+
   // Load user's images when component mounts
   useEffect(() => {
     if (user?.id) {
@@ -101,7 +130,8 @@ const HomeScreen = () => {
           !!img.styles &&
           !!img.aspectRatio &&
           img.quality !== undefined &&
-          img.timestamp !== undefined,
+          img.timestamp !== undefined &&
+          !img.isDeleted,
       );
       setGeneratedImages(validImages);
     } catch (error) {
@@ -290,9 +320,9 @@ const HomeScreen = () => {
     }, 300);
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+      ToastAndroid.show('Prompt and settings applied', ToastAndroid.SHORT);
     } else {
-      showToast('All cleared');
+      showToast('Prompt and settings applied', 'success');
     }
   };
 
@@ -391,12 +421,21 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
-            className="p-2 rounded-full"
+            className="py-2 px-3 rounded-lg flex-row items-center"
             style={{backgroundColor: colors.surface}}
             accessible={true}
             accessibilityLabel="Reuse this prompt and settings"
             accessibilityHint="Applies this prompt and style settings to generate new images">
-            <RefreshIcon size={20} color={colors.primary} />
+            <RefreshIcon size={16} color={colors.primary} />
+            <Text
+              style={{
+                color: colors.primary,
+                marginLeft: 4,
+                fontWeight: '500',
+                fontSize: 13,
+              }}>
+              Reuse
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -459,20 +498,156 @@ const HomeScreen = () => {
     }
   };
 
+  // Render getting started section with collapsible UI
+  const renderGettingStarted = () => (
+    <View
+      className="px-4 py-2 mb-2"
+      accessible={true}
+      accessibilityLabel="Getting started guide">
+      {/* Collapsible header */}
+      <TouchableOpacity
+        onPress={() => setShowOnboarding(!showOnboarding)}
+        className="flex-row items-center justify-between mb-2"
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`${
+          showOnboarding ? 'Hide' : 'Show'
+        } getting started guide`}
+        accessibilityHint="Toggles the visibility of the tutorial section">
+        <View className="flex-row items-center">
+          <TipIcon size={20} color={colors.primary} />
+          <Text className="text-lg font-bold ml-2" style={{color: colors.text}}>
+            Getting Started with {appConfig.name}
+          </Text>
+        </View>
+        <Text style={{color: colors.secondaryText, fontSize: 13}}>
+          {showOnboarding ? 'Hide' : 'Show'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Collapsible content */}
+      {showOnboarding && (
+        <View
+          className="rounded-3xl p-5 mb-2"
+          style={{backgroundColor: colors.surface}}>
+          <Text
+            className="text-base mb-4"
+            style={{color: colors.text, lineHeight: 22}}
+            accessible={true}
+            accessibilityRole="text">
+            Create stunning AI-generated images in 3 simple steps:
+          </Text>
+
+          <View
+            className="flex-row items-center mb-3"
+            accessible={true}
+            accessibilityLabel="Step 1: Describe what you want to see in the text box below">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: colors.primary}}
+              importantForAccessibility="no">
+              <Text className="text-white font-bold">1</Text>
+            </View>
+            <Text style={{color: colors.text, flex: 1}}>
+              Describe what you want to see in the text box below
+            </Text>
+          </View>
+
+          <View
+            className="flex-row items-center mb-3"
+            accessible={true}
+            accessibilityLabel="Step 2: Add art styles or customize with advanced settings">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: colors.primary}}
+              importantForAccessibility="no">
+              <Text className="text-white font-bold">2</Text>
+            </View>
+            <Text style={{color: colors.text, flex: 1}}>
+              Add art styles or customize with advanced settings
+            </Text>
+          </View>
+
+          <View
+            className="flex-row items-center mb-4"
+            accessible={true}
+            accessibilityLabel="Step 3: Tap Generate and watch your ideas come to life">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: colors.primary}}
+              importantForAccessibility="no">
+              <Text className="text-white font-bold">3</Text>
+            </View>
+            <Text style={{color: colors.text, flex: 1}}>
+              Tap "Generate" and watch your ideas come to life!
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setShowPromptSuggestions(true)}
+            className="py-3 rounded-xl items-center"
+            style={{backgroundColor: colors.primary + '20'}}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Browse prompt suggestions"
+            accessibilityHint="Opens a list of example prompts to help you get started">
+            <Text style={{color: colors.primary, fontWeight: '600'}}>
+              Need ideas? Browse prompt suggestions
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
       style={{backgroundColor: colors.background}}>
       <View className="flex-1">
-        {/* Header with Settings */}
+        {/* Header with App Name, Version Badge and Help Icon */}
         <View className="flex-row justify-between items-center p-4">
-          <Text className="text-3xl font-bold" style={{color: colors.text}}>
+          <Text
+            className="text-3xl font-bold"
+            style={{color: colors.text}}
+            accessibilityRole="header">
             {appConfig.name}
           </Text>
+
+          <View className="flex-row items-center gap-3">
+            {/* Version badge */}
+            <View
+              className="py-1 px-3 rounded-full"
+              style={{backgroundColor: colors.primary}}
+              accessible={true}
+              accessibilityLabel={`Version ${appConfig.version}`}>
+              <Text className="text-xs font-medium text-white">
+                v{appConfig.version}
+              </Text>
+            </View>
+
+            {/* Help button to show/hide onboarding */}
+            {isFirstTimeUser && (
+              <TouchableOpacity
+                onPress={() => setShowOnboarding(!showOnboarding)}
+                className="p-2 rounded-full"
+                style={{backgroundColor: colors.surface}}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showOnboarding
+                    ? 'Hide getting started guide'
+                    : 'Show getting started guide'
+                }
+                accessibilityHint="Toggles the visibility of the tutorial">
+                <InfoIcon size={20} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* Generated Images Grid */}
+        {/* Generated Images Grid with optional Getting Started for new users */}
         <View className="flex-1 pb-5">
           <FlashList
             ref={flashListRef}
@@ -481,13 +656,24 @@ const HomeScreen = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 200}}
             renderItem={renderGroup}
-            ListEmptyComponent={<EmptyState colors={colors} />}
+            ListEmptyComponent={
+              isFirstTimeUser ? (
+                renderGettingStarted()
+              ) : (
+                <EmptyState colors={colors} />
+              )
+            }
+            ListHeaderComponent={
+              isFirstTimeUser && generatedImages.length > 0 && showOnboarding
+                ? renderGettingStarted()
+                : null
+            }
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
           />
         </View>
 
-        {/* Bottom Input Area */}
+        {/* Enhanced Bottom Input Area with visual prompt assistance */}
         <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
@@ -503,7 +689,11 @@ const HomeScreen = () => {
               <TextInput
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder="Describe your vision..."
+                placeholder={
+                  isFirstTimeUser
+                    ? "Try 'A peaceful mountain lake at sunset'..."
+                    : 'Describe your vision...'
+                }
                 placeholderTextColor="#94a3b8"
                 className="text-lg p-4 max-h-[120px] flex-1"
                 style={{color: colors.text}}
@@ -513,19 +703,20 @@ const HomeScreen = () => {
                 accessibilityLabel="Image description input"
                 accessibilityHint="Enter a description of the image you want to generate"
               />
-              {prompt.length === 0 && (
-                <TouchableOpacity
-                  onPress={() => setShowPromptSuggestions(true)}
-                  className="pr-4"
-                  accessible={true}
-                  accessibilityLabel="Prompt suggestions"
-                  accessibilityHint="Opens a list of prompt suggestions to help you get started">
-                  <LightbulbOutlineIcon
-                    size={24}
-                    color={colors.secondaryText}
-                  />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() => setShowPromptSuggestions(true)}
+                className="pr-4"
+                accessible={true}
+                accessibilityLabel="Prompt suggestions"
+                accessibilityHint="Opens a list of prompt suggestions to help you get started"
+                accessibilityRole="button">
+                <LightbulbOutlineIcon
+                  size={24}
+                  color={
+                    prompt.length === 0 ? colors.primary : colors.secondaryText
+                  }
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Selected Styles Pills */}
@@ -542,7 +733,9 @@ const HomeScreen = () => {
                     }
                     className="py-1 px-3 rounded-full flex-row items-center"
                     accessible={true}
-                    accessibilityLabel={`Remove ${style} style`}>
+                    accessibilityLabel={`Remove ${style} style`}
+                    accessibilityRole="button"
+                    accessibilityHint={`Tap to remove the ${style} style`}>
                     <Text style={{color: colors.primary}} className="text-xs">
                       {style}
                     </Text>
@@ -569,12 +762,15 @@ const HomeScreen = () => {
                 accessibilityLabel="Clear all inputs"
                 accessibilityState={{
                   disabled: loading || prompt.trim().length === 0,
-                }}>
+                }}
+                accessibilityRole="button"
+                accessibilityHint="Resets the prompt and all selected styles">
                 <RefreshIcon size={20} color={colors.text} />
                 <Text style={{color: colors.text}} className="ml-2 font-medium">
                   Clear
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() =>
@@ -607,9 +803,17 @@ const HomeScreen = () => {
                 style={{backgroundColor: colors.primary + '20'}}
                 accessible={true}
                 accessibilityLabel="Advanced settings"
+                accessibilityRole="button"
                 accessibilityHint="Opens advanced settings for image generation">
                 <TuneIcon size={24} color={colors.primary} />
+                {isFirstTimeUser && (
+                  <View
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
+                    style={{backgroundColor: colors.primary}}
+                    accessibilityLabel="New feature"></View>
+                )}
               </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={handleImageGeneration}
                 disabled={loading || prompt.trim().length === 0}
@@ -620,6 +824,7 @@ const HomeScreen = () => {
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
                 accessible={true}
                 accessibilityLabel="Generate image"
+                accessibilityRole="button"
                 accessibilityState={{
                   disabled: loading || prompt.trim().length === 0,
                   busy: loading,
@@ -640,7 +845,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Prompt Suggestions */}
+        {/* Rest of components remain the same */}
         <PromptSuggestions
           visible={showPromptSuggestions}
           setVisible={setShowPromptSuggestions}
