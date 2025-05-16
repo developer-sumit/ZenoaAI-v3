@@ -20,6 +20,7 @@ import {useToast} from '@masumdev/rn-toast';
 import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
 import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
+import {feedbackService} from '@src/services/feedbackService';
 
 // Icons
 import PersonIcon from '@src/assets/icons/PersonIcon';
@@ -122,8 +123,13 @@ const ProfileScreen = () => {
     try {
       setSubmittingFeedback(true);
 
-      // Simulate API call to save feedback
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await feedbackService.submitFeedback(
+        user?.id || 'anonymous',
+        user?.name || 'Anonymous User',
+        user?.email || 'Not provided',
+        feedbackRating,
+        feedbackText,
+      );
 
       // Success handling
       showToast('Thank you for your feedback!', 'success');
