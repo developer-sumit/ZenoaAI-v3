@@ -49,6 +49,7 @@ const HomeScreen = () => {
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
   const colors = isDark ? theme.dark : theme.light;
+  const [isLoadingImages, setIsLoadingImages] = React.useState(true);
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -86,37 +87,21 @@ const HomeScreen = () => {
   // Add state for tutorial visibility
   const [showOnboarding, setShowOnboarding] = React.useState(true);
 
-  // Check if user is new when component mounts
-  useEffect(() => {
-    const checkFirstTimeUser = async () => {
-      if (user?.id) {
-        try {
-          // Check if user has any generated images
-          const hasImages = await imageService.hasUserGeneratedImages(user.id);
-          setIsFirstTimeUser(!hasImages);
-          // Only show onboarding by default for first-time users
-          setShowOnboarding(!hasImages);
-        } catch (error) {
-          console.error('Error checking first-time user status:', error);
-          // Default to showing first-time experience if we can't check
-          setIsFirstTimeUser(true);
-          setShowOnboarding(true);
-        }
-      }
-    };
-
-    checkFirstTimeUser();
-  }, [user?.id]);
-
   // Load user's images when component mounts
   useEffect(() => {
     if (user?.id) {
+      // Set loading to true before fetching
+      setIsLoadingImages(true);
       loadUserImages();
+    } else {
+      // If no user, we're not loading anything
+      setIsLoadingImages(false);
     }
   }, [user?.id]);
 
   const loadUserImages = async () => {
     if (!user?.id) {
+      setIsLoadingImages(false);
       return;
     }
 
@@ -137,6 +122,9 @@ const HomeScreen = () => {
     } catch (error) {
       console.error('Failed to load images:', error);
       showToast('Error fetching images', 'error');
+    } finally {
+      // Set loading to false when done, regardless of success or failure
+      setIsLoadingImages(false);
     }
   };
 
@@ -600,6 +588,15 @@ const HomeScreen = () => {
     </View>
   );
 
+  const renderLoading = () => (
+    <View className="flex-1 justify-center items-center">
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text className="text-base mt-4" style={{color: colors.text}}>
+        Loading your images...
+      </Text>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -649,28 +646,32 @@ const HomeScreen = () => {
 
         {/* Generated Images Grid with optional Getting Started for new users */}
         <View className="flex-1 pb-5">
-          <FlashList
-            ref={flashListRef}
-            data={groupImagesByParameters(generatedImages)}
-            estimatedItemSize={300}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 200}}
-            renderItem={renderGroup}
-            ListEmptyComponent={
-              isFirstTimeUser ? (
-                renderGettingStarted()
-              ) : (
-                <EmptyState colors={colors} />
-              )
-            }
-            ListHeaderComponent={
-              isFirstTimeUser && generatedImages.length > 0 && showOnboarding
-                ? renderGettingStarted()
-                : null
-            }
-            keyboardShouldPersistTaps="handled"
-            onScrollBeginDrag={Keyboard.dismiss}
-          />
+          {isLoadingImages ? (
+            renderLoading()
+          ) : (
+            <FlashList
+              ref={flashListRef}
+              data={groupImagesByParameters(generatedImages)}
+              estimatedItemSize={300}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{paddingBottom: 200}}
+              renderItem={renderGroup}
+              ListEmptyComponent={
+                isFirstTimeUser ? (
+                  renderGettingStarted()
+                ) : (
+                  <EmptyState colors={colors} />
+                )
+              }
+              ListHeaderComponent={
+                isFirstTimeUser && generatedImages.length > 0 && showOnboarding
+                  ? renderGettingStarted()
+                  : null
+              }
+              keyboardShouldPersistTaps="handled"
+              onScrollBeginDrag={Keyboard.dismiss}
+            />
+          )}
         </View>
 
         {/* Enhanced Bottom Input Area with visual prompt assistance */}
