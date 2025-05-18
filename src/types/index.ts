@@ -85,6 +85,7 @@ export interface GeneratedImage {
   deletedAt?: string;
   lastUpdated?: string;
   createdAt?: string;
+  isFavorite?: boolean;
 }
 
 export type RootStackParamList = {

@@ -232,6 +232,8 @@ export const imageService = {
             ...image,
             createdAt: serverTimestamp(),
             synced: true,
+            // Explicitly include isFavorite status
+            isFavorite: image.isFavorite === true,
           });
 
           // Mark as synced locally
@@ -340,6 +342,94 @@ export const imageService = {
     } catch (error) {
       console.error('Error marking image as deleted:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Toggle favorite status for an image and save to Firestore
+   */
+  async toggleFavoriteStatus(
+    userId: string,
+    imageId: string,
+    isFavorite: boolean,
+  ): Promise<boolean> {
+    try {
+      console.log(
+        `Starting toggleFavoriteStatus for image ${imageId}, userId: ${userId}, setting to ${isFavorite}`,
+      );
+
+      // First update local storage
+      const localImages = await this.getLocalUserImages(userId);
+
+      // Find the image in local cache
+      const updatedLocalImages = localImages.map(img => {
+        if (
+          img.imageId === imageId ||
+          `${img.timestamp}_${img.seed}` === imageId
+        ) {
+          console.log(
+            `Found image in local storage, updating isFavorite to ${isFavorite}`,
+          );
+          return {...img, isFavorite: isFavorite};
+        }
+        return img;
+      });
+
+      // Save back to local storage
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(updatedLocalImages),
+      );
+      console.log('Updated favorite status in local storage');
+
+      // Update in Firestore if connected
+      const isConnected = await NetInfo.fetch().then(
+        state => state.isConnected,
+      );
+
+      if (isConnected) {
+        try {
+          console.log(`Network available, updating in Firestore: ${imageId}`);
+          // Get reference to the image document in Firestore
+          const imageRef = doc(
+            collection(firestore, 'users', userId, 'images'),
+            imageId,
+          );
+
+          // Update the isFavorite field
+          await setDoc(
+            imageRef,
+            {
+              isFavorite: isFavorite,
+              lastUpdated: serverTimestamp(),
+            },
+            {merge: true},
+          );
+
+          console.log(
+            `Image ${
+              isFavorite ? 'marked as favorite' : 'removed from favorites'
+            } in Firestore`,
+          );
+          return true;
+        } catch (firestoreError) {
+          console.error(
+            'Error updating favorite status in Firestore:',
+            firestoreError,
+          );
+          // Continue with local update even if Firestore fails
+        }
+      } else {
+        console.log('No network connection, will sync when online');
+        // Flag for future sync when connection is restored
+        this.markImagesForSync(userId);
+      }
+
+      // Return true even if only updated locally
+      return true;
+    } catch (error) {
+      console.error('Failed to update favorite status:', error);
+      return false;
     }
   },
 };

@@ -36,6 +36,7 @@ import SeedIcon from '@src/assets/icons/SeedIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
 import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
 import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
+import HeartIcon from '@src/assets/icons/HeartIcon';
 import {Toaster, useToast} from '@masumdev/rn-toast';
 
 type IconName = 'seed' | 'tune' | 'aspect-ratio' | 'chart-donut';
@@ -44,12 +45,14 @@ interface ImageViewerProps {
   image: GeneratedImage | null;
   onClose?: () => void;
   onImageDeleted?: () => void;
+  onToggleFavorite?: () => void;
 }
 
 const ImageViewer: React.FC<ImageViewerProps> = ({
   image,
   onClose,
   onImageDeleted,
+  onToggleFavorite,
 }) => {
   const {isDark} = useThemeStore();
   const {showToast} = useToast();
@@ -62,7 +65,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const [expandedPrompt, setExpandedPrompt] = React.useState(false);
   const [fullscreenMode, setFullscreenMode] = React.useState(false);
   const [imageLoaded, setImageLoaded] = React.useState(false);
-  
+
   // Add state for delete confirmation dialog
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
@@ -130,7 +133,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     try {
       setDeleting(true);
       const imageId = `${image.timestamp}_${image.seed}`;
-      
+
       // Instead of fully deleting, just mark as deleted
       await imageService.markImageAsDeleted(user.id, imageId);
 
@@ -423,7 +426,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   className="flex-row items-center rounded-full px-3 py-1.5"
                   style={{backgroundColor: colors.primary + '20'}}>
                   <PaletteIcon size={14} color={colors.primary} />
-                  <Text className="ml-1 text-sm" style={{color: colors.primary}}>
+                  <Text
+                    className="ml-1 text-sm"
+                    style={{color: colors.primary}}>
                     {style}
                   </Text>
                 </View>
@@ -454,6 +459,46 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 )}
               </TouchableOpacity>
 
+              {/* Favorite Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  console.log(
+                    'Toggle favorite pressed, current state:',
+                    image?.isFavorite,
+                  );
+                  if (onToggleFavorite) {
+                    onToggleFavorite();
+                  } else {
+                    console.warn('No onToggleFavorite handler provided');
+                  }
+                }}
+                className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                style={{backgroundColor: colors.surface}}
+                accessible={true}
+                accessibilityLabel={
+                  image?.isFavorite
+                    ? 'Remove from favorites'
+                    : 'Add to favorites'
+                }
+                accessibilityHint={
+                  image?.isFavorite
+                    ? 'Removes this image from your favorites'
+                    : 'Adds this image to your favorites'
+                }>
+                <HeartIcon
+                  size={22}
+                  color={image?.isFavorite ? '#FF4B8C' : colors.text}
+                  fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
+                />
+                <Text
+                  className="font-bold"
+                  style={{
+                    color: image?.isFavorite ? '#FF4B8C' : colors.text,
+                  }}>
+                  {image?.isFavorite ? 'Favorited' : 'Favorite'}
+                </Text>
+              </TouchableOpacity>
+
               {/* Fullscreen Button */}
               <TouchableOpacity
                 onPress={toggleFullscreen}
@@ -466,26 +511,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <Text className="font-bold" style={{color: colors.text}}>
                   Fullscreen
                 </Text>
-              </TouchableOpacity>
-
-              {/* Download Button */}
-              <TouchableOpacity
-                onPress={handleDownloadPress}
-                disabled={downloading}
-                className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                style={{backgroundColor: colors.primary}}
-                accessible={true}
-                accessibilityLabel="Download image"
-                accessibilityState={{disabled: downloading}}
-                accessibilityHint="Saves image to your device">
-                {downloading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <DownloadIcon size={22} color="white" />
-                    <Text className="text-white font-bold">Download</Text>
-                  </>
-                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -530,7 +555,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <Text
                   className="text-base mb-8 text-center leading-6"
                   style={{color: colors.secondaryText}}>
-                  This image will be permanently removed. This action cannot be undone.
+                  This image will be permanently removed. This action cannot be
+                  undone.
                 </Text>
 
                 <View className="flex-row justify-between">
