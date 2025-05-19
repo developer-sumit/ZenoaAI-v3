@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
+import NetInfo from '@react-native-community/netinfo';
 
 import {theme} from '@src/theme/Theme';
 import {aspectRatios} from '@src/data/ratio';
@@ -153,20 +154,33 @@ const HomeScreen = () => {
     }
 
     setLoading(true);
+    const generationTimestamp = Date.now();
+    const baseSeed = seed
+      ? parseInt(seed, 10)
+      : Math.floor(Math.random() * 1000000);
     const tempImages: GeneratedImage[] = [];
 
-    try {
-      const newImages: GeneratedImage[] = [];
-      const baseSeed = seed
-        ? parseInt(seed, 10)
-        : Math.floor(Math.random() * 1000000);
-      const generationTimestamp = Date.now();
+    const determineConcurrency = async () => {
+      // Check network type/speed
+      const connectionInfo = await NetInfo.fetch();
 
-      // Create placeholder images first
+      // Base concurrency on connection type and memory
+      if (connectionInfo.type === 'wifi') {
+        return Math.min(8, numberOfImages); // Higher on WiFi
+      } else if (connectionInfo.type === 'cellular') {
+        return connectionInfo.details.isConnectionExpensive ? 3 : 5;
+      }
+      return 4; // Default fallback
+    };
+
+    // Create a connection pool for better request management
+    const connectionPool = new Set();
+    const MAX_CONCURRENT_REQUESTS = await determineConcurrency();
+
+    try {
+      // Step 1: Create placeholder images for all generations
       for (let i = 0; i < numberOfImages; i++) {
         const currentSeed = baseSeed + i;
-
-        // Generate professional style prompts
         const stylePrompts = selectedStyles
           .map(style => getStylePrompt(style))
           .join(', ');
@@ -175,7 +189,7 @@ const HomeScreen = () => {
           stylePrompts ? ', ' + stylePrompts : ''
         }`;
 
-        const tempImage: GeneratedImage = {
+        tempImages.push({
           uri: 'placeholder',
           prompt: userPrompt,
           fullPrompt: fullPrompt,
@@ -187,97 +201,155 @@ const HomeScreen = () => {
           timestamp: generationTimestamp,
           loading: true,
           index: i,
-        };
-
-        tempImages.push(tempImage);
+        });
       }
 
-      // Add placeholders at the beginning
+      // Step 2: Add placeholders to state immediately
       setGeneratedImages(prev => [...tempImages, ...prev]);
 
-      // Then generate each image and update one by one
-      for (let i = 0; i < numberOfImages; i++) {
-        const currentSeed = baseSeed + i;
+      // Step 3: Generate images with controlled concurrency
+      const generateWithControl = async () => {
+        const results: (GeneratedImage | Error)[] = new Array(
+          tempImages.length,
+        );
+        let completedCount = 0;
 
-        // Use the same professional prompt construction
-        const stylePrompts = selectedStyles
-          .map(style => getStylePrompt(style))
-          .join(', ');
-        const userPrompt = prompt.trim();
-        const fullPrompt = `${userPrompt}${
-          stylePrompts ? ', ' + stylePrompts : ''
-        }`;
+        // Create a queue of indexes to process
+        const queue = tempImages.map((_, index) => index);
 
-        try {
-          const response = await generateImage({
-            prompt: fullPrompt,
-            width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
-            height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
-            negativePrompt,
-            quality,
-            sampler,
-            seed: currentSeed,
-          });
+        // Process function that takes items from the queue
+        const processQueue = async () => {
+          while (queue.length > 0) {
+            const index = queue.shift()!;
+            const tempImage = tempImages[index];
 
-          const generatedImage: GeneratedImage = {
-            uri: response.url,
-            prompt: userPrompt, // Original prompt
-            fullPrompt: fullPrompt, // Full prompt with promptTemplates
-            styles: selectedStyles,
-            aspectRatio,
-            quality,
-            sampler,
-            seed: currentSeed,
-            timestamp: generationTimestamp,
-            loading: false,
-            index: i,
-          };
+            try {
+              // Track this connection in the pool
+              const connectionId = `connection_${index}_${Date.now()}`;
+              connectionPool.add(connectionId);
 
-          // Save to Firestore and local storage
-          if (user?.id) {
-            await imageService.saveImage(user.id, generatedImage);
+              // Configure request with timeout
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
+              // Prepare generation parameters
+              const fullPrompt = tempImage.fullPrompt || '';
+              const currentSeed = tempImage.seed;
+
+              console.time(`image_gen_${index}`);
+
+              // Generate image via API with better error handling
+              try {
+                const response = await generateImage({
+                  prompt: fullPrompt,
+                  width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
+                  height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
+                  negativePrompt,
+                  quality,
+                  sampler,
+                  seed: currentSeed,
+                });
+
+                console.timeEnd(`image_gen_${index}`);
+                clearTimeout(timeoutId);
+
+                // Create final image object with API response
+                const generatedImage: GeneratedImage = {
+                  ...tempImage,
+                  uri: response.url,
+                  loading: false,
+                };
+
+                // Update UI immediately with this specific image
+                setGeneratedImages(prev =>
+                  prev.map(img =>
+                    img.timestamp === generationTimestamp && img.index === index
+                      ? generatedImage
+                      : img,
+                  ),
+                );
+
+                // Save image in background without waiting
+                if (user?.id) {
+                  // Fire and forget with error handling
+                  imageService
+                    .saveImage(user.id, generatedImage)
+                    .catch(err =>
+                      console.error(`Error saving image ${index}:`, err),
+                    );
+                }
+
+                // Store result
+                results[index] = generatedImage;
+              } catch (error) {
+                // Handle API errors
+                console.error(`Error generating image ${index}:`, error);
+
+                // Update the error state for this image
+                setGeneratedImages(prev =>
+                  prev.map(img =>
+                    img.timestamp === generationTimestamp && img.index === index
+                      ? {...img, loading: false, error: true}
+                      : img,
+                  ),
+                );
+
+                // Store error
+                results[index] =
+                  error instanceof Error ? error : new Error(String(error));
+              } finally {
+                // Always remove from connection pool
+                connectionPool.delete(connectionId);
+                completedCount++;
+              }
+            } catch (error) {
+              console.error(`Unexpected error for image ${index}:`, error);
+              results[index] =
+                error instanceof Error ? error : new Error(String(error));
+              completedCount++;
+            }
           }
+        };
 
-          // Update the generated image in state by replacing the placeholder
-          setGeneratedImages(prev =>
-            prev.map(img =>
-              img.timestamp === generationTimestamp && img.index === i
-                ? generatedImage
-                : img,
-            ),
-          );
+        // Start multiple processors based on MAX_CONCURRENT_REQUESTS
+        const processors = Array(
+          Math.min(MAX_CONCURRENT_REQUESTS, tempImages.length),
+        )
+          .fill(0)
+          .map(() => processQueue());
 
-          newImages.push(generatedImage);
-        } catch (error) {
-          console.error(`Error generating image ${i}:`, error);
+        // Wait for all processors to complete
+        await Promise.all(processors);
 
-          // Update the error state for this image
-          setGeneratedImages(prev =>
-            prev.map(img =>
-              img.timestamp === generationTimestamp && img.index === i
-                ? {...img, loading: false, error: true}
-                : img,
-            ),
-          );
+        return results;
+      };
 
-          showToast('Generation Failed', 'error');
-        }
-      }
+      // Execute the controlled generation
+      const results = await generateWithControl();
 
-      if (newImages.length > 0) {
-        showToast('Images Generated', 'success');
+      // Show appropriate toast based on results
+      const successCount = results.filter(r => !(r instanceof Error)).length;
+      if (successCount > 0) {
+        showToast(
+          `${successCount} image${successCount > 1 ? 's' : ''} generated`,
+          'success',
+        );
+      } else {
+        showToast('Generation Failed', 'error');
       }
     } catch (error) {
       console.error('Generation error:', error);
       showToast('Generation Failed', 'error');
 
-      // Remove all placeholder images
+      // Clean up placeholders if overall process fails
       setGeneratedImages(prev =>
         prev.filter(
           img => !tempImages.some(temp => temp.timestamp === img.timestamp),
         ),
       );
     } finally {
+      // Clean up any remaining connections
+      connectionPool.clear();
       setLoading(false);
     }
   };
