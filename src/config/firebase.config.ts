@@ -1,10 +1,10 @@
 import {initializeApp} from 'firebase/app';
-import {initializeAuth} from 'firebase/auth';
-import {getFirestore} from 'firebase/firestore';
 import Config from 'react-native-config';
 import {MMKV} from 'react-native-mmkv';
 import analytics from '@react-native-firebase/analytics';
 import crashlytics from '@react-native-firebase/crashlytics';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 // MMKV instance with a specific ID for auth
 export const authStorage = new MMKV({
@@ -25,13 +25,4 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth without custom persistence
-const auth = initializeAuth(app);
-
-const firestore = getFirestore(app);
-
-// Initialize Analytics and Crashlytics modules
-const firebaseAnalytics = analytics();
-const firebaseCrashlytics = crashlytics();
-
-export {app, auth, firestore, firebaseAnalytics, firebaseCrashlytics};
+export {app, auth, firestore, analytics, crashlytics};
