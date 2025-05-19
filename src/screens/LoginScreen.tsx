@@ -17,10 +17,12 @@ import {useToast} from '@masumdev/rn-toast';
 import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
 import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
+import {useAuthStore} from '@src/store/authStore';
 
 const LoginScreen = () => {
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
+  const {login} = useAuthStore();
   const {showToast} = useToast();
   const [signingIn, setSigningIn] = React.useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -55,10 +57,18 @@ const LoginScreen = () => {
       const googleCredential = auth.GoogleAuthProvider.credential(
         data?.idToken || '',
       );
-
       // Sign in with the credential
-      await auth().signInWithCredential(googleCredential);
-
+      const res = await auth().signInWithCredential(googleCredential);
+      const userData = {
+        id: res.user.uid || '',
+        email: res.user.email || '',
+        name: data?.user?.name || '',
+        photo: data?.user?.photo || '',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+      };
+      console.log({userData});
+      await login(userData);
       showToast('Sign-in successful', 'success');
     } catch (error) {
       console.error('Sign-in error:', error);

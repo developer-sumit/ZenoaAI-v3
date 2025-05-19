@@ -1,14 +1,4 @@
-import {
-  doc,
-  collection,
-  setDoc,
-  getDocs,
-  query,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import {firestore} from '@src/config/firebase.config';
+import firestore from '@react-native-firebase/firestore';
 import {GeneratedImage} from '@src/types';
 import NetInfo from '@react-native-community/netinfo';
 import EncryptedStorage from 'react-native-encrypted-storage';
@@ -28,7 +18,7 @@ export const imageService = {
         ...imageData,
         imageId,
         userId,
-        createdAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
         synced: false,
       };
 
@@ -51,16 +41,17 @@ export const imageService = {
 
       if (isConnected) {
         try {
-          // Save to user's images collection
-          const imageRef = doc(
-            collection(firestore, 'users', userId, 'images'),
-            imageId,
-          );
-          await setDoc(imageRef, {
-            ...imageWithTimestamp,
-            createdAt: serverTimestamp(), // Use server timestamp
-            synced: true,
-          });
+          // Save to user's images collection - UPDATED TO USE RN FIREBASE SDK
+          await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .doc(imageId)
+            .set({
+              ...imageWithTimestamp,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+              synced: true,
+            });
           console.log('Image saved to Firestore');
         } catch (error) {
           console.error('Error saving image to Firestore:', error);
@@ -115,24 +106,24 @@ export const imageService = {
       if (isConnected) {
         try {
           console.log('Fetching images from Firestore');
-          const imagesCollection = collection(
-            firestore,
-            'users',
-            userId,
-            'images',
-          );
-          const q = query(imagesCollection, orderBy('createdAt', 'desc'));
-          const querySnapshot = await getDocs(q);
+
+          // UPDATED TO USE RN FIREBASE SDK
+          const querySnapshot = await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .orderBy('createdAt', 'desc')
+            .get();
 
           if (!querySnapshot.empty) {
             const firestoreImages = querySnapshot.docs
-              .map(d => {
-                const data = d.data();
+              .map(doc => {
+                const data = doc.data();
                 // Convert Firestore timestamp to ISO string if present
-                if (data.createdAt && data.createdAt instanceof Timestamp) {
+                if (data.createdAt) {
                   data.createdAt = data.createdAt.toDate().toISOString();
                 }
-                return {id: d.id, ...data};
+                return {id: doc.id, ...data};
               })
               .filter(img => !img.isDeleted); // Filter out deleted images
 
@@ -144,23 +135,23 @@ export const imageService = {
               JSON.stringify(firestoreImages),
             );
 
-            const allImages = firestoreImages;
-
-            return allImages.filter(img => !img.isDeleted);
+            return firestoreImages;
           } else {
             console.log('No images found in Firestore');
-            const allImages = localImages;
-            return allImages.filter(img => !img.isDeleted);
+            return localImages.filter(img => !img.isDeleted);
           }
         } catch (error) {
           console.error('Error fetching images from Firestore:', error);
-          const allImages = localImages;
-          return allImages.filter(img => !img.isDeleted);
+          if (error.code === 'permission-denied') {
+            console.warn(
+              'Firestore permission denied. This is likely due to misconfigured security rules or authentication issues.',
+            );
+          }
+          return localImages.filter(img => !img.isDeleted);
         }
       } else {
         console.log('Offline mode: Using cached images');
-        const allImages = localImages;
-        return allImages.filter(img => !img.isDeleted);
+        return localImages.filter(img => !img.isDeleted);
       }
     } catch (error) {
       console.error('Error in getUserImages:', error);
@@ -223,18 +214,19 @@ export const imageService = {
       // Upload unsynced images
       for (const image of unsynced) {
         try {
-          const imageRef = doc(
-            collection(firestore, 'users', userId, 'images'),
-            image.imageId,
-          );
-
-          await setDoc(imageRef, {
-            ...image,
-            createdAt: serverTimestamp(),
-            synced: true,
-            // Explicitly include isFavorite status
-            isFavorite: image.isFavorite === true,
-          });
+          // UPDATED TO USE RN FIREBASE SDK
+          await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .doc(image.imageId)
+            .set({
+              ...image,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+              synced: true,
+              // Explicitly include isFavorite status
+              isFavorite: image.isFavorite === true,
+            });
 
           // Mark as synced locally
           image.synced = true;
@@ -277,16 +269,16 @@ export const imageService = {
       );
 
       if (isConnected) {
-        const imageRef = doc(
-          collection(firestore, 'users', userId, 'images'),
-          imageId,
-        );
-
-        await setDoc(
-          imageRef,
-          {deleted: true, deletedAt: serverTimestamp()},
-          {merge: true},
-        );
+        // UPDATED TO USE RN FIREBASE SDK
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('images')
+          .doc(imageId)
+          .set(
+            {deleted: true, deletedAt: firestore.FieldValue.serverTimestamp()},
+            {merge: true},
+          );
 
         console.log('Image marked as deleted in Firestore');
       } else {
@@ -323,16 +315,19 @@ export const imageService = {
       );
 
       if (isConnected) {
-        const imageRef = doc(
-          collection(firestore, 'users', userId, 'images'),
-          imageId,
-        );
-
-        await setDoc(
-          imageRef,
-          {isDeleted: true, deletedAt: serverTimestamp()},
-          {merge: true},
-        );
+        // UPDATED TO USE RN FIREBASE SDK
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('images')
+          .doc(imageId)
+          .set(
+            {
+              isDeleted: true,
+              deletedAt: firestore.FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
 
         console.log('Image marked as deleted in Firestore');
       } else {
@@ -390,21 +385,17 @@ export const imageService = {
       if (isConnected) {
         try {
           console.log(`Network available, updating in Firestore: ${imageId}`);
-          // Get reference to the image document in Firestore
-          const imageRef = doc(
-            collection(firestore, 'users', userId, 'images'),
-            imageId,
-          );
 
-          // Update the isFavorite field
-          await setDoc(
-            imageRef,
-            {
+          // UPDATED TO USE RN FIREBASE SDK
+          await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .doc(imageId)
+            .update({
               isFavorite: isFavorite,
-              lastUpdated: serverTimestamp(),
-            },
-            {merge: true},
-          );
+              lastUpdated: firestore.FieldValue.serverTimestamp(),
+            });
 
           console.log(
             `Image ${

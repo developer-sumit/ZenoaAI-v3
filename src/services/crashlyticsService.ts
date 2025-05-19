@@ -1,4 +1,4 @@
-import {firebaseCrashlytics} from '@src/config/firebase.config';
+import {crashlytics} from '@src/config/firebase.config';
 import {User} from '@src/types';
 
 export const crashlyticsService = {
@@ -9,10 +9,10 @@ export const crashlyticsService = {
     try {
       if (user) {
         // Set user identifier
-        await firebaseCrashlytics.setUserId(user.id);
+        await crashlytics().setUserId(user.id);
 
         // Set user attributes
-        await firebaseCrashlytics.setAttributes({
+        await crashlytics().setAttributes({
           email: user.email || '',
           name: user.name || '',
           createdAt: user.createdAt || '',
@@ -21,8 +21,8 @@ export const crashlyticsService = {
         console.log('Crashlytics user info set successfully');
       } else {
         // Clear user ID when logged out (no direct method to clear, using a placeholder)
-        await firebaseCrashlytics.setUserId('');
-        await firebaseCrashlytics.setAttributes({
+        await crashlytics().setUserId('');
+        await crashlytics().setAttributes({
           email: '',
           name: '',
           createdAt: '',
@@ -39,7 +39,7 @@ export const crashlyticsService = {
    */
   log(message: string): void {
     try {
-      firebaseCrashlytics.log(message);
+      crashlytics().log(message);
     } catch (error) {
       console.error('Failed to log to Crashlytics:', error);
     }
@@ -50,7 +50,7 @@ export const crashlyticsService = {
    */
   recordError(error: Error, jsErrorName?: string): void {
     try {
-      firebaseCrashlytics.recordError(error, jsErrorName);
+      crashlytics().recordError(error, jsErrorName);
     } catch (recordError) {
       console.error('Failed to record error to Crashlytics:', recordError);
     }
@@ -61,7 +61,7 @@ export const crashlyticsService = {
    */
   async setCrashlyticsCollectionEnabled(enabled: boolean): Promise<void> {
     try {
-      await firebaseCrashlytics.setCrashlyticsCollectionEnabled(enabled);
+      await crashlytics().setCrashlyticsCollectionEnabled(enabled);
       console.log(`Crashlytics collection ${enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
       console.error('Failed to set crashlytics collection state:', error);

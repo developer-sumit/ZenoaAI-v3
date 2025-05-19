@@ -1,4 +1,4 @@
-import {firebaseAnalytics} from '@src/config/firebase.config';
+import {analytics} from '@src/config/firebase.config';
 import {User} from '@src/types';
 
 export const analyticsService = {
@@ -9,10 +9,10 @@ export const analyticsService = {
     try {
       if (user) {
         // Set user ID for analytics
-        await firebaseAnalytics.setUserId(user.id);
+        await analytics().setUserId(user.id);
 
         // Set some basic user properties
-        await firebaseAnalytics.setUserProperties({
+        await analytics().setUserProperties({
           email: user.email || '',
           name: user.name || '',
           createdAt: user.createdAt || '',
@@ -21,7 +21,7 @@ export const analyticsService = {
         console.log('Analytics user properties set successfully');
       } else {
         // Clear user ID when logged out
-        await firebaseAnalytics.setUserId(null);
+        await analytics().setUserId(null);
         console.log('Analytics user properties cleared');
       }
     } catch (error) {
@@ -34,7 +34,7 @@ export const analyticsService = {
    */
   async logScreenView(screenName: string, screenClass?: string): Promise<void> {
     try {
-      await firebaseAnalytics.logScreenView({
+      await analytics().logScreenView({
         screen_name: screenName,
         screen_class: screenClass || screenName,
       });
@@ -51,7 +51,7 @@ export const analyticsService = {
     params?: Record<string, any>,
   ): Promise<void> {
     try {
-      await firebaseAnalytics.logEvent(eventName, params);
+      await analytics().logEvent(eventName, params);
     } catch (error) {
       console.error(`Failed to log event (${eventName}):`, error);
     }
@@ -62,7 +62,7 @@ export const analyticsService = {
    */
   async setAnalyticsCollectionEnabled(enabled: boolean): Promise<void> {
     try {
-      await firebaseAnalytics.setAnalyticsCollectionEnabled(enabled);
+      await analytics().setAnalyticsCollectionEnabled(enabled);
       console.log(`Analytics collection ${enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
       console.error('Failed to set analytics collection state:', error);
