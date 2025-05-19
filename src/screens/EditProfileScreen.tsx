@@ -19,8 +19,9 @@ import {useAuthStore} from '@src/store/authStore';
 import {theme} from '@src/theme/Theme';
 import {userService} from '@src/services/userService';
 import {useToast} from '@masumdev/rn-toast';
-import { doc, setDoc } from 'firebase/firestore';
+import {doc, setDoc} from 'firebase/firestore';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import {firestore} from '@src/config/firebase.config';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -28,7 +29,6 @@ import PersonIcon from '@src/assets/icons/PersonIcon';
 import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
-import { firestore } from '@src/config/firebase.config';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -84,38 +84,37 @@ const EditProfileScreen = () => {
     try {
       setIsSaving(true);
       console.log('Starting profile update with user ID:', user.id);
-      
+
       if (name !== user.name) {
         // Debug log for better troubleshooting
         console.log('Updating name from', user.name, 'to', name);
-        
+
         try {
           // Make direct update to Firestore
           const userDocRef = doc(firestore, 'users', user.id);
           await setDoc(
             userDocRef,
-            {
-              name: name,
-              lastUpdated: new Date().toISOString(),
-            },
-            { merge: true }
+            {name: name, lastUpdated: new Date().toISOString()},
+            {merge: true},
           );
-          
+
           // Also update local encrypted storage
-          const localUserData = await EncryptedStorage.getItem(`user_${user.id}`);
+          const localUserData = await EncryptedStorage.getItem(
+            `user_${user.id}`,
+          );
           if (localUserData) {
             const userData = JSON.parse(localUserData);
             userData.name = name;
             userData.lastUpdated = new Date().toISOString();
             await EncryptedStorage.setItem(
               `user_${user.id}`,
-              JSON.stringify(userData)
+              JSON.stringify(userData),
             );
           }
-          
+
           // Update auth store
           useAuthStore.getState().updateUser({...user, name});
-          
+
           console.log('Profile successfully updated');
         } catch (updateError) {
           console.error('Direct update error:', updateError);
@@ -144,7 +143,6 @@ const EditProfileScreen = () => {
   const handleAccountDeletion = async () => {
     try {
       if (user?.id) {
-        // Show deletion in progress
         showToast('Deleting account...', 'info');
 
         // Mark the account as deleted in Firestore
@@ -262,7 +260,6 @@ const EditProfileScreen = () => {
             </Text>
           </View>
 
-          {/* Form Fields with styled cards matching ProfileScreen */}
           <View className="px-5">
             <View
               className="rounded-3xl mb-6 overflow-hidden shadow-lg"
@@ -379,7 +376,7 @@ const EditProfileScreen = () => {
         </Animated.View>
       </ScrollView>
 
-      {/* Delete Account Modal with improved design */}
+      {/* Delete Account Modal */}
       <Modal visible={showDeleteModal} transparent animationType="fade">
         <BlurView
           style={{flex: 1}}

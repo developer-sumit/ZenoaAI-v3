@@ -11,6 +11,7 @@ import {
   Dimensions,
   ToastAndroid,
 } from 'react-native';
+import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
 
 import {theme} from '@src/theme/Theme';
@@ -22,22 +23,23 @@ import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {generateImage} from '@src/config/api.config';
 import {imageService} from '@src/services/imageService';
-import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
+import {AspectRatioType, GeneratedImage} from '../types';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
-import MagicWand from '@src/assets/icons/MagicWandIcon';
-import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
-import RefreshIcon from '@src/assets/icons/RefreshIcon';
-import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
-import CloseIcon from '@src/assets/icons/CloseIcon';
-import TuneIcon from '@src/assets/icons/TuneIcon';
 import {getStylePrompt} from '@src/data/stylePrompts';
-import {useToast} from '@masumdev/rn-toast';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
-import InfoIcon from '@src/assets/icons/InfoIcon';
+
+// Icons
 import TipIcon from '@src/assets/icons/TipIcon';
+import InfoIcon from '@src/assets/icons/InfoIcon';
+import TuneIcon from '@src/assets/icons/TuneIcon';
+import CloseIcon from '@src/assets/icons/CloseIcon';
+import MagicWand from '@src/assets/icons/MagicWandIcon';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
+import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
+import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -73,19 +75,10 @@ const HomeScreen = () => {
 
   const flashListRef = useRef(null);
 
-  const qualityPresets: QualityPresetType[] = [
-    {label: 'Fast', value: 15},
-    {label: 'Standard', value: 25},
-    {label: 'Premium', value: 50},
-  ];
-
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
 
-  // New state for first-time users
-  const [isFirstTimeUser, setIsFirstTimeUser] = React.useState(false);
-
   // Add state for tutorial visibility
-  const [showOnboarding, setShowOnboarding] = React.useState(true);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
 
   // Load user's images when component mounts
   useEffect(() => {
@@ -625,22 +618,20 @@ const HomeScreen = () => {
             </View>
 
             {/* Help button to show/hide onboarding */}
-            {isFirstTimeUser && (
-              <TouchableOpacity
-                onPress={() => setShowOnboarding(!showOnboarding)}
-                className="p-2 rounded-full"
-                style={{backgroundColor: colors.surface}}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showOnboarding
-                    ? 'Hide getting started guide'
-                    : 'Show getting started guide'
-                }
-                accessibilityHint="Toggles the visibility of the tutorial">
-                <InfoIcon size={20} color={colors.primary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              onPress={() => setShowOnboarding(!showOnboarding)}
+              className="p-2 rounded-full"
+              style={{backgroundColor: colors.surface}}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={
+                showOnboarding
+                  ? 'Hide getting started guide'
+                  : 'Show getting started guide'
+              }
+              accessibilityHint="Toggles the visibility of the tutorial">
+              <InfoIcon size={20} color={colors.primary} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -656,15 +647,9 @@ const HomeScreen = () => {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{paddingBottom: 200}}
               renderItem={renderGroup}
-              ListEmptyComponent={
-                isFirstTimeUser ? (
-                  renderGettingStarted()
-                ) : (
-                  <EmptyState colors={colors} />
-                )
-              }
+              ListEmptyComponent={<EmptyState colors={colors} />}
               ListHeaderComponent={
-                isFirstTimeUser && generatedImages.length > 0 && showOnboarding
+                generatedImages.length > 0 && showOnboarding
                   ? renderGettingStarted()
                   : null
               }
@@ -690,11 +675,7 @@ const HomeScreen = () => {
               <TextInput
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder={
-                  isFirstTimeUser
-                    ? "Try 'A peaceful mountain lake at sunset'..."
-                    : 'Describe your vision...'
-                }
+                placeholder="Describe your vision..."
                 placeholderTextColor="#94a3b8"
                 className="text-lg p-4 max-h-[120px] flex-1"
                 style={{color: colors.text}}
@@ -807,12 +788,10 @@ const HomeScreen = () => {
                 accessibilityRole="button"
                 accessibilityHint="Opens advanced settings for image generation">
                 <TuneIcon size={24} color={colors.primary} />
-                {isFirstTimeUser && (
-                  <View
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
-                    style={{backgroundColor: colors.primary}}
-                    accessibilityLabel="New feature"></View>
-                )}
+                {/* <View
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
+                  style={{backgroundColor: colors.primary}}
+                  accessibilityLabel="New feature"></View> */}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -846,7 +825,6 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Rest of components remain the same */}
         <PromptSuggestions
           visible={showPromptSuggestions}
           setVisible={setShowPromptSuggestions}

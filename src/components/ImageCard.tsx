@@ -79,11 +79,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
     }
 
     // For loaded images, we just fill the container (which is sized by the parent)
-    return {
-      width: '100%',
-      height: '100%',
-      flex: 1,
-    } as any;
+    return {width: '100%', height: '100%', flex: 1} as any;
   }, [image.uri, image.aspectRatio]);
 
   return (

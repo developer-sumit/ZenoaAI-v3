@@ -6,9 +6,9 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore';
-import {firestore} from '@src/config/firebase.config';
 import {Platform} from 'react-native';
 import appConfig from '@src/config/app.config';
+import {firestore} from '@src/config/firebase.config';
 
 export interface FeedbackData {
   userId: string;
@@ -47,7 +47,7 @@ export const feedbackService = {
         platform: Platform.OS,
         platformVersion:
           typeof Platform.Version === 'string'
-            ? parseInt(Platform.Version)
+            ? parseInt(Platform.Version, 10)
             : Platform.Version,
         deviceModel:
           Platform.OS === 'ios'
