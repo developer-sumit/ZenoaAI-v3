@@ -1,22 +1,9 @@
 /**
  * App Name: Zenoa AI
- * Version: 1.0.0
+ * Version: 2.0.0
  * Company Name: Zenoa
- * Developer: Sumit Singh Rathore
+ * Owner & Developer: Sumit Singh Rathore
  * Released on Indus App Store: 30 April 2025
- *
- * Description:
- * This application is designed to provide AI-powered solutions for users,
- * offering features like personalized recommendations, secure authentication,
- * and seamless navigation. Built with React Native, it ensures cross-platform
- * compatibility and a smooth user experience.
- *
- * Key Features:
- * - Secure authentication with Firebase and Google Sign-In
- * - Customizable themes (Dark and Light modes)
- * - Modular navigation with stack and tab navigators
- * - Token management for session handling
- * - Toast notifications for user feedback
  *
  * License:
  * This software is proprietary and owned by Zenoa. Unauthorized distribution
@@ -26,17 +13,17 @@
 
 import './global.css';
 import React, {useEffect} from 'react';
-import {StatusBar} from 'react-native';
+import {StatusBar, AppState, AppStateStatus} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import auth from '@react-native-firebase/auth';
 import CustomTabBar from '@src/components/CustomTabBar';
 import Routes from '@src/constants/routes';
 import {useThemeStore} from '@src/store/themeStore';
 import {theme} from '@src/theme/Theme';
 import {useAuthStore} from '@src/store/authStore';
-import {auth} from '@src/config/firebase.config';
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
@@ -45,12 +32,17 @@ import GalleryScreen from '@src/screens/GalleryScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import Config from 'react-native-config';
-import {authManager} from '@src/services/authManager';
-import {tokenService} from '@src/services/tokenService';
 import {Toaster} from '@masumdev/rn-toast';
 import {analyticsService} from '@src/services/analyticsService';
 import {crashlyticsService} from '@src/services/crashlyticsService';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
+import {userService} from '@src/services/userService';
+
+GoogleSignin.configure({
+  webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: true,
+  forceCodeForRefreshToken: true,
+});
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -78,65 +70,128 @@ function HomeTabs() {
 
 function App() {
   const {isDark} = useThemeStore();
-  const {user, isLoading, restoreSession} = useAuthStore();
+  const {
+    user,
+    isLoading,
+    initialized,
+    restoreSession,
+    firebaseUser,
+    getIdToken,
+    login,
+    logout,
+  } = useAuthStore();
 
+  // Set up auth state listener
   useEffect(() => {
-    const initializeAuthState = async () => {
+    if (initialized) {
+      return;
+    } // Only run once
+
+    console.log('Setting up auth state listeners...');
+
+    // Wait for Firebase auth to initialize first
+    const initializeAuth = async () => {
       try {
-        // Configure Google Sign In
-        GoogleSignin.configure({
-          webClientId: Config.GOOGLE_WEB_CLIENT_ID,
-          offlineAccess: true,
-          forceCodeForRefreshToken: true,
-        });
-
-        // Wait for Firebase auth to fully initialize
-        await auth.authStateReady();
-
-        // First try to use Firebase's native persistence
-        const firebaseUser = auth.currentUser;
-        if (firebaseUser) {
-          console.log(
-            'User already logged in via Firebase:',
-            firebaseUser.email,
-          );
-
-          // Force token refresh to ensure it's valid
-          await firebaseUser.getIdToken(true);
-
-          // Initialize token refresh service
-          tokenService.init();
-
-          await restoreSession();
-        } else {
-          // Try to restore from our own storage
-          const isRestored = await authManager.restoreAuthSession();
-
-          if (isRestored) {
-            console.log('Session restored successfully');
-
-            // Initialize token service after restoration
-            tokenService.init();
-
-            await restoreSession();
-          } else {
-            console.log('No valid auth session found');
-            useAuthStore.setState({isLoading: false, user: null});
-          }
-        }
+        // First restore any existing session
+        await restoreSession();
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        useAuthStore.setState({isLoading: false, user: null});
+        console.error('Error initializing auth:', error);
       }
     };
 
-    initializeAuthState();
+    initializeAuth();
 
-    // Clean up token service on unmount
+    // Listen for auth state changes
+    const unsubscribeAuthState = auth().onAuthStateChanged(async authUser => {
+      console.log(
+        'Auth state changed:',
+        authUser ? `User ${authUser.uid}` : 'No user',
+      );
+
+      if (authUser) {
+        // User just signed in or session was restored
+        try {
+          // Get user data
+          let userData = await userService.getUser(authUser.uid);
+
+          if (!userData) {
+            // Create a new user profile
+            userData = {
+              id: authUser.uid,
+              email: authUser.email || '',
+              name: authUser.displayName || '',
+              photo: authUser.photoURL || '',
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+            };
+
+            // Save the new user
+            await login(userData);
+          } else {
+            // Update existing user with fresh info
+            await login(userData);
+          }
+        } catch (error) {
+          console.error('Error handling auth state change:', error);
+        }
+      } else {
+        // User is signed out - explicitly set state to null
+        // This ensures the state is consistent with Firebase
+        if (user) {
+          console.log('Firebase indicates user is signed out, updating state');
+          await logout();
+        }
+      }
+      // We DON'T need an else case to handle sign-out
+      // as that's handled by the logout() function when called explicitly
+    });
+
+    // Set up token change listener
+    const unsubscribeTokenChange = auth().onIdTokenChanged(async user => {
+      if (user) {
+        console.log('ID token changed for user:', user.uid);
+        // Get fresh token - this lets Firebase handle the refresh automatically
+        await getIdToken(false);
+      }
+    });
+
     return () => {
-      tokenService.cleanup();
+      unsubscribeAuthState();
+      unsubscribeTokenChange();
     };
-  }, [restoreSession]);
+  }, [initialized, restoreSession, firebaseUser, getIdToken, login, user]);
+
+  // Debug effect to log current auth state - helps identify auth issues
+  useEffect(() => {
+    console.log('Auth State Debug:', {
+      userExists: !!user,
+      userId: user?.id,
+      firebaseUserExists: !!firebaseUser,
+      firebaseUid: firebaseUser?.uid,
+      isLoading,
+      initialized,
+      currentFirebaseUser: !!auth().currentUser,
+      currentFirebaseUid: auth().currentUser?.uid,
+    });
+  }, [user, firebaseUser, isLoading, initialized]);
+
+  // Handle app state changes to ensure token freshness
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active' && auth().currentUser) {
+        // App came to foreground, refresh token
+        console.log('App is active, refreshing session if needed');
+        getIdToken(false);
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
+
+    return () => subscription.remove();
+  }, [getIdToken]);
 
   useEffect(() => {
     // Initialize analytics and crashlytics
@@ -162,18 +217,6 @@ function App() {
       crashlyticsService.setUserInfo(user);
     }
   }, [user]);
-
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      await GoogleSignin.signOut();
-      await GoogleSignin.revokeAccess();
-      authManager.clearAuthData();
-      useAuthStore.setState({user: null, isLoading: false});
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
 
   return (
     <SafeAreaView

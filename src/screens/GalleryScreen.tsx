@@ -13,6 +13,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 import {MMKV} from 'react-native-mmkv';
+import {useToast} from '@masumdev/rn-toast';
 
 import {theme} from '@src/theme/Theme';
 import {useThemeStore} from '@src/store/themeStore';
@@ -20,12 +21,13 @@ import {useAuthStore} from '@src/store/authStore';
 import {imageService} from '@src/services/imageService';
 import {GeneratedImage} from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
+
+// Icons
 import PhotoLibraryIcon from '@src/assets/icons/PhotoLibraryIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
-import {useToast} from '@masumdev/rn-toast';
 
 // Initialize MMKV storage
 export const storage = new MMKV();
@@ -38,11 +40,6 @@ const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
 const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 const FAVORITES_STORAGE_KEY = 'zenoa_favorite_images';
 
-// Extended image type with favorites
-interface ImageWithFavorite extends GeneratedImage {
-  isFavorite: boolean;
-}
-
 const GalleryScreen = () => {
   const {isDark} = useThemeStore();
   const {user} = useAuthStore();
@@ -50,11 +47,11 @@ const GalleryScreen = () => {
   const {showToast} = useToast();
 
   // State
-  const [images, setImages] = useState<ImageWithFavorite[]>([]);
-  const [filteredImages, setFilteredImages] = useState<ImageWithFavorite[]>([]);
+  const [images, setImages] = useState<GeneratedImage[]>([]);
+  const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<ImageWithFavorite | null>(
+  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
 
@@ -118,7 +115,7 @@ const GalleryScreen = () => {
   );
 
   // Load favorites from MMKV
-  const loadFavorites = () => {
+  const loadFavorites = useCallback(() => {
     try {
       const favoritesJson = storage.getString(FAVORITES_STORAGE_KEY);
       return favoritesJson ? JSON.parse(favoritesJson) : [];
@@ -126,20 +123,21 @@ const GalleryScreen = () => {
       console.error('Error loading favorites:', error);
       return [];
     }
-  };
+  }, []);
 
   // Save favorites to MMKV
-  const saveFavorites = (favoriteIds: string[]) => {
+  const saveFavorites = useCallback((favoriteIds: string[]) => {
     try {
       storage.set(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteIds));
     } catch (error) {
       console.error('Error saving favorites:', error);
     }
-  };
+  }, []);
 
-  // Replace the fetchUserImages function
   const fetchUserImages = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -173,10 +171,7 @@ const GalleryScreen = () => {
           `Image ${imageId}: Firestore=${isFavoriteInFirestore}, Local=${isInLocalFavorites}, Final=${isFavorite}`,
         );
 
-        return {
-          ...img,
-          isFavorite: isFavorite,
-        };
+        return {...img, isFavorite: isFavorite};
       });
 
       // Update local storage with favorites from combined sources
@@ -201,143 +196,156 @@ const GalleryScreen = () => {
     }
   };
 
-  // Handle refresh
   const handleRefresh = () => {
     setRefreshing(true);
     fetchUserImages();
   };
 
-  // Replace the existing toggleFavorite function with this enhanced version
-  const toggleFavorite = async (image: ImageWithFavorite) => {
-    if (!user?.id) {
-      showToast('Please log in to favorite images', 'error');
-      return;
-    }
-
-    try {
-      const imageId = `${image.timestamp}_${image.seed}`;
-      const newFavoriteState = !image.isFavorite;
-
-      console.log(
-        `Toggling favorite for image ${imageId} to ${newFavoriteState}`,
-      );
-
-      // Update UI immediately for responsiveness
-      setImages(prevImages =>
-        prevImages.map(img =>
-          img.timestamp === image.timestamp && img.seed === image.seed
-            ? {...img, isFavorite: newFavoriteState}
-            : img,
-        ),
-      );
-
-      // Update filtered images as well to ensure UI consistency
-      setFilteredImages(prevImages =>
-        prevImages.map(img =>
-          img.timestamp === image.timestamp && img.seed === image.seed
-            ? {...img, isFavorite: newFavoriteState}
-            : img,
-        ),
-      );
-
-      // Update selected image if needed
-      if (
-        selectedImage &&
-        selectedImage.timestamp === image.timestamp &&
-        selectedImage.seed === image.seed
-      ) {
-        setSelectedImage({...selectedImage, isFavorite: newFavoriteState});
+  const toggleFavorite = useCallback(
+    async (image: GeneratedImage) => {
+      if (!user?.id) {
+        showToast('Please log in to favorite images', 'error');
+        return;
       }
 
-      // Get existing local favorites
-      const favoriteIds = loadFavorites();
-      let newFavorites: string[];
+      try {
+        const imageId = `${image.timestamp}_${image.seed}`;
+        const newFavoriteState = !image.isFavorite;
 
-      // Update local favorites list
-      if (newFavoriteState) {
-        // Add to favorites if not already in the list
-        if (!favoriteIds.includes(imageId)) {
-          newFavorites = [...favoriteIds, imageId];
-          console.log(`Added ${imageId} to local favorites`);
-        } else {
-          newFavorites = favoriteIds;
-          console.log(`${imageId} already in local favorites`);
-        }
-      } else {
-        // Remove from favorites
-        newFavorites = favoriteIds.filter((id: string) => id !== imageId);
-        console.log(`Removed ${imageId} from local favorites`);
-      }
-
-      // Save to local storage
-      saveFavorites(newFavorites);
-
-      // Update in Firestore
-      console.log(
-        `Updating favorite status in Firestore to ${newFavoriteState}`,
-      );
-      const success = await imageService.toggleFavoriteStatus(
-        user.id,
-        imageId,
-        newFavoriteState,
-      );
-
-      if (success) {
-        showToast(
-          newFavoriteState ? 'Added to favorites' : 'Removed from favorites',
-          'success',
+        console.log(
+          `Toggling favorite for image ${imageId} to ${newFavoriteState}`,
         );
-      } else {
-        showToast('Failed to update favorite status', 'error');
-        // Revert UI changes on failure
+
+        // Update UI immediately for responsiveness
         setImages(prevImages =>
           prevImages.map(img =>
             img.timestamp === image.timestamp && img.seed === image.seed
-              ? {...img, isFavorite: !newFavoriteState}
+              ? {...img, isFavorite: newFavoriteState}
               : img,
           ),
         );
 
-        // Update filtered images on failure too
+        // Update filtered images as well to ensure UI consistency
         setFilteredImages(prevImages =>
           prevImages.map(img =>
             img.timestamp === image.timestamp && img.seed === image.seed
-              ? {...img, isFavorite: !newFavoriteState}
+              ? {...img, isFavorite: newFavoriteState}
               : img,
           ),
         );
 
+        // Update selected image if needed
         if (
           selectedImage &&
           selectedImage.timestamp === image.timestamp &&
           selectedImage.seed === image.seed
         ) {
-          setSelectedImage({...selectedImage, isFavorite: !newFavoriteState});
+          setSelectedImage({...selectedImage, isFavorite: newFavoriteState});
         }
+
+        // Get existing local favorites
+        const favoriteIds = loadFavorites();
+        let newFavorites: string[];
+
+        // Update local favorites list
+        if (newFavoriteState) {
+          // Add to favorites if not already in the list
+          if (!favoriteIds.includes(imageId)) {
+            newFavorites = [...favoriteIds, imageId];
+            console.log(`Added ${imageId} to local favorites`);
+          } else {
+            newFavorites = favoriteIds;
+            console.log(`${imageId} already in local favorites`);
+          }
+        } else {
+          // Remove from favorites
+          newFavorites = favoriteIds.filter((id: string) => id !== imageId);
+          console.log(`Removed ${imageId} from local favorites`);
+        }
+
+        // Save to local storage
+        saveFavorites(newFavorites);
+
+        // Update in Firestore
+        console.log(
+          `Updating favorite status in Firestore to ${newFavoriteState}`,
+        );
+        const success = await imageService.toggleFavoriteStatus(
+          user.id,
+          imageId,
+          newFavoriteState,
+        );
+
+        if (success) {
+          showToast(
+            newFavoriteState ? 'Added to favorites' : 'Removed from favorites',
+            'success',
+          );
+        } else {
+          showToast('Failed to update favorite status', 'error');
+          // Revert UI changes on failure
+          setImages(prevImages =>
+            prevImages.map(img =>
+              img.timestamp === image.timestamp && img.seed === image.seed
+                ? {...img, isFavorite: !newFavoriteState}
+                : img,
+            ),
+          );
+
+          // Update filtered images on failure too
+          setFilteredImages(prevImages =>
+            prevImages.map(img =>
+              img.timestamp === image.timestamp && img.seed === image.seed
+                ? {...img, isFavorite: !newFavoriteState}
+                : img,
+            ),
+          );
+
+          if (
+            selectedImage &&
+            selectedImage.timestamp === image.timestamp &&
+            selectedImage.seed === image.seed
+          ) {
+            setSelectedImage({...selectedImage, isFavorite: !newFavoriteState});
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update favorite:', error);
+        showToast('Error updating favorites', 'error');
       }
-    } catch (error) {
-      console.error('Failed to update favorite:', error);
-      showToast('Error updating favorites', 'error');
-    }
-  };
+    },
+    [
+      user?.id,
+      selectedImage,
+      showToast,
+      setImages,
+      setFilteredImages,
+      setSelectedImage,
+      loadFavorites,
+      saveFavorites,
+    ],
+  );
 
   // Switch between All and Favorites tabs
-  const switchTab = (tab: 'all' | 'favorites') => {
-    setActiveTab(tab);
-    console.log(
-      `Switched to ${tab} tab, favorites count: ${
-        images.filter(img => img.isFavorite).length
-      }`,
-    );
+  const switchTab = useCallback(
+    (tab: 'all' | 'favorites') => {
+      setActiveTab(tab);
+      console.log(
+        `Switched to ${tab} tab, favorites count: ${
+          images.filter(img => img.isFavorite).length
+        }`,
+      );
 
-    // Animate tab indicator
-    Animated.spring(tabIndicatorAnim, {
-      toValue: tab === 'all' ? 0 : 1,
-      useNativeDriver: true,
-      friction: 8,
-      tension: 50,
-    }).start();
-  };
+      // Animate tab indicator
+      Animated.spring(tabIndicatorAnim, {
+        toValue: tab === 'all' ? 0 : 1,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 50,
+      }).start();
+    },
+    [images, tabIndicatorAnim],
+  );
 
   // Extract unique styles from all images for filtering
   const uniqueStyles = useCallback(() => {
@@ -349,7 +357,7 @@ const GalleryScreen = () => {
   }, [images]);
 
   // Calculate dimensions for each image based on aspect ratio
-  const getItemDimensions = (item: ImageWithFavorite) => {
+  const getItemDimensions = (item: GeneratedImage) => {
     try {
       const [width, height] = item.aspectRatio.sizes[
         item.aspectRatio.size || 'medium'
@@ -374,7 +382,6 @@ const GalleryScreen = () => {
     }
   };
 
-  // Prepare image data with dimensions
   const preparedData = React.useMemo(() => {
     return filteredImages.map(image => ({
       ...image,
@@ -396,7 +403,7 @@ const GalleryScreen = () => {
     ({
       item,
     }: {
-      item: ImageWithFavorite & {
+      item: GeneratedImage & {
         dimensions: {width: number; height: number; aspectRatio: number};
       };
     }) => (
@@ -435,7 +442,7 @@ const GalleryScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* Favorite Button - separate touchable for better interaction */}
+        {/* Favorite Button */}
         <TouchableOpacity
           onPress={() => toggleFavorite(item)}
           className="absolute top-2 right-2 p-2.5 rounded-full"
@@ -524,7 +531,7 @@ const GalleryScreen = () => {
   // Animation for tab indicator position
   const translateX = tabIndicatorAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, SCREEN_WIDTH / 2 - 32], // Adjust for padding
+    outputRange: [0, SCREEN_WIDTH / 2 - 32],
   });
 
   return (
@@ -580,7 +587,7 @@ const GalleryScreen = () => {
             style={{
               position: 'absolute',
               bottom: 0,
-              width: SCREEN_WIDTH / 2 - 32, // Adjust for padding
+              width: SCREEN_WIDTH / 2 - 32,
               height: 3,
               backgroundColor: colors.primary,
               borderRadius: 3,

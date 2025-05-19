@@ -58,25 +58,6 @@ const ProfileScreen = () => {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
-  // For the animated header effect
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [220, 100],
-    extrapolate: 'clamp',
-  });
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 80, 120],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
-  const headerInfoOpacity = scrollY.interpolate({
-    inputRange: [0, 50, 100],
-    outputRange: [1, 0.3, 0],
-    extrapolate: 'clamp',
-  });
-
   useEffect(() => {
     loadProfileData();
   }, [user, user?.name]);

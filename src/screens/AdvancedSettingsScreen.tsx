@@ -16,7 +16,6 @@ import {
   Platform,
   UIManager,
   Modal,
-  Dimensions,
   KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
@@ -29,12 +28,14 @@ import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
 import {ArtStyleType, AspectRatioSizeType, AspectRatioType} from '@src/types';
 import {useThemeStore} from '@src/store/themeStore';
+import InfoDialog from '@src/components/InfoDialog';
+import FastImage from 'react-native-fast-image';
+
+// Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
 import CheckmarkIcon from '@src/assets/icons/CheckmarkIcon';
 import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
-import InfoDialog from '@src/components/InfoDialog';
-import FastImage from 'react-native-fast-image';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
 
@@ -118,7 +119,6 @@ const StyleItem = memo(
     isSelected,
     onToggle,
     colors,
-    isDark,
   }: {
     item: ArtStyleType;
     isSelected: boolean;
@@ -313,10 +313,8 @@ const ArtStylesDialog = memo(
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
   }) => {
-    // Add state for search query
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Filter styles based on search query
     const filteredStyles = useMemo(() => {
       if (!searchQuery.trim()) {
         return artStyles;
@@ -431,7 +429,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
 
-  // Add refs for TextInputs to maintain focus
+  // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
   const negativePromptRef = useRef<TextInput>(null);
 
@@ -453,18 +451,16 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   );
 
   const [showSamplerPicker, setShowSamplerPicker] = useState(false);
-  const [loadingMoreStyles, setLoadingMoreStyles] = useState(false);
-  const [numStylesToShow, setNumStylesToShow] = useState(15);
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogContent, setDialogContent] = useState({title: '', message: ''});
   const [artStylesDialogVisible, setArtStylesDialogVisible] = useState(false);
 
-  // Add state to track if keyboard is showing
+  // State to track if keyboard is showing
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Add keyboard event listeners
+  // Keyboard event listeners
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -564,7 +560,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
         <ScrollView
           showsVerticalScrollIndicator={false}
           className="flex-1 px-4"
-          keyboardShouldPersistTaps="always" // Important: Change this to 'always'
+          keyboardShouldPersistTaps="always"
           keyboardDismissMode="none" // Don't dismiss on scroll
           contentInsetAdjustmentBehavior="always" // Adjust content inset when keyboard shows
           removeClippedSubviews={false} // Important: Set to false to maintain input state
@@ -935,7 +931,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 accessible={true}
                 accessibilityLabel="Seed value input"
                 accessibilityHint="Enter a number to create reproducible images or leave empty for random results"
-                // Add these props:
                 blurOnSubmit={false}
                 caretHidden={false}
                 autoCorrect={false}
@@ -973,7 +968,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 accessible={true}
                 accessibilityLabel="Negative prompt input"
                 accessibilityHint="Enter terms to exclude from the generated image"
-                // Add these props:
                 blurOnSubmit={false}
                 scrollEnabled={true} // For multiline input
                 maxLength={500} // Optional, to prevent very long inputs

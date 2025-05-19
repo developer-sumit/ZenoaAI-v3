@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,39 +7,26 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import {useAuthStore} from '@src/store/authStore';
-import {googleAuth} from '@src/config/auth.config';
-import {theme} from '@src/theme/Theme';
-import {useNavigation} from '@react-navigation/native';
-import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamList} from '@src/types';
-import {useThemeStore} from '@src/store/themeStore';
-import appConfig from '@src/config/app.config';
-import Routes from '@src/constants/routes';
 import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {tokenService} from '@src/services/tokenService';
+import auth from '@react-native-firebase/auth';
+import {theme} from '@src/theme/Theme';
+import {useThemeStore} from '@src/store/themeStore';
+import appConfig from '@src/config/app.config';
+import {useToast} from '@masumdev/rn-toast';
 import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
-import {useToast} from '@masumdev/rn-toast';
 import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
 
-type LoginScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  typeof Routes.SIGN_IN
->;
-
 const LoginScreen = () => {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
-  const {isLoading, login} = useAuthStore();
   const {isDark} = useThemeStore();
-  const {showToast} = useToast();
   const colors = isDark ? theme.dark : theme.light;
-  const [signingIn, setSigningIn] = useState(false);
+  const {showToast} = useToast();
+  const [signingIn, setSigningIn] = React.useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -58,31 +45,21 @@ const LoginScreen = () => {
     try {
       setSigningIn(true);
 
-      // Sign out from any previous Google sessions
-      await GoogleSignin.signOut();
-
-      // Check for Play Services
+      // Check if Play Services is available
       await GoogleSignin.hasPlayServices();
 
-      const result = await googleAuth.signIn();
-      if (!result?.success) {
-        showToast('Sign-in failed', 'error');
-        return;
-      }
+      // Get the user ID token
+      const {data} = await GoogleSignin.signIn();
 
-      const {user: googleUser, firebaseUser} = result.data || {};
-      const userData = {
-        id: firebaseUser?.uid || '',
-        email: googleUser?.email || '',
-        name: googleUser?.name || '',
-        photo: googleUser?.photo || '',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-      };
+      // Create a Google credential with the token
+      const googleCredential = auth.GoogleAuthProvider.credential(
+        data?.idToken || '',
+      );
 
-      await login(userData);
-      tokenService.init();
-      navigation.replace(Routes.MAIN);
+      // Sign in with the credential
+      await auth().signInWithCredential(googleCredential);
+
+      showToast('Sign-in successful', 'success');
     } catch (error) {
       console.error('Sign-in error:', error);
       showToast('Sign-in failed', 'error');
@@ -90,14 +67,6 @@ const LoginScreen = () => {
       setSigningIn(false);
     }
   };
-
-  if (isLoading || signingIn) {
-    return (
-      <View className="flex-1" style={{backgroundColor: colors.background}}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
 
   return (
     <View style={{backgroundColor: colors.background}} className="flex-1">
@@ -138,15 +107,26 @@ const LoginScreen = () => {
           {/* Google Sign-In Button */}
           <TouchableOpacity
             onPress={handleGoogleSignIn}
-            style={{backgroundColor: colors.surface}}
+            disabled={signingIn}
+            style={{
+              backgroundColor: colors.surface,
+              opacity: signingIn ? 0.7 : 1,
+            }}
             className="flex-row items-center justify-center p-4 rounded-2xl mb-4"
             accessible={true}
             accessibilityLabel="Continue with Google"
-            accessibilityHint="Sign in using your Google account">
-            <GoogleLogoIcon size={24} color={colors.text} />
-            <Text style={{color: colors.text}} className="ml-3 text-lg">
-              Continue with Google
-            </Text>
+            accessibilityHint="Sign in using your Google account"
+            accessibilityState={{disabled: signingIn}}>
+            {signingIn ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <GoogleLogoIcon size={24} color={colors.text} />
+                <Text style={{color: colors.text}} className="ml-3 text-lg">
+                  Continue with Google
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Switch Account Note */}
