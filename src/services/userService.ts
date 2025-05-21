@@ -1,8 +1,8 @@
-import {doc, setDoc, getDoc, updateDoc} from 'firebase/firestore';
+import firestore from '@react-native-firebase/firestore';
 import {User} from '@src/types';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import NetInfo from '@react-native-community/netinfo';
-import {auth, firestore} from '@src/config/firebase.config';
+import auth from '@react-native-firebase/auth';
 
 /**
  * User data service that synchronizes between Firestore and secure local storage
@@ -45,8 +45,12 @@ export const userService = {
       );
       if (isConnected) {
         try {
-          const userDocRef = doc(firestore, 'users', userData.id);
-          await setDoc(userDocRef, userWithTimestamp, {merge: true});
+          // Use React Native Firebase SDK syntax
+          await firestore()
+            .collection('users')
+            .doc(userData.id)
+            .set(userWithTimestamp, {merge: true});
+
           console.log('User data successfully saved to Firestore');
         } catch (firestoreError) {
           console.error(
@@ -111,8 +115,11 @@ export const userService = {
       if (isConnected) {
         try {
           console.log('Attempting to fetch user data from Firestore');
-          const userDocRef = doc(firestore, 'users', userId);
-          const userDoc = await getDoc(userDocRef);
+          // Use React Native Firebase SDK syntax
+          const userDoc = await firestore()
+            .collection('users')
+            .doc(userId)
+            .get();
 
           if (userDoc.exists()) {
             const firestoreData = userDoc.data() as User;
@@ -214,27 +221,29 @@ export const userService = {
       if (isConnected) {
         try {
           // Check if Firebase authenticated
-          const currentUser = auth.currentUser;
-          if (!currentUser) {
+          if (!auth().currentUser) {
             console.log(
               'No Firebase authentication, updating local storage only',
             );
           } else {
-            console.log(`Firebase user authenticated: ${currentUser.uid}`);
+            console.log(
+              `Firebase user authenticated: ${
+                auth().currentUser?.uid || 'unknown'
+              }`,
+            );
             console.log(`Updating Firestore document for user: ${userId}`);
 
-            // If using Firebase Auth, make sure userId matches Firebase UID
-            const userDocRef = doc(firestore, 'users', userId);
-
-            // Use setDoc with merge option instead of updateDoc for more reliability
-            await setDoc(
-              userDocRef,
-              {
-                ...profileData,
-                lastUpdated: new Date().toISOString(),
-              },
-              {merge: true},
-            );
+            // Use React Native Firebase SDK syntax
+            await firestore()
+              .collection('users')
+              .doc(userId)
+              .set(
+                {
+                  ...profileData,
+                  lastUpdated: new Date().toISOString(),
+                },
+                {merge: true},
+              );
 
             console.log('Profile successfully updated in Firestore');
           }
@@ -283,8 +292,12 @@ export const userService = {
         state => state.isConnected,
       );
       if (isConnected) {
-        const userDocRef = doc(firestore, 'users', userId);
-        await updateDoc(userDocRef, userWithDeletedFlag);
+        // Use React Native Firebase SDK syntax
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .update(userWithDeletedFlag);
+
         console.log('User marked as deleted in Firestore');
       } else {
         console.log(

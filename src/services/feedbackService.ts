@@ -1,14 +1,6 @@
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore';
 import {Platform} from 'react-native';
 import appConfig from '@src/config/app.config';
-import {firestore} from '@src/config/firebase.config';
+import firestore from '@react-native-firebase/firestore';
 
 export interface FeedbackData {
   userId: string;
@@ -53,13 +45,12 @@ export const feedbackService = {
           Platform.OS === 'ios'
             ? Platform.constants.systemName
             : 'Android Device',
-        createdAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
         status: 'new',
       };
 
-      // Add the feedback to Firestore
-      const feedbackRef = collection(firestore, 'feedback');
-      const docRef = await addDoc(feedbackRef, feedbackData);
+      // Add the feedback to Firestore - using RN Firebase SDK
+      const docRef = await firestore().collection('feedback').add(feedbackData);
 
       console.log('Feedback submitted successfully with ID:', docRef.id);
       return docRef.id;
@@ -74,11 +65,14 @@ export const feedbackService = {
    */
   async getUserFeedbackHistory(userId: string): Promise<FeedbackData[]> {
     try {
-      const feedbackRef = collection(firestore, 'feedback');
-      const q = query(feedbackRef, where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
+      // Query Firestore using RN Firebase SDK
+      const querySnapshot = await firestore()
+        .collection('feedback')
+        .where('userId', '==', userId)
+        .get();
 
       const feedbackHistory: FeedbackData[] = [];
+
       querySnapshot.forEach(doc => {
         feedbackHistory.push({
           ...(doc.data() as FeedbackData),

@@ -1,4 +1,4 @@
-import {analytics} from '@src/config/firebase.config';
+import analytics from '@react-native-firebase/analytics';
 import {User} from '@src/types';
 
 export const analyticsService = {

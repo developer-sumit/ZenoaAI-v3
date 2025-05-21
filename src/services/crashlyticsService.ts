@@ -1,4 +1,4 @@
-import {crashlytics} from '@src/config/firebase.config';
+import crashlytics from '@react-native-firebase/crashlytics';
 import {User} from '@src/types';
 
 export const crashlyticsService = {
