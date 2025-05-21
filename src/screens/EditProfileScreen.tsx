@@ -19,9 +19,8 @@ import {useAuthStore} from '@src/store/authStore';
 import {theme} from '@src/theme/Theme';
 import {userService} from '@src/services/userService';
 import {useToast} from '@masumdev/rn-toast';
-import {doc, setDoc} from 'firebase/firestore';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import {firestore} from '@src/config/firebase.config';
+import firestore from '@react-native-firebase/firestore';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -90,13 +89,14 @@ const EditProfileScreen = () => {
         console.log('Updating name from', user.name, 'to', name);
 
         try {
-          // Make direct update to Firestore
-          const userDocRef = doc(firestore, 'users', user.id);
-          await setDoc(
-            userDocRef,
-            {name: name, lastUpdated: new Date().toISOString()},
-            {merge: true},
-          );
+          // Use React Native Firebase SDK syntax
+          await firestore()
+            .collection('users')
+            .doc(user.id)
+            .set(
+              {name: name, lastUpdated: new Date().toISOString()},
+              {merge: true},
+            );
 
           // Also update local encrypted storage
           const localUserData = await EncryptedStorage.getItem(

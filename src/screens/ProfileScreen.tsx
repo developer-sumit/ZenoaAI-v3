@@ -16,7 +16,7 @@ import {theme} from '@src/theme/Theme';
 import appConfig from '@src/config/app.config';
 import {useThemeStore} from '@src/store/themeStore';
 import {useNavigation} from '@react-navigation/native';
-import {useToast} from '@masumdev/rn-toast';
+import {Toaster, useToast} from '@masumdev/rn-toast';
 import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
 import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
@@ -490,6 +490,14 @@ const ProfileScreen = () => {
             </View>
           </View>
         </BlurView>
+
+        <Toaster
+          customColors={{
+            success: {background: '#E7F5E9', text: '#256029'},
+            error: {background: '#FDECEA', text: '#B3261E'},
+            info: {background: '#E3F2FD', text: '#1E88E5'},
+          }}
+        />
       </Modal>
     </Animated.ScrollView>
   );

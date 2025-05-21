@@ -64,8 +64,8 @@ const LoginScreen = () => {
         email: res.user.email || '',
         name: data?.user?.name || '',
         photo: data?.user?.photo || '',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
+        createdAt: res.user.metadata.creationTime || new Date().toISOString(),
+        lastLogin: res.user.metadata.lastSignInTime || new Date().toISOString(),
       };
       console.log({userData});
       await login(userData);
