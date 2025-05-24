@@ -463,9 +463,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() =>
-                      copyToClipboard(image?.fullPrompt || image?.prompt || '')
-                    }
+                    onPress={() => copyToClipboard(image?.prompt || '')}
                     className="p-1 ml-2"
                     accessible={true}
                     accessibilityLabel="Copy prompt to clipboard">
