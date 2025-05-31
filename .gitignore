@@ -88,3 +88,5 @@ android/keystore.properties
 # Key files
 *.p8
 *.pem
+
+optimized-assets

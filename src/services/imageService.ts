@@ -1,14 +1,4 @@
-import {
-  doc,
-  collection,
-  setDoc,
-  getDocs,
-  query,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import {firestore} from '@src/config/firebase.config';
+import firestore from '@react-native-firebase/firestore';
 import {GeneratedImage} from '@src/types';
 import NetInfo from '@react-native-community/netinfo';
 import EncryptedStorage from 'react-native-encrypted-storage';
@@ -28,7 +18,7 @@ export const imageService = {
         ...imageData,
         imageId,
         userId,
-        createdAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
         synced: false,
       };
 
@@ -51,16 +41,17 @@ export const imageService = {
 
       if (isConnected) {
         try {
-          // Save to user's images collection
-          const imageRef = doc(
-            collection(firestore, 'users', userId, 'images'),
-            imageId,
-          );
-          await setDoc(imageRef, {
-            ...imageWithTimestamp,
-            createdAt: serverTimestamp(), // Use server timestamp
-            synced: true,
-          });
+          // Save to user's images collection - UPDATED TO USE RN FIREBASE SDK
+          await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .doc(imageId)
+            .set({
+              ...imageWithTimestamp,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+              synced: true,
+            });
           console.log('Image saved to Firestore');
         } catch (error) {
           console.error('Error saving image to Firestore:', error);
@@ -90,7 +81,7 @@ export const imageService = {
   },
 
   /**
-   * Get all user images, combining from both local storage and Firestore
+   * Get all user images, combining from both local storage and Firestore, excluding deleted ones
    */
   async getUserImages(userId: string): Promise<any[]> {
     try {
@@ -115,27 +106,26 @@ export const imageService = {
       if (isConnected) {
         try {
           console.log('Fetching images from Firestore');
-          const imagesCollection = collection(
-            firestore,
-            'users',
-            userId,
-            'images',
-          );
-          const q = query(imagesCollection, orderBy('createdAt', 'desc'));
-          const querySnapshot = await getDocs(q);
+
+          // UPDATED TO USE RN FIREBASE SDK
+          const querySnapshot = await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .orderBy('createdAt', 'desc')
+            .get();
 
           if (!querySnapshot.empty) {
-            const firestoreImages = querySnapshot.docs.map(d => {
-              const data = d.data();
-              // Convert Firestore timestamp to ISO string if present
-              if (data.createdAt && data.createdAt instanceof Timestamp) {
-                data.createdAt = data.createdAt.toDate().toISOString();
-              }
-              return {
-                id: d.id,
-                ...data,
-              };
-            });
+            const firestoreImages = querySnapshot.docs
+              .map(doc => {
+                const data = doc.data();
+                // Convert Firestore timestamp to ISO string if present
+                if (data.createdAt) {
+                  data.createdAt = data.createdAt.toDate().toISOString();
+                }
+                return {id: doc.id, ...data};
+              })
+              .filter(img => !img.isDeleted); // Filter out deleted images
 
             console.log(`Found ${firestoreImages.length} images in Firestore`);
 
@@ -148,15 +138,20 @@ export const imageService = {
             return firestoreImages;
           } else {
             console.log('No images found in Firestore');
-            return localImages;
+            return localImages.filter(img => !img.isDeleted);
           }
         } catch (error) {
           console.error('Error fetching images from Firestore:', error);
-          return localImages;
+          if (error.code === 'permission-denied') {
+            console.warn(
+              'Firestore permission denied. This is likely due to misconfigured security rules or authentication issues.',
+            );
+          }
+          return localImages.filter(img => !img.isDeleted);
         }
       } else {
         console.log('Offline mode: Using cached images');
-        return localImages;
+        return localImages.filter(img => !img.isDeleted);
       }
     } catch (error) {
       console.error('Error in getUserImages:', error);
@@ -219,16 +214,19 @@ export const imageService = {
       // Upload unsynced images
       for (const image of unsynced) {
         try {
-          const imageRef = doc(
-            collection(firestore, 'users', userId, 'images'),
-            image.imageId,
-          );
-
-          await setDoc(imageRef, {
-            ...image,
-            createdAt: serverTimestamp(),
-            synced: true,
-          });
+          // UPDATED TO USE RN FIREBASE SDK
+          await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .doc(image.imageId)
+            .set({
+              ...image,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+              synced: true,
+              // Explicitly include isFavorite status
+              isFavorite: image.isFavorite === true,
+            });
 
           // Mark as synced locally
           image.synced = true;
@@ -271,16 +269,16 @@ export const imageService = {
       );
 
       if (isConnected) {
-        const imageRef = doc(
-          collection(firestore, 'users', userId, 'images'),
-          imageId,
-        );
-
-        await setDoc(
-          imageRef,
-          {deleted: true, deletedAt: serverTimestamp()},
-          {merge: true},
-        );
+        // UPDATED TO USE RN FIREBASE SDK
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('images')
+          .doc(imageId)
+          .set(
+            {deleted: true, deletedAt: firestore.FieldValue.serverTimestamp()},
+            {merge: true},
+          );
 
         console.log('Image marked as deleted in Firestore');
       } else {
@@ -290,6 +288,139 @@ export const imageService = {
     } catch (error) {
       console.error('Error deleting image:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Mark an image as deleted (soft delete)
+   */
+  async markImageAsDeleted(userId: string, imageId: string): Promise<void> {
+    try {
+      // First, update locally
+      const localImages = await this.getLocalUserImages(userId);
+      const updatedImages = localImages.map(img =>
+        img.imageId === imageId
+          ? {...img, isDeleted: true, deletedAt: new Date().toISOString()}
+          : img,
+      );
+
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(updatedImages),
+      );
+
+      // Try to update in Firestore
+      const isConnected = await NetInfo.fetch().then(
+        state => state.isConnected,
+      );
+
+      if (isConnected) {
+        // UPDATED TO USE RN FIREBASE SDK
+        await firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('images')
+          .doc(imageId)
+          .set(
+            {
+              isDeleted: true,
+              deletedAt: firestore.FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+
+        console.log('Image marked as deleted in Firestore');
+      } else {
+        // Mark for sync later
+        this.markImagesForSync(userId);
+      }
+    } catch (error) {
+      console.error('Error marking image as deleted:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Toggle favorite status for an image and save to Firestore
+   */
+  async toggleFavoriteStatus(
+    userId: string,
+    imageId: string,
+    isFavorite: boolean,
+  ): Promise<boolean> {
+    try {
+      console.log(
+        `Starting toggleFavoriteStatus for image ${imageId}, userId: ${userId}, setting to ${isFavorite}`,
+      );
+
+      // First update local storage
+      const localImages = await this.getLocalUserImages(userId);
+
+      // Find the image in local cache
+      const updatedLocalImages = localImages.map(img => {
+        if (
+          img.imageId === imageId ||
+          `${img.timestamp}_${img.seed}` === imageId
+        ) {
+          console.log(
+            `Found image in local storage, updating isFavorite to ${isFavorite}`,
+          );
+          return {...img, isFavorite: isFavorite};
+        }
+        return img;
+      });
+
+      // Save back to local storage
+      await EncryptedStorage.setItem(
+        `images_${userId}`,
+        JSON.stringify(updatedLocalImages),
+      );
+      console.log('Updated favorite status in local storage');
+
+      // Update in Firestore if connected
+      const isConnected = await NetInfo.fetch().then(
+        state => state.isConnected,
+      );
+
+      if (isConnected) {
+        try {
+          console.log(`Network available, updating in Firestore: ${imageId}`);
+
+          // UPDATED TO USE RN FIREBASE SDK
+          await firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('images')
+            .doc(imageId)
+            .update({
+              isFavorite: isFavorite,
+              lastUpdated: firestore.FieldValue.serverTimestamp(),
+            });
+
+          console.log(
+            `Image ${
+              isFavorite ? 'marked as favorite' : 'removed from favorites'
+            } in Firestore`,
+          );
+          return true;
+        } catch (firestoreError) {
+          console.error(
+            'Error updating favorite status in Firestore:',
+            firestoreError,
+          );
+          // Continue with local update even if Firestore fails
+        }
+      } else {
+        console.log('No network connection, will sync when online');
+        // Flag for future sync when connection is restored
+        this.markImagesForSync(userId);
+      }
+
+      // Return true even if only updated locally
+      return true;
+    } catch (error) {
+      console.error('Failed to update favorite status:', error);
+      return false;
     }
   },
 };

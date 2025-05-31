@@ -1,6 +1,6 @@
 const appConfig = {
   name: 'Zenoa AI',
-  version: '1.0.3',
+  version: '2.0.0',
   author: {
     name: 'Sumit Singh Rathore',
     avatar: 'https://github.com/developer-sumit.png',

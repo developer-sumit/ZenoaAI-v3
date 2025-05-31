@@ -1,13 +1,11 @@
 import {initializeApp} from 'firebase/app';
-import {initializeAuth, setPersistence, browserLocalPersistence} from 'firebase/auth';
-import {getFirestore} from 'firebase/firestore';
 import Config from 'react-native-config';
 import {MMKV} from 'react-native-mmkv';
 
 // MMKV instance with a specific ID for auth
 export const authStorage = new MMKV({
   id: 'auth-storage',
-  encryptionKey: 'your-app-encryption-key', // Optional but recommended for security
+  encryptionKey: 'zenoa-encryption-key', // Optional but recommended for security
 });
 
 const firebaseConfig = {
@@ -23,12 +21,4 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth without custom persistence
-const auth = initializeAuth(app);
-
-// Set persistence for auth
-setPersistence(auth, browserLocalPersistence);
-
-const firestore = getFirestore(app);
-
-export {app, auth, firestore};
+export {app};

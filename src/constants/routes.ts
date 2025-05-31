@@ -7,6 +7,7 @@ enum Routes {
   SETTINGS = 'Settings',
   GALLERY = 'Gallery',
   EDIT_PROFILE = 'EditProfile',
+  ADVANCED_SETTINGS = 'AdvancedSettings',
 }
 
 export default Routes;
