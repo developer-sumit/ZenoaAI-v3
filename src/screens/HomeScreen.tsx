@@ -11,7 +11,9 @@ import {
   Dimensions,
   ToastAndroid,
 } from 'react-native';
+import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
+import NetInfo from '@react-native-community/netinfo';
 
 import {theme} from '@src/theme/Theme';
 import {aspectRatios} from '@src/data/ratio';
@@ -22,19 +24,23 @@ import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {generateImage} from '@src/config/api.config';
 import {imageService} from '@src/services/imageService';
-import {AspectRatioType, GeneratedImage, QualityPresetType} from '../types';
-import AdvancedSettings from '@src/components/AdvancedSettings';
+import {AspectRatioType, GeneratedImage} from '../types';
 import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
-import MagicWand from '@src/assets/icons/MagicWandIcon';
-import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
-import RefreshIcon from '@src/assets/icons/RefreshIcon';
-import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
-import CloseIcon from '@src/assets/icons/CloseIcon';
-import TuneIcon from '@src/assets/icons/TuneIcon';
 import {getStylePrompt} from '@src/data/stylePrompts';
-import {useToast} from '@masumdev/rn-toast';
+import useAppNavigation from '@src/hooks/useAppNavigation';
+import Routes from '@src/constants/routes';
+
+// Icons
+import TipIcon from '@src/assets/icons/TipIcon';
+import InfoIcon from '@src/assets/icons/InfoIcon';
+import TuneIcon from '@src/assets/icons/TuneIcon';
+import CloseIcon from '@src/assets/icons/CloseIcon';
+import MagicWand from '@src/assets/icons/MagicWandIcon';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
+import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
+import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -44,8 +50,9 @@ const HomeScreen = () => {
   const {isDark} = useThemeStore();
   const {showToast} = useToast();
   const {user} = useAuthStore();
+  const navigator = useAppNavigation();
   const colors = isDark ? theme.dark : theme.light;
-  const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [isLoadingImages, setIsLoadingImages] = React.useState(true);
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -69,23 +76,26 @@ const HomeScreen = () => {
 
   const flashListRef = useRef(null);
 
-  const qualityPresets: QualityPresetType[] = [
-    {label: 'Fast', value: 15},
-    {label: 'Standard', value: 25},
-    {label: 'Premium', value: 50},
-  ];
-
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
+
+  // Add state for tutorial visibility
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
 
   // Load user's images when component mounts
   useEffect(() => {
     if (user?.id) {
+      // Set loading to true before fetching
+      setIsLoadingImages(true);
       loadUserImages();
+    } else {
+      // If no user, we're not loading anything
+      setIsLoadingImages(false);
     }
   }, [user?.id]);
 
   const loadUserImages = async () => {
     if (!user?.id) {
+      setIsLoadingImages(false);
       return;
     }
 
@@ -99,12 +109,16 @@ const HomeScreen = () => {
           !!img.styles &&
           !!img.aspectRatio &&
           img.quality !== undefined &&
-          img.timestamp !== undefined,
+          img.timestamp !== undefined &&
+          !img.isDeleted,
       );
       setGeneratedImages(validImages);
     } catch (error) {
       console.error('Failed to load images:', error);
       showToast('Error fetching images', 'error');
+    } finally {
+      // Set loading to false when done, regardless of success or failure
+      setIsLoadingImages(false);
     }
   };
 
@@ -140,20 +154,33 @@ const HomeScreen = () => {
     }
 
     setLoading(true);
+    const generationTimestamp = Date.now();
+    const baseSeed = seed
+      ? parseInt(seed, 10)
+      : Math.floor(Math.random() * 1000000);
     const tempImages: GeneratedImage[] = [];
 
-    try {
-      const newImages: GeneratedImage[] = [];
-      const baseSeed = seed
-        ? parseInt(seed, 10)
-        : Math.floor(Math.random() * 1000000);
-      const generationTimestamp = Date.now();
+    const determineConcurrency = async () => {
+      // Check network type/speed
+      const connectionInfo = await NetInfo.fetch();
 
-      // Create placeholder images first
+      // Base concurrency on connection type and memory
+      if (connectionInfo.type === 'wifi') {
+        return Math.min(8, numberOfImages); // Higher on WiFi
+      } else if (connectionInfo.type === 'cellular') {
+        return connectionInfo.details.isConnectionExpensive ? 3 : 5;
+      }
+      return 4; // Default fallback
+    };
+
+    // Create a connection pool for better request management
+    const connectionPool = new Set();
+    const MAX_CONCURRENT_REQUESTS = await determineConcurrency();
+
+    try {
+      // Step 1: Create placeholder images for all generations
       for (let i = 0; i < numberOfImages; i++) {
         const currentSeed = baseSeed + i;
-
-        // Generate professional style prompts
         const stylePrompts = selectedStyles
           .map(style => getStylePrompt(style))
           .join(', ');
@@ -162,7 +189,7 @@ const HomeScreen = () => {
           stylePrompts ? ', ' + stylePrompts : ''
         }`;
 
-        const tempImage: GeneratedImage = {
+        tempImages.push({
           uri: 'placeholder',
           prompt: userPrompt,
           fullPrompt: fullPrompt,
@@ -174,97 +201,155 @@ const HomeScreen = () => {
           timestamp: generationTimestamp,
           loading: true,
           index: i,
-        };
-
-        tempImages.push(tempImage);
+        });
       }
 
-      // Add placeholders at the beginning
+      // Step 2: Add placeholders to state immediately
       setGeneratedImages(prev => [...tempImages, ...prev]);
 
-      // Then generate each image and update one by one
-      for (let i = 0; i < numberOfImages; i++) {
-        const currentSeed = baseSeed + i;
+      // Step 3: Generate images with controlled concurrency
+      const generateWithControl = async () => {
+        const results: (GeneratedImage | Error)[] = new Array(
+          tempImages.length,
+        );
+        let completedCount = 0;
 
-        // Use the same professional prompt construction
-        const stylePrompts = selectedStyles
-          .map(style => getStylePrompt(style))
-          .join(', ');
-        const userPrompt = prompt.trim();
-        const fullPrompt = `${userPrompt}${
-          stylePrompts ? ', ' + stylePrompts : ''
-        }`;
+        // Create a queue of indexes to process
+        const queue = tempImages.map((_, index) => index);
 
-        try {
-          const response = await generateImage({
-            prompt: fullPrompt,
-            width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
-            height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
-            negativePrompt,
-            quality,
-            sampler,
-            seed: currentSeed,
-          });
+        // Process function that takes items from the queue
+        const processQueue = async () => {
+          while (queue.length > 0) {
+            const index = queue.shift()!;
+            const tempImage = tempImages[index];
 
-          const generatedImage: GeneratedImage = {
-            uri: response.url,
-            prompt: userPrompt, // Original prompt
-            fullPrompt: fullPrompt, // Full prompt with promptTemplates
-            styles: selectedStyles,
-            aspectRatio,
-            quality,
-            sampler,
-            seed: currentSeed,
-            timestamp: generationTimestamp,
-            loading: false,
-            index: i,
-          };
+            try {
+              // Track this connection in the pool
+              const connectionId = `connection_${index}_${Date.now()}`;
+              connectionPool.add(connectionId);
 
-          // Save to Firestore and local storage
-          if (user?.id) {
-            await imageService.saveImage(user.id, generatedImage);
+              // Configure request with timeout
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
+              // Prepare generation parameters
+              const fullPrompt = tempImage.fullPrompt || '';
+              const currentSeed = tempImage.seed;
+
+              console.time(`image_gen_${index}`);
+
+              // Generate image via API with better error handling
+              try {
+                const response = await generateImage({
+                  prompt: fullPrompt,
+                  width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
+                  height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
+                  negativePrompt,
+                  quality,
+                  sampler,
+                  seed: currentSeed,
+                });
+
+                console.timeEnd(`image_gen_${index}`);
+                clearTimeout(timeoutId);
+
+                // Create final image object with API response
+                const generatedImage: GeneratedImage = {
+                  ...tempImage,
+                  uri: response.url,
+                  loading: false,
+                };
+
+                // Update UI immediately with this specific image
+                setGeneratedImages(prev =>
+                  prev.map(img =>
+                    img.timestamp === generationTimestamp && img.index === index
+                      ? generatedImage
+                      : img,
+                  ),
+                );
+
+                // Save image in background without waiting
+                if (user?.id) {
+                  // Fire and forget with error handling
+                  imageService
+                    .saveImage(user.id, generatedImage)
+                    .catch(err =>
+                      console.error(`Error saving image ${index}:`, err),
+                    );
+                }
+
+                // Store result
+                results[index] = generatedImage;
+              } catch (error) {
+                // Handle API errors
+                console.error(`Error generating image ${index}:`, error);
+
+                // Update the error state for this image
+                setGeneratedImages(prev =>
+                  prev.map(img =>
+                    img.timestamp === generationTimestamp && img.index === index
+                      ? {...img, loading: false, error: true}
+                      : img,
+                  ),
+                );
+
+                // Store error
+                results[index] =
+                  error instanceof Error ? error : new Error(String(error));
+              } finally {
+                // Always remove from connection pool
+                connectionPool.delete(connectionId);
+                completedCount++;
+              }
+            } catch (error) {
+              console.error(`Unexpected error for image ${index}:`, error);
+              results[index] =
+                error instanceof Error ? error : new Error(String(error));
+              completedCount++;
+            }
           }
+        };
 
-          // Update the generated image in state by replacing the placeholder
-          setGeneratedImages(prev =>
-            prev.map(img =>
-              img.timestamp === generationTimestamp && img.index === i
-                ? generatedImage
-                : img,
-            ),
-          );
+        // Start multiple processors based on MAX_CONCURRENT_REQUESTS
+        const processors = Array(
+          Math.min(MAX_CONCURRENT_REQUESTS, tempImages.length),
+        )
+          .fill(0)
+          .map(() => processQueue());
 
-          newImages.push(generatedImage);
-        } catch (error) {
-          console.error(`Error generating image ${i}:`, error);
+        // Wait for all processors to complete
+        await Promise.all(processors);
 
-          // Update the error state for this image
-          setGeneratedImages(prev =>
-            prev.map(img =>
-              img.timestamp === generationTimestamp && img.index === i
-                ? {...img, loading: false, error: true}
-                : img,
-            ),
-          );
+        return results;
+      };
 
-          showToast('Generation Failed', 'error');
-        }
-      }
+      // Execute the controlled generation
+      const results = await generateWithControl();
 
-      if (newImages.length > 0) {
-        showToast('Images Generated', 'success');
+      // Show appropriate toast based on results
+      const successCount = results.filter(r => !(r instanceof Error)).length;
+      if (successCount > 0) {
+        showToast(
+          `${successCount} image${successCount > 1 ? 's' : ''} generated`,
+          'success',
+        );
+      } else {
+        showToast('Generation Failed', 'error');
       }
     } catch (error) {
       console.error('Generation error:', error);
       showToast('Generation Failed', 'error');
 
-      // Remove all placeholder images
+      // Clean up placeholders if overall process fails
       setGeneratedImages(prev =>
         prev.filter(
           img => !tempImages.some(temp => temp.timestamp === img.timestamp),
         ),
       );
     } finally {
+      // Clean up any remaining connections
+      connectionPool.clear();
       setLoading(false);
     }
   };
@@ -288,9 +373,9 @@ const HomeScreen = () => {
     }, 300);
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+      ToastAndroid.show('Prompt and settings applied', ToastAndroid.SHORT);
     } else {
-      showToast('All cleared');
+      showToast('Prompt and settings applied', 'success');
     }
   };
 
@@ -389,12 +474,21 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
-            className="p-2 rounded-full"
+            className="py-2 px-3 rounded-lg flex-row items-center"
             style={{backgroundColor: colors.surface}}
             accessible={true}
             accessibilityLabel="Reuse this prompt and settings"
             accessibilityHint="Applies this prompt and style settings to generate new images">
-            <RefreshIcon size={20} color={colors.primary} />
+            <RefreshIcon size={16} color={colors.primary} />
+            <Text
+              style={{
+                color: colors.primary,
+                marginLeft: 4,
+                fontWeight: '500',
+                fontSize: 13,
+              }}>
+              Reuse
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -457,35 +551,187 @@ const HomeScreen = () => {
     }
   };
 
+  // Render getting started section with collapsible UI
+  const renderGettingStarted = () => (
+    <View
+      className="px-4 py-2 mb-2"
+      accessible={true}
+      accessibilityLabel="Getting started guide">
+      {/* Collapsible header */}
+      <TouchableOpacity
+        onPress={() => setShowOnboarding(!showOnboarding)}
+        className="flex-row items-center justify-between mb-2"
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`${
+          showOnboarding ? 'Hide' : 'Show'
+        } getting started guide`}
+        accessibilityHint="Toggles the visibility of the tutorial section">
+        <View className="flex-row items-center">
+          <TipIcon size={20} color={colors.primary} />
+          <Text className="text-lg font-bold ml-2" style={{color: colors.text}}>
+            Getting Started with {appConfig.name}
+          </Text>
+        </View>
+        <Text style={{color: colors.secondaryText, fontSize: 13}}>
+          {showOnboarding ? 'Hide' : 'Show'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Collapsible content */}
+      {showOnboarding && (
+        <View
+          className="rounded-3xl p-5 mb-2"
+          style={{backgroundColor: colors.surface}}>
+          <Text
+            className="text-base mb-4"
+            style={{color: colors.text, lineHeight: 22}}
+            accessible={true}
+            accessibilityRole="text">
+            Create stunning AI-generated images in 3 simple steps:
+          </Text>
+
+          <View
+            className="flex-row items-center mb-3"
+            accessible={true}
+            accessibilityLabel="Step 1: Describe what you want to see in the text box below">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: colors.primary}}
+              importantForAccessibility="no">
+              <Text className="text-white font-bold">1</Text>
+            </View>
+            <Text style={{color: colors.text, flex: 1}}>
+              Describe what you want to see in the text box below
+            </Text>
+          </View>
+
+          <View
+            className="flex-row items-center mb-3"
+            accessible={true}
+            accessibilityLabel="Step 2: Add art styles or customize with advanced settings">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: colors.primary}}
+              importantForAccessibility="no">
+              <Text className="text-white font-bold">2</Text>
+            </View>
+            <Text style={{color: colors.text, flex: 1}}>
+              Add art styles or customize with advanced settings
+            </Text>
+          </View>
+
+          <View
+            className="flex-row items-center mb-4"
+            accessible={true}
+            accessibilityLabel="Step 3: Tap Generate and watch your ideas come to life">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: colors.primary}}
+              importantForAccessibility="no">
+              <Text className="text-white font-bold">3</Text>
+            </View>
+            <Text style={{color: colors.text, flex: 1}}>
+              Tap "Generate" and watch your ideas come to life!
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setShowPromptSuggestions(true)}
+            className="py-3 rounded-xl items-center"
+            style={{backgroundColor: colors.primary + '20'}}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Browse prompt suggestions"
+            accessibilityHint="Opens a list of example prompts to help you get started">
+            <Text style={{color: colors.primary, fontWeight: '600'}}>
+              Need ideas? Browse prompt suggestions
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderLoading = () => (
+    <View className="flex-1 justify-center items-center">
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text className="text-base mt-4" style={{color: colors.text}}>
+        Loading your images...
+      </Text>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
       style={{backgroundColor: colors.background}}>
       <View className="flex-1">
-        {/* Header with Settings */}
+        {/* Header with App Name, Version Badge and Help Icon */}
         <View className="flex-row justify-between items-center p-4">
-          <Text className="text-3xl font-bold" style={{color: colors.text}}>
+          <Text
+            className="text-3xl font-bold"
+            style={{color: colors.text}}
+            accessibilityRole="header">
             {appConfig.name}
           </Text>
+
+          <View className="flex-row items-center gap-3">
+            {/* Version badge */}
+            <View
+              className="py-1 px-3 rounded-full"
+              style={{backgroundColor: colors.primary}}
+              accessible={true}
+              accessibilityLabel={`Version ${appConfig.version}`}>
+              <Text className="text-xs font-medium text-white">
+                v{appConfig.version}
+              </Text>
+            </View>
+
+            {/* Help button to show/hide onboarding */}
+            <TouchableOpacity
+              onPress={() => setShowOnboarding(!showOnboarding)}
+              className="p-2 rounded-full"
+              style={{backgroundColor: colors.surface}}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={
+                showOnboarding
+                  ? 'Hide getting started guide'
+                  : 'Show getting started guide'
+              }
+              accessibilityHint="Toggles the visibility of the tutorial">
+              <InfoIcon size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Generated Images Grid */}
+        {/* Generated Images Grid with optional Getting Started for new users */}
         <View className="flex-1 pb-5">
-          <FlashList
-            ref={flashListRef}
-            data={groupImagesByParameters(generatedImages)}
-            estimatedItemSize={300}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 200}}
-            renderItem={renderGroup}
-            ListEmptyComponent={<EmptyState colors={colors} />}
-            keyboardShouldPersistTaps="handled"
-            onScrollBeginDrag={Keyboard.dismiss}
-          />
+          {isLoadingImages ? (
+            renderLoading()
+          ) : (
+            <FlashList
+              ref={flashListRef}
+              data={groupImagesByParameters(generatedImages)}
+              estimatedItemSize={300}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{paddingBottom: 200}}
+              renderItem={renderGroup}
+              ListEmptyComponent={<EmptyState colors={colors} />}
+              ListHeaderComponent={
+                generatedImages.length > 0 && showOnboarding
+                  ? renderGettingStarted()
+                  : null
+              }
+              keyboardShouldPersistTaps="handled"
+              onScrollBeginDrag={Keyboard.dismiss}
+            />
+          )}
         </View>
 
-        {/* Bottom Input Area */}
+        {/* Enhanced Bottom Input Area with visual prompt assistance */}
         <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
@@ -511,19 +757,20 @@ const HomeScreen = () => {
                 accessibilityLabel="Image description input"
                 accessibilityHint="Enter a description of the image you want to generate"
               />
-              {prompt.length === 0 && (
-                <TouchableOpacity
-                  onPress={() => setShowPromptSuggestions(true)}
-                  className="pr-4"
-                  accessible={true}
-                  accessibilityLabel="Prompt suggestions"
-                  accessibilityHint="Opens a list of prompt suggestions to help you get started">
-                  <LightbulbOutlineIcon
-                    size={24}
-                    color={colors.secondaryText}
-                  />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() => setShowPromptSuggestions(true)}
+                className="pr-4"
+                accessible={true}
+                accessibilityLabel="Prompt suggestions"
+                accessibilityHint="Opens a list of prompt suggestions to help you get started"
+                accessibilityRole="button">
+                <LightbulbOutlineIcon
+                  size={24}
+                  color={
+                    prompt.length === 0 ? colors.primary : colors.secondaryText
+                  }
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Selected Styles Pills */}
@@ -540,7 +787,9 @@ const HomeScreen = () => {
                     }
                     className="py-1 px-3 rounded-full flex-row items-center"
                     accessible={true}
-                    accessibilityLabel={`Remove ${style} style`}>
+                    accessibilityLabel={`Remove ${style} style`}
+                    accessibilityRole="button"
+                    accessibilityHint={`Tap to remove the ${style} style`}>
                     <Text style={{color: colors.primary}} className="text-xs">
                       {style}
                     </Text>
@@ -567,22 +816,56 @@ const HomeScreen = () => {
                 accessibilityLabel="Clear all inputs"
                 accessibilityState={{
                   disabled: loading || prompt.trim().length === 0,
-                }}>
+                }}
+                accessibilityRole="button"
+                accessibilityHint="Resets the prompt and all selected styles">
                 <RefreshIcon size={20} color={colors.text} />
                 <Text style={{color: colors.text}} className="ml-2 font-medium">
                   Clear
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setShowAdvanced(true)}
+                onPress={() =>
+                  navigator.navigate({
+                    route: Routes.ADVANCED_SETTINGS,
+                    params: {
+                      selectedStyles,
+                      setSelectedStyles: (styles: string[]) =>
+                        setSelectedStyles(styles),
+                      aspectRatio,
+                      setAspectRatio: (ratio: AspectRatioType) =>
+                        setAspectRatio(ratio),
+                      numberOfImages,
+                      setNumberOfImages: (count: number) =>
+                        setNumberOfImages(count),
+                      quality,
+                      setQuality: (value: number) => setQuality(value),
+                      seed,
+                      setSeed: (value: string) => setSeed(value),
+                      sampler,
+                      setSampler: (value: string) => setSampler(value),
+                      negativePrompt,
+                      setNegativePrompt: (value: string) =>
+                        setNegativePrompt(value),
+                      samplers,
+                    },
+                  })
+                }
                 className="p-3 rounded-2xl"
                 style={{backgroundColor: colors.primary + '20'}}
                 accessible={true}
                 accessibilityLabel="Advanced settings"
+                accessibilityRole="button"
                 accessibilityHint="Opens advanced settings for image generation">
                 <TuneIcon size={24} color={colors.primary} />
+                {/* <View
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
+                  style={{backgroundColor: colors.primary}}
+                  accessibilityLabel="New feature"></View> */}
               </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={handleImageGeneration}
                 disabled={loading || prompt.trim().length === 0}
@@ -593,6 +876,7 @@ const HomeScreen = () => {
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
                 accessible={true}
                 accessibilityLabel="Generate image"
+                accessibilityRole="button"
                 accessibilityState={{
                   disabled: loading || prompt.trim().length === 0,
                   busy: loading,
@@ -613,34 +897,11 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Prompt Suggestions */}
         <PromptSuggestions
           visible={showPromptSuggestions}
           setVisible={setShowPromptSuggestions}
           onSelectPrompt={handleSelectPrompt}
           colors={colors}
-        />
-
-        {/* Modals */}
-        <AdvancedSettings
-          visible={showAdvanced}
-          onClose={() => setShowAdvanced(false)}
-          selectedStyles={selectedStyles}
-          setSelectedStyles={setSelectedStyles}
-          aspectRatio={aspectRatio}
-          setAspectRatio={setAspectRatio}
-          numberOfImages={numberOfImages}
-          setNumberOfImages={setNumberOfImages}
-          quality={quality}
-          setQuality={setQuality}
-          seed={seed}
-          setSeed={setSeed}
-          sampler={sampler}
-          setSampler={setSampler}
-          negativePrompt={negativePrompt}
-          setNegativePrompt={setNegativePrompt}
-          qualityPresets={qualityPresets}
-          samplers={samplers}
         />
 
         {selectedImage && (
