@@ -16,10 +16,14 @@ import appConfig from '@src/config/app.config';
 import {useToast} from '@masumdev/rn-toast';
 import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
+import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
 import {useAuthStore} from '@src/store/authStore';
+import {useStrings} from '@src/hooks/useStrings';
+import LanguageSelector from '@src/components/LanguageSelector';
 
 const LoginScreen = () => {
+  const strings = useStrings();
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
   const {login} = useAuthStore();
@@ -27,6 +31,7 @@ const LoginScreen = () => {
   const [signingIn, setSigningIn] = React.useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const languageSelectorRef = React.useRef<{openModal: () => void}>(null);
 
   React.useEffect(() => {
     Animated.parallel([
@@ -69,10 +74,10 @@ const LoginScreen = () => {
       };
       console.log({userData});
       await login(userData);
-      showToast('Sign-in successful', 'success');
+      showToast(strings.auth.signInSuccessful, 'success');
     } catch (error) {
       console.error('Sign-in error:', error);
-      showToast('Sign-in failed', 'error');
+      showToast(strings.auth.signInFailed, 'error');
     } finally {
       setSigningIn(false);
     }
@@ -86,13 +91,22 @@ const LoginScreen = () => {
         blurAmount={20}
       />
 
-      {/* Animated Content Container */}
+      {/* Language Selector Button */}
+      <View className="absolute self-center mt-6 z-10 rounded-full px-1.5 pl-3 bg-gray-100">
+        <TouchableOpacity
+          onPress={() => languageSelectorRef.current?.openModal()}
+          className="flex-row rounded-full items-center justify-center"
+          accessible={true}
+          accessibilityLabel={strings.settings.language}
+          accessibilityHint={strings.settings.languageHint}>
+          <LanguageIcon size={22} color={colors.primary} />
+          <LanguageSelector ref={languageSelectorRef} />
+        </TouchableOpacity>
+      </View>
+
       <Animated.View
         className="flex-1 justify-center items-center p-8"
-        style={{
-          opacity: fadeAnim,
-          transform: [{translateY: slideAnim}],
-        }}>
+        style={{opacity: fadeAnim, transform: [{translateY: slideAnim}]}}>
         {/* App Logo/Title */}
         <View className="items-center mb-16">
           <SparklesIcon
@@ -108,7 +122,7 @@ const LoginScreen = () => {
           <Text
             className="text-lg font-bold text-center mt-2"
             style={{color: colors.secondaryText}}>
-            Create Amazing AI Art
+            {strings.auth.createAmazingImages}
           </Text>
         </View>
 
@@ -122,10 +136,10 @@ const LoginScreen = () => {
               backgroundColor: colors.surface,
               opacity: signingIn ? 0.7 : 1,
             }}
-            className="flex-row items-center justify-center p-4 rounded-2xl mb-4"
+            className="flex-row items-center justify-center p-4 rounded-2xl mb-4 shadow-xl"
             accessible={true}
-            accessibilityLabel="Continue with Google"
-            accessibilityHint="Sign in using your Google account"
+            accessibilityLabel={strings.auth.continueWithGoogle}
+            accessibilityHint={strings.auth.continueWithGoogleHint}
             accessibilityState={{disabled: signingIn}}>
             {signingIn ? (
               <ActivityIndicator size="small" color={colors.primary} />
@@ -133,7 +147,7 @@ const LoginScreen = () => {
               <>
                 <GoogleLogoIcon size={24} color={colors.text} />
                 <Text style={{color: colors.text}} className="ml-3 text-lg">
-                  Continue with Google
+                  {strings.auth.continueWithGoogle}
                 </Text>
               </>
             )}
@@ -143,8 +157,7 @@ const LoginScreen = () => {
           <Text
             style={{color: colors.secondaryText}}
             className="text-center text-sm mt-4">
-            You can tap the button above to sign in with a different Google
-            account
+            {strings.auth.switchAccount}
           </Text>
         </View>
 
@@ -152,21 +165,21 @@ const LoginScreen = () => {
         <Text
           className="text-center text-base px-8 mt-8"
           style={{color: colors.secondaryText}}>
-          By continuing, you agree to our{' '}
+          {strings.auth.agreeToTerms}{' '}
           <Text
             onPress={openTermsOfService}
             accessible={true}
-            accessibilityLabel="View Terms of Service"
+            accessibilityLabel={strings.settings.termsOfServiceHint}
             style={{color: colors.primary}}>
-            Terms of Service
+            {strings.settings.termsOfService}
           </Text>{' '}
-          and{' '}
+          {strings.common.and}{' '}
           <Text
             onPress={openPrivacyPolicy}
             accessible={true}
-            accessibilityLabel="View Privacy Policy"
+            accessibilityLabel={strings.settings.privacyPolicyHint}
             style={{color: colors.primary}}>
-            Privacy Policy
+            {strings.settings.privacyPolicy}
           </Text>
         </Text>
       </Animated.View>

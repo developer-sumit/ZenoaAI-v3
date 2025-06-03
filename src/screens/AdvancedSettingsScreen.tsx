@@ -38,6 +38,7 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -45,49 +46,6 @@ if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
 }
-
-const featureInfo = {
-  artStyles: {
-    title: 'Art Styles',
-    message:
-      'Art styles define the visual aesthetic of your generated image. Select multiple styles to combine effects, or choose just one for a focused look. Some styles work well together, while others are better alone.',
-  },
-  quality: {
-    title: 'Image Quality',
-    message:
-      'Premium quality uses 50 inference steps instead of 25, resulting in more detailed and higher quality images.',
-  },
-  batchCount: {
-    title: 'Batch Count',
-    message:
-      'Generate multiple images at once with the same prompt. This helps you explore variations without entering the same prompt repeatedly.',
-  },
-  aspectRatio: {
-    title: 'Aspect Ratio',
-    message:
-      'Choose the proportions of your generated image. Different ratios work better for different use cases: 1:1 for profile pictures, 16:9 for landscapes, 9:16 for mobile wallpapers, etc.',
-  },
-  imageSize: {
-    title: 'Image Size',
-    message:
-      'Determines the resolution of your generated image. Larger sizes show more detail but take longer to generate.',
-  },
-  sampler: {
-    title: 'Sampler',
-    message:
-      'The sampler algorithm determines how the AI builds up your image. Different samplers have varying strengths - some are better for photorealistic images while others excel at artistic styles.',
-  },
-  seed: {
-    title: 'Seed Value',
-    message:
-      'A seed is a number that determines the initial randomness in image generation. Using the same seed with identical settings will produce similar results, which is useful if you want to make small adjustments to a previous image.',
-  },
-  negativePrompt: {
-    title: 'Negative Prompt',
-    message:
-      "Specify what you DON'T want in your image. This helps avoid unwanted elements like extra limbs, distorted faces, or specific objects that might otherwise appear in the generated image.",
-  },
-};
 
 interface AdvancedSettingsScreenProps {
   route: {
@@ -181,15 +139,13 @@ const StyleItem = memo(
 const SectionHeader = memo(
   ({
     title,
-    feature,
     subtitle,
     showInfoDialog,
     colors,
   }: {
     title: string;
-    feature: keyof typeof featureInfo;
     subtitle?: string;
-    showInfoDialog: (feature: keyof typeof featureInfo) => void;
+    showInfoDialog: (title: string) => void;
     colors: any;
   }) => (
     <>
@@ -200,7 +156,7 @@ const SectionHeader = memo(
           {title}
         </Text>
         <TouchableOpacity
-          onPress={() => showInfoDialog(feature)}
+          onPress={() => showInfoDialog(title)}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
           <InfoIcon size={18} color={colors.secondaryText} />
         </TouchableOpacity>
@@ -236,6 +192,8 @@ const StylesGrid = memo(
     numColumns?: number;
     scrollEnabled?: boolean;
   }) => {
+    const strings = useStrings();
+
     // Memoize the render item function to prevent recreations
     const renderItem = useCallback(
       ({item}: {item: ArtStyleType}) => (
@@ -278,7 +236,7 @@ const StylesGrid = memo(
             <Text
               style={{color: colors.primary}}
               className="font-bold text-base">
-              View All Art Styles
+              {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
             </Text>
             <ChevronDownIcon size={16} color={colors.primary} />
           </TouchableOpacity>
@@ -313,6 +271,7 @@ const ArtStylesDialog = memo(
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
   }) => {
+    const strings = useStrings();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredStyles = useMemo(() => {
@@ -345,7 +304,7 @@ const ArtStylesDialog = memo(
               <ArrowBackIcon size={20} color={colors.text} />
             </TouchableOpacity>
             <Text style={{color: colors.text}} className="font-bold text-xl">
-              All Art Styles
+              {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
             </Text>
             <View style={{width: 40}} />
           </View>
@@ -358,7 +317,7 @@ const ArtStylesDialog = memo(
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search styles..."
+              placeholder={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}...`}
               placeholderTextColor={colors.secondaryText}
               className="flex-1 py-3 px-2 h-12 text-lg"
               style={{color: colors.text}}
@@ -367,14 +326,15 @@ const ArtStylesDialog = memo(
               clearButtonMode="while-editing"
               returnKeyType="search"
               accessible={true}
-              accessibilityLabel="Search art styles"
-              accessibilityHint="Type to filter art styles by name"
+              accessibilityLabel={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}`}
+              accessibilityHint={strings.advancedSettings.filterArtStylesHint}
+              accessibilityRole="search"
             />
             {searchQuery ? (
               <TouchableOpacity
                 onPress={() => setSearchQuery('')}
                 accessible={true}
-                accessibilityLabel="Clear search"
+                accessibilityLabel={`${strings.common.clear} ${strings.advancedSettings.featureInfo.artStyles.title}`}
                 accessibilityRole="button">
                 <CloseIcon size={18} color={colors.secondaryText} />
               </TouchableOpacity>
@@ -411,7 +371,9 @@ const ArtStylesDialog = memo(
               <TouchableOpacity
                 onPress={onClose}
                 className="bg-white py-2.5 px-4 rounded-full">
-                <Text style={{color: '#f97316', fontWeight: 'bold'}}>Done</Text>
+                <Text style={{color: '#f97316', fontWeight: 'bold'}}>
+                  {strings.common.done}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -425,6 +387,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   route,
 }) => {
   const params = route.params;
+  const strings = useStrings();
   const navigation = useNavigation();
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
@@ -482,9 +445,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   }, []);
 
   // Memoize expensive functions
-  const showInfoDialog = useCallback((feature: keyof typeof featureInfo) => {
-    setDialogContent(featureInfo[feature]);
-    setDialogVisible(true);
+  const showInfoDialog = useCallback((title: string) => {
+    const featureInfo = strings.advancedSettings.featureInfo;
+    if (title in featureInfo) {
+      setDialogContent(featureInfo[title as keyof typeof featureInfo]);
+      setDialogVisible(true);
+    }
   }, []);
 
   // Effect to sync parent state changes to local state (if needed)
@@ -547,7 +513,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           <ArrowBackIcon size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={{color: colors.text}} className="font-bold text-xl">
-          Advanced Settings
+          {strings.advancedSettings.title}
         </Text>
         <View style={{width: 40}} />
       </View>
@@ -561,19 +527,17 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           showsVerticalScrollIndicator={false}
           className="flex-1 px-4"
           keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none" // Don't dismiss on scroll
-          contentInsetAdjustmentBehavior="always" // Adjust content inset when keyboard shows
-          removeClippedSubviews={false} // Important: Set to false to maintain input state
-        >
+          keyboardDismissMode="none"
+          contentInsetAdjustmentBehavior="always"
+          removeClippedSubviews={false}>
           {/* Art Styles Section */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: colors.surface}}>
             <SectionHeader
-              title="Art Styles"
-              feature="artStyles"
-              subtitle="Select one or more styles to apply to your image"
-              showInfoDialog={showInfoDialog}
+              title={strings.advancedSettings.featureInfo.artStyles.title}
+              subtitle={strings.advancedSettings.artStylesSubtitle}
+              showInfoDialog={() => showInfoDialog('artStyles')}
               colors={colors}
             />
 
@@ -593,19 +557,18 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: colors.surface}}>
             <SectionHeader
-              title="Quality"
-              feature="quality"
-              showInfoDialog={showInfoDialog}
+              title={strings.advancedSettings.imageQuality}
+              showInfoDialog={() => showInfoDialog('quality')}
               colors={colors}
             />
 
             <View className="flex-row justify-between items-center py-2">
               <View>
                 <Text style={{color: colors.text}} className="text-lg">
-                  Premium Images
+                  {strings.advancedSettings.premiumImages}
                 </Text>
                 <Text style={{color: colors.secondaryText}} className="text-xs">
-                  Generate higher quality images (50 steps)
+                  {strings.advancedSettings.generateHigherQualityImages}
                 </Text>
               </View>
 
@@ -624,8 +587,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 accessible={true}
                 accessibilityLabel={
                   localQuality === 50
-                    ? 'Turn off premium quality'
-                    : 'Turn on premium quality'
+                    ? strings.advancedSettings.turnOffPremiumHint
+                    : strings.advancedSettings.turnOnPremiumHint
                 }
                 accessibilityRole="switch"
                 accessibilityState={{checked: localQuality === 50}}>
@@ -643,9 +606,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: colors.surface}}>
             <SectionHeader
-              title="Batch Count"
-              feature="batchCount"
-              showInfoDialog={showInfoDialog}
+              title={strings.advancedSettings.featureInfo.batchCount.title}
+              showInfoDialog={() => showInfoDialog('batchCount')}
               colors={colors}
             />
 
@@ -693,9 +655,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Aspect Ratio Section */}
             <View className="mb-5">
               <SectionHeader
-                title="Aspect Ratio"
-                feature="aspectRatio"
-                showInfoDialog={showInfoDialog}
+                title={strings.advancedSettings.featureInfo.aspectRatio.title}
+                showInfoDialog={() => showInfoDialog('aspectRatio')}
                 colors={colors}
               />
 
@@ -787,9 +748,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Size Selection */}
             <View>
               <SectionHeader
-                title="Image Size"
-                feature="imageSize"
-                showInfoDialog={showInfoDialog}
+                title={strings.advancedSettings.featureInfo.imageSize.title}
+                showInfoDialog={() => showInfoDialog('imageSize')}
                 colors={colors}
               />
 
@@ -826,7 +786,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                               : colors.secondaryText,
                         }}
                         className="text-center text-lg">
-                        {size.charAt(0).toUpperCase() + size.slice(1)}
+                        {strings.common[size as keyof typeof strings.common] ||
+                          size.charAt(0).toUpperCase() + size.slice(1)}
                       </Text>
                       <Text
                         style={{
@@ -854,9 +815,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Sampler Picker */}
             <View className="mb-5">
               <SectionHeader
-                title="Sampler"
-                feature="sampler"
-                showInfoDialog={showInfoDialog}
+                title={strings.advancedSettings.featureInfo.sampler.title}
+                showInfoDialog={() => showInfoDialog('sampler')}
                 colors={colors}
               />
 
@@ -910,9 +870,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Seed Input */}
             <View className="mb-5">
               <SectionHeader
-                title="Seed"
-                feature="seed"
-                showInfoDialog={showInfoDialog}
+                title={strings.advancedSettings.featureInfo.seed.title}
+                showInfoDialog={() => showInfoDialog('seed')}
                 colors={colors}
               />
 
@@ -923,14 +882,16 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   setLocalSeed(text);
                   params.setSeed(text);
                 }}
-                placeholder="Random"
+                placeholder={strings.advancedSettings.seedPlaceholder}
                 keyboardType="numeric"
                 className="p-4 rounded-xl text-lg"
                 style={{backgroundColor: colors.background, color: colors.text}}
                 placeholderTextColor="#6B7280"
                 accessible={true}
-                accessibilityLabel="Seed value input"
-                accessibilityHint="Enter a number to create reproducible images or leave empty for random results"
+                accessibilityLabel={
+                  strings.advancedSettings.featureInfo.seed.title
+                }
+                accessibilityHint={strings.advancedSettings.seedHint}
                 blurOnSubmit={false}
                 caretHidden={false}
                 autoCorrect={false}
@@ -941,9 +902,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Negative Prompt */}
             <View>
               <SectionHeader
-                title="Negative Prompt"
-                feature="negativePrompt"
-                showInfoDialog={showInfoDialog}
+                title={
+                  strings.advancedSettings.featureInfo.negativePrompt.title
+                }
+                showInfoDialog={() => showInfoDialog('negativePrompt')}
                 colors={colors}
               />
 
@@ -954,7 +916,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   setLocalNegativePrompt(text);
                   params.setNegativePrompt(text);
                 }}
-                placeholder="What to exclude from your image..."
+                placeholder={strings.advancedSettings.negativePromptPlaceholder}
                 multiline
                 numberOfLines={4}
                 className="p-4 rounded-xl text-lg"
@@ -966,11 +928,13 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 }}
                 placeholderTextColor="#6B7280"
                 accessible={true}
-                accessibilityLabel="Negative prompt input"
-                accessibilityHint="Enter terms to exclude from the generated image"
+                accessibilityLabel={
+                  strings.advancedSettings.featureInfo.negativePrompt.title
+                }
+                accessibilityHint={strings.advancedSettings.negativePromptHint}
                 blurOnSubmit={false}
-                scrollEnabled={true} // For multiline input
-                maxLength={500} // Optional, to prevent very long inputs
+                scrollEnabled={true}
+                maxLength={500}
                 returnKeyType="default"
               />
             </View>

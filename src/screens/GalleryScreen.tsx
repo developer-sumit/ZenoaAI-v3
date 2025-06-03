@@ -28,6 +28,7 @@ import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Initialize MMKV storage
 export const storage = new MMKV();
@@ -41,6 +42,7 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 const FAVORITES_STORAGE_KEY = 'zenoa_favorite_images';
 
 const GalleryScreen = () => {
+  const strings = useStrings();
   const {isDark} = useThemeStore();
   const {user} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
@@ -189,7 +191,7 @@ const GalleryScreen = () => {
       setFilteredImages(imagesWithFavorites);
     } catch (error) {
       console.error('Failed to load images:', error);
-      showToast('Error fetching images', 'error');
+      showToast(strings.home.imageLoadFailed, 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -204,7 +206,7 @@ const GalleryScreen = () => {
   const toggleFavorite = useCallback(
     async (image: GeneratedImage) => {
       if (!user?.id) {
-        showToast('Please log in to favorite images', 'error');
+        showToast(strings.gallery.loginToFavorite, 'error');
         return;
       }
 
@@ -278,11 +280,13 @@ const GalleryScreen = () => {
 
         if (success) {
           showToast(
-            newFavoriteState ? 'Added to favorites' : 'Removed from favorites',
+            newFavoriteState
+              ? strings.imageViewer.addedFavourite
+              : strings.imageViewer.removedFavourite,
             'success',
           );
         } else {
-          showToast('Failed to update favorite status', 'error');
+          showToast(strings.gallery.failedToUpdateFavorite, 'error');
           // Revert UI changes on failure
           setImages(prevImages =>
             prevImages.map(img =>
@@ -311,7 +315,7 @@ const GalleryScreen = () => {
         }
       } catch (error) {
         console.error('Failed to update favorite:', error);
-        showToast('Error updating favorites', 'error');
+        showToast(strings.gallery.failedToUpdateFavorite, 'error');
       }
     },
     [
@@ -413,7 +417,7 @@ const GalleryScreen = () => {
           onPress={() => setSelectedImage(item)}
           accessible={true}
           accessibilityLabel={`Image of ${item.prompt}`}
-          accessibilityHint="Double tap to view image details">
+          accessibilityHint={strings.imageViewer.imageHint}>
           <View
             className="overflow-hidden rounded-2xl"
             style={{
@@ -450,7 +454,9 @@ const GalleryScreen = () => {
           hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
           accessible={true}
           accessibilityLabel={
-            item.isFavorite ? 'Remove from favorites' : 'Add to favorites'
+            item.isFavorite
+              ? strings.imageViewer.removeFavourite
+              : strings.imageViewer.addFavourite
           }
           accessibilityRole="button">
           <HeartIcon
@@ -474,20 +480,22 @@ const GalleryScreen = () => {
             <Text
               className="text-xl font-bold mt-4 mb-2"
               style={{color: colors.text}}>
-              No favorites yet
+              {strings.gallery.noFavorites}
             </Text>
             <Text
               className="text-base text-center"
               style={{color: colors.secondaryText}}>
-              Tap the heart icon on images you want to save as favorites
+              {strings.gallery.tapHeart}
             </Text>
             <TouchableOpacity
               className="mt-6 py-2.5 px-6 rounded-xl"
               style={{backgroundColor: colors.primary}}
               onPress={() => switchTab('all')}
               accessible={true}
-              accessibilityLabel="View all images">
-              <Text className="text-white font-medium">View All Images</Text>
+              accessibilityLabel={strings.gallery.viewAllImages}>
+              <Text className="text-white font-medium">
+                {strings.gallery.viewAllImages}
+              </Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -497,15 +505,15 @@ const GalleryScreen = () => {
               className="text-xl font-bold mt-4 mb-2"
               style={{color: colors.text}}>
               {searchQuery || selectedFilter
-                ? 'No matching images'
-                : 'No images yet'}
+                ? strings.gallery.noMatchingImages
+                : strings.gallery.noImages}
             </Text>
             <Text
               className="text-base text-center"
               style={{color: colors.secondaryText}}>
               {searchQuery || selectedFilter
-                ? 'Try adjusting your search or filters'
-                : 'Images you generate will appear here'}
+                ? strings.gallery.tryAdjusting
+                : strings.gallery.imagesAppearHere}
             </Text>
 
             {(searchQuery || selectedFilter) && (
@@ -517,8 +525,10 @@ const GalleryScreen = () => {
                   setSelectedFilter(null);
                 }}
                 accessible={true}
-                accessibilityLabel="Clear all filters">
-                <Text className="text-white font-medium">Clear Filters</Text>
+                accessibilityLabel={strings.gallery.clearFilters}>
+                <Text className="text-white font-medium">
+                  {strings.gallery.clearFilters}
+                </Text>
               </TouchableOpacity>
             )}
           </>
@@ -539,7 +549,7 @@ const GalleryScreen = () => {
       {/* Header with persistent search */}
       <View className="pt-6 pb-2 px-6">
         <Text className="text-2xl font-bold mb-4" style={{color: colors.text}}>
-          Gallery
+          {strings.gallery.title}
         </Text>
 
         {/* Tab Bar */}
@@ -551,14 +561,14 @@ const GalleryScreen = () => {
               accessible={true}
               accessibilityRole="tab"
               accessibilityState={{selected: activeTab === 'all'}}
-              accessibilityLabel="All images tab">
+              accessibilityLabel={strings.gallery.viewAllImages}>
               <Text
                 className="text-center font-medium"
                 style={{
                   color:
                     activeTab === 'all' ? colors.primary : colors.secondaryText,
                 }}>
-                All ({stats.total})
+                {strings.common.all} ({stats.total})
               </Text>
             </TouchableOpacity>
 
@@ -568,7 +578,7 @@ const GalleryScreen = () => {
               accessible={true}
               accessibilityRole="tab"
               accessibilityState={{selected: activeTab === 'favorites'}}
-              accessibilityLabel="Favorites tab">
+              accessibilityLabel={strings.gallery.viewAllFavorites}>
               <Text
                 className="text-center font-medium"
                 style={{
@@ -577,7 +587,7 @@ const GalleryScreen = () => {
                       ? colors.primary
                       : colors.secondaryText,
                 }}>
-                Favorites ({stats.favorites})
+                {strings.imageViewer.favorite} ({stats.favorites})
               </Text>
             </TouchableOpacity>
           </View>
@@ -609,22 +619,22 @@ const GalleryScreen = () => {
             onChangeText={setSearchQuery}
             placeholder={
               activeTab === 'favorites'
-                ? 'Search in favorites...'
-                : 'Search by prompt or style...'
+                ? strings.gallery.searchFavorites
+                : strings.gallery.searchAll
             }
             placeholderTextColor={colors.secondaryText}
             className="flex-1 py-3 h-14"
             style={{color: colors.text}}
             accessible={true}
-            accessibilityLabel="Search images"
-            accessibilityHint="Enter text to search images by prompt or style"
+            accessibilityLabel={strings.gallery.searchImages}
+            accessibilityHint={strings.gallery.searchHint}
           />
           {searchQuery ? (
             <TouchableOpacity
               onPress={() => setSearchQuery('')}
               className="px-3 justify-center"
               accessible={true}
-              accessibilityLabel="Clear search">
+              accessibilityLabel={strings.gallery.clearSearch}>
               <CloseIcon size={18} color={colors.secondaryText} />
             </TouchableOpacity>
           ) : null}
@@ -657,8 +667,8 @@ const GalleryScreen = () => {
                 accessibilityState={{selected: selectedFilter === style}}
                 accessibilityHint={
                   selectedFilter === style
-                    ? 'Double tap to remove filter'
-                    : 'Double tap to filter by this style'
+                    ? strings.gallery.tapToRemoveFilter
+                    : strings.gallery.tapToApplyFilter
                 }>
                 <Text
                   style={{
@@ -678,7 +688,7 @@ const GalleryScreen = () => {
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={colors.primary} />
           <Text className="mt-3" style={{color: colors.text}}>
-            Loading images...
+            {strings.imageViewer.loading}
           </Text>
         </View>
       ) : filteredImages.length === 0 ? (

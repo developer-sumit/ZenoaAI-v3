@@ -28,6 +28,7 @@ import PersonIcon from '@src/assets/icons/PersonIcon';
 import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -37,6 +38,7 @@ if (Platform.OS === 'android') {
 }
 
 const EditProfileScreen = () => {
+  const strings = useStrings();
   const navigation = useNavigation();
   const {isDark} = useThemeStore();
   const {user, logout} = useAuthStore();
@@ -76,7 +78,7 @@ const EditProfileScreen = () => {
 
   const saveProfile = async () => {
     if (!user) {
-      showToast('Please log in', 'error');
+      showToast(strings.editProfile.pleaseLogin, 'error');
       return;
     }
 
@@ -126,34 +128,34 @@ const EditProfileScreen = () => {
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setIsSaving(false);
-      showToast('Profile updated successfully', 'success');
+      showToast(strings.editProfile.profileUpdated, 'success');
       navigation.goBack();
     } catch (error) {
       console.error('Error updating profile:', error);
       setIsSaving(false);
-      showToast('Failed to update profile', 'error');
+      showToast(strings.editProfile.updateFailed, 'error');
     }
   };
 
   const handleChangePhoto = () => {
     // This would normally open image picker
-    showToast('Photo upload coming soon', 'info');
+    showToast(strings.editProfile.uploadPhoto, 'info');
   };
 
   const handleAccountDeletion = async () => {
     try {
       if (user?.id) {
-        showToast('Deleting account...', 'info');
+        showToast(strings.editProfile.deletingAccount, 'info');
 
         // Mark the account as deleted in Firestore
         await userService.markAccountAsDeleted(user.id);
 
-        showToast('Your account has been deleted', 'success');
+        showToast(strings.editProfile.accountDeleted, 'success');
         await logout();
       }
     } catch (error) {
       console.error('Error deleting account:', error);
-      showToast('Failed to delete account', 'error');
+      showToast(strings.editProfile.accountDeleteFailed, 'error');
     }
   };
 
@@ -162,7 +164,9 @@ const EditProfileScreen = () => {
       <View
         className="flex-1 justify-center items-center"
         style={{backgroundColor: colors.background}}>
-        <Text style={{color: colors.text}}>Please log in</Text>
+        <Text style={{color: colors.text}}>
+          {strings.editProfile.pleaseLogin}
+        </Text>
       </View>
     );
   }
@@ -181,13 +185,13 @@ const EditProfileScreen = () => {
             style={{backgroundColor: colors.surface}}
             onPress={() => navigation.goBack()}
             accessible={true}
-            accessibilityLabel="Go back">
+            accessibilityLabel={strings.common.goBack}>
             <ArrowBackIcon size={20} color={colors.text} />
           </TouchableOpacity>
           <Text
             className="text-xl font-semibold tracking-tight"
             style={{color: colors.text}}>
-            Edit Profile
+            {strings.editProfile.title}
           </Text>
           <TouchableOpacity
             className="rounded-full px-5 py-2.5"
@@ -198,19 +202,16 @@ const EditProfileScreen = () => {
             onPress={saveProfile}
             disabled={isSaving}
             accessible={true}
-            accessibilityLabel="Save profile changes"
+            accessibilityLabel={strings.editProfile.saveChanges}
             accessibilityState={{disabled: isSaving}}>
             <Text className="text-white font-medium text-sm">
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? strings.editProfile.saving : strings.common.save}
             </Text>
           </TouchableOpacity>
         </View>
 
         <Animated.View
-          style={{
-            opacity: fadeAnim,
-            transform: [{translateY: slideAnim}],
-          }}>
+          style={{opacity: fadeAnim, transform: [{translateY: slideAnim}]}}>
           {/* Avatar Section with Change option */}
           <View className="items-center pt-6 pb-8">
             <View className="relative">
@@ -256,7 +257,7 @@ const EditProfileScreen = () => {
             <Text
               className="text-sm mt-4"
               style={{color: colors.secondaryText}}>
-              Tap the camera icon to change your profile photo
+              {strings.editProfile.tapCamera}
             </Text>
           </View>
 
@@ -270,7 +271,7 @@ const EditProfileScreen = () => {
                 <Text
                   className="text-lg font-semibold"
                   style={{color: colors.text}}>
-                  Personal Information
+                  {strings.editProfile.personalInfo}
                 </Text>
               </View>
 
@@ -287,7 +288,7 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xs mb-1"
                     style={{color: colors.secondaryText}}>
-                    Full Name
+                    {strings.editProfile.fullName}
                   </Text>
                   <TextInput
                     value={name}
@@ -298,11 +299,11 @@ const EditProfileScreen = () => {
                       borderBottomWidth: 1,
                       borderBottomColor: colors.secondaryText + '30',
                     }}
-                    placeholder="Your name"
+                    placeholder={strings.editProfile.yourName}
                     placeholderTextColor={colors.secondaryText}
                     accessible={true}
-                    accessibilityLabel="Name input"
-                    accessibilityHint="Enter your display name"
+                    accessibilityLabel={strings.editProfile.yourName}
+                    accessibilityHint={strings.editProfile.fullNameHint}
                   />
                 </View>
               </View>
@@ -318,7 +319,7 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xs mb-1"
                     style={{color: colors.secondaryText}}>
-                    Email Address
+                    {strings.editProfile.email}
                   </Text>
                   <Text
                     className="text-base py-1"
@@ -328,7 +329,7 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xs mt-1"
                     style={{color: colors.secondaryText + '80'}}>
-                    Email cannot be changed
+                    {strings.editProfile.emailCannotChange}
                   </Text>
                 </View>
               </View>
@@ -344,7 +345,7 @@ const EditProfileScreen = () => {
                 <Text
                   className="text-lg font-semibold"
                   style={{color: colors.text}}>
-                  Account Management
+                  {strings.editProfile.accountManagement}
                 </Text>
               </View>
 
@@ -353,8 +354,8 @@ const EditProfileScreen = () => {
                 className="px-5 py-4 flex-row items-center"
                 onPress={() => setShowDeleteModal(true)}
                 accessible={true}
-                accessibilityLabel="Delete my account"
-                accessibilityHint="Opens confirmation dialog to delete your account">
+                accessibilityLabel={strings.editProfile.deleteMyAccount}
+                accessibilityHint={strings.editProfile.deleteAccountHint}>
                 <View
                   className="w-10 h-10 rounded-full items-center justify-center mr-4"
                   style={{backgroundColor: '#e11d4815'}}>
@@ -362,12 +363,12 @@ const EditProfileScreen = () => {
                 </View>
                 <View className="flex-1">
                   <Text className="text-base" style={{color: '#e11d48'}}>
-                    Delete My Account
+                    {strings.editProfile.deleteMyAccount}
                   </Text>
                   <Text
                     className="text-xs mt-1"
                     style={{color: colors.secondaryText}}>
-                    Permanently remove your account and all data
+                    {strings.editProfile.deleteAccountHint}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -407,13 +408,12 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-2xl font-semibold mb-2 text-center"
                     style={{color: colors.text}}>
-                    Delete Account?
+                    {strings.editProfile.deleteMyAccount}?
                   </Text>
                   <Text
                     className="text-base mb-6 text-center leading-6"
                     style={{color: colors.secondaryText}}>
-                    Your account will be permanently deleted. This action cannot
-                    be undone.
+                    {strings.editProfile.deleteAccountWarning}
                   </Text>
                 </View>
 
@@ -423,11 +423,13 @@ const EditProfileScreen = () => {
                     style={{backgroundColor: colors.surface}}
                     onPress={() => setShowDeleteModal(false)}
                     accessible={true}
-                    accessibilityLabel="Cancel account deletion">
+                    accessibilityLabel={
+                      strings.editProfile.cancelAccountDelete
+                    }>
                     <Text
                       className="text-center font-medium"
                       style={{color: colors.text}}>
-                      Cancel
+                      {strings.common.cancel}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -438,10 +440,12 @@ const EditProfileScreen = () => {
                       setShowDeleteModal(false);
                     }}
                     accessible={true}
-                    accessibilityLabel="Confirm account deletion"
-                    accessibilityHint="Permanently deletes your account">
+                    accessibilityLabel={
+                      strings.editProfile.confirmAccountDelete
+                    }
+                    accessibilityHint={strings.editProfile.deleteAccountHint}>
                     <Text className="text-white font-medium text-center">
-                      Delete
+                      {strings.common.delete}
                     </Text>
                   </TouchableOpacity>
                 </View>

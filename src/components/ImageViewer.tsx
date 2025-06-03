@@ -37,6 +37,7 @@ import TuneIcon from '@src/assets/icons/TuneIcon';
 import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
 import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
+import {useStrings} from '@src/hooks/useStrings';
 
 type IconName = 'seed' | 'tune' | 'aspect-ratio' | 'chart-donut';
 
@@ -53,6 +54,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onImageDeleted,
   onToggleFavorite,
 }) => {
+  const strings = useStrings();
   const {isDark} = useThemeStore();
   const {showToast} = useToast();
   const {user} = useAuthStore();
@@ -70,6 +72,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   // Add state to track if image failed to load
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [expandedStyles, setExpandedStyles] = useState(false); // New state for expanded styles
 
   // Cleanup when component unmounts
   useEffect(() => {
@@ -132,7 +135,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       setDownloading(true);
       downloadImage(image);
     } catch (error) {
-      showToast('Failed to download image', 'error');
+      showToast(strings.imageViewer.failedToDownload, 'error');
       setDownloading(false);
     }
   };
@@ -157,7 +160,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       // Instead of fully deleting, just mark as deleted
       await imageService.markImageAsDeleted(user.id, imageId);
 
-      showToast('Image deleted', 'success');
+      showToast(strings.imageViewer.imageDeleted, 'success');
 
       if (onImageDeleted) {
         onImageDeleted();
@@ -165,7 +168,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       onClose?.();
     } catch (error) {
       console.error('Error deleting image:', error);
-      showToast('Failed to delete image', 'error');
+      showToast(strings.imageViewer.failedToDelete, 'error');
     } finally {
       if (isMounted.current) {
         setDeleting(false);
@@ -214,10 +217,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         await RNFS.scanFile(filePath);
       }
 
-      showToast('Image downloaded', 'success');
+      showToast(strings.imageViewer.imageDownloaded, 'success');
     } catch (error) {
       console.error('Download error:', error);
-      showToast('Failed to download image', 'error');
+      showToast(strings.imageViewer.failedToDownload, 'error');
     } finally {
       if (isMounted.current) {
         setDownloading(false);
@@ -228,9 +231,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const copyToClipboard = (text: string) => {
     Clipboard.setString(text);
     if (Platform.OS === 'android') {
-      ToastAndroid.show('Copied to clipboard', ToastAndroid.SHORT);
+      ToastAndroid.show(strings.imageViewer.copied, ToastAndroid.SHORT);
     } else {
-      showToast('Copied to clipboard');
+      showToast(strings.imageViewer.copied);
     }
   };
 
@@ -299,7 +302,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 className="p-2.5 rounded-full"
                 style={{backgroundColor: colors.surface}}
                 accessible={true}
-                accessibilityLabel="Close image viewer">
+                accessibilityLabel={strings.imageViewer.closeHint}>
                 <CloseIcon size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -324,7 +327,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               accessibilityLabel={`Image of ${
                 image?.prompt || 'generated content'
               }`}
-              accessibilityHint="Double tap to toggle fullscreen view">
+              accessibilityHint="">
               <FastImage
                 source={{
                   uri: imageUri,
@@ -376,7 +379,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <Text
                   className="mt-3 text-base"
                   style={{color: fullscreenMode ? 'white' : colors.text}}>
-                  Loading image...
+                  {strings.imageViewer.loading}
                 </Text>
               </View>
             )}
@@ -387,7 +390,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <Text
                   style={{color: fullscreenMode ? 'white' : colors.text}}
                   className="text-base mb-3">
-                  Failed to load image
+                  {strings.imageViewer.loadingError}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -409,7 +412,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   }}>
                   <Text
                     style={{color: fullscreenMode ? 'white' : colors.primary}}>
-                    Retry
+                    {strings.common.retry}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -423,7 +426,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
               style={{top: StatusBar.currentHeight || 40}}
               accessible={true}
-              accessibilityLabel="Exit fullscreen view"
+              accessibilityLabel={strings.imageViewer.exitFullscreen}
               accessibilityRole="button">
               <CloseIcon size={28} color="white" />
             </TouchableOpacity>
@@ -445,7 +448,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   onPress={togglePromptExpansion}
                   accessible={true}
                   accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
-                  accessibilityHint="Double tap to expand or collapse prompt">
+                  accessibilityHint={strings.imageViewer.promptHint}>
                   {image?.prompt || ''}
                 </Text>
                 <View className="flex-row items-center">
@@ -466,7 +469,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     onPress={() => copyToClipboard(image?.prompt || '')}
                     className="p-1 ml-2"
                     accessible={true}
-                    accessibilityLabel="Copy prompt to clipboard">
+                    accessibilityLabel={strings.imageViewer.copyPrompt}>
                     <ContentCopyIcon size={18} color={colors.secondaryText} />
                   </TouchableOpacity>
                 </View>
@@ -476,43 +479,95 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               <View className="flex-row flex-wrap gap-3">
                 <MetadataItem
                   icon="seed"
-                  label="Seed"
+                  label={strings.advancedSettings.featureInfo.seed.title}
                   value={image?.seed.toString() || ''}
                   onCopy={() => copyToClipboard(image?.seed.toString() || '')}
                 />
                 <MetadataItem
                   icon="tune"
-                  label="Sampler"
+                  label={strings.advancedSettings.featureInfo.sampler.title}
                   value={image?.sampler || ''}
                 />
                 <MetadataItem
                   icon="aspect-ratio"
-                  label="Aspect Ratio"
+                  label={strings.advancedSettings.featureInfo.aspectRatio.title}
                   value={image?.aspectRatio.ratio || ''}
                 />
                 <MetadataItem
                   icon="chart-donut"
-                  label="Quality"
+                  label={strings.advancedSettings.imageQuality}
                   value={`${image?.quality} steps`}
                 />
               </View>
 
               {/* Style Chips */}
-              <View className="flex-row flex-wrap gap-2 mt-4">
-                {image?.styles.map((style, index) => (
-                  <View
-                    key={index}
-                    className="flex-row items-center rounded-full px-3 py-1.5"
-                    style={{backgroundColor: colors.primary + '20'}}>
-                    <PaletteIcon size={14} color={colors.primary} />
+              {image?.styles && image.styles.length > 0 && (
+                <View className="mt-4">
+                  {/* Header with expand/collapse toggle */}
+                  <View className="flex-row items-center justify-between mb-2">
                     <Text
-                      className="ml-1 text-sm"
-                      style={{color: colors.primary}}>
-                      {style}
+                      className="text-sm font-medium"
+                      style={{color: colors.text}}>
+                      {strings.advancedSettings.featureInfo.artStyles.title} (
+                      {image.styles.length})
                     </Text>
+                    {image.styles.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setExpandedStyles(!expandedStyles)}
+                        className="p-1"
+                        accessible={true}
+                        accessibilityLabel={
+                          expandedStyles ? 'Collapse styles' : 'Expand styles'
+                        }>
+                        {expandedStyles ? (
+                          <ChevronUpIcon
+                            size={18}
+                            color={colors.secondaryText}
+                          />
+                        ) : (
+                          <ChevronDownIcon
+                            size={18}
+                            color={colors.secondaryText}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </View>
-                ))}
-              </View>
+
+                  {/* Style chips */}
+                  <View className="flex-row flex-wrap gap-2">
+                    {image.styles
+                      .slice(0, expandedStyles ? image.styles.length : 3)
+                      .map((style, index) => (
+                        <View
+                          key={index}
+                          className="flex-row items-center rounded-full px-3 py-1.5"
+                          style={{backgroundColor: colors.primary + '20'}}>
+                          <PaletteIcon size={14} color={colors.primary} />
+                          <Text
+                            className="ml-1 text-sm"
+                            style={{color: colors.primary}}>
+                            {style}
+                          </Text>
+                        </View>
+                      ))}
+
+                    {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
+                    {!expandedStyles && image.styles.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setExpandedStyles(true)}
+                        className="flex-row items-center rounded-full px-3 py-1.5"
+                        style={{backgroundColor: colors.secondaryText + '20'}}>
+                        <Text
+                          className="text-sm"
+                          style={{color: colors.secondaryText}}>
+                          +{image.styles.length - 3} {strings.common.more}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
 
               {/* Action Buttons */}
               <View className="flex-row justify-between mt-5 gap-1.5">
@@ -523,16 +578,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
                   style={{backgroundColor: colors.surface}}
                   accessible={true}
-                  accessibilityLabel="Delete image"
+                  accessibilityLabel={strings.imageViewer.deleteImage}
                   accessibilityState={{disabled: deleting}}
-                  accessibilityHint="Will open a dialog to confirm image deletion">
+                  accessibilityHint={strings.imageViewer.deleteImageHint}>
                   {deleting ? (
                     <ActivityIndicator color="#ef4444" size="small" />
                   ) : (
                     <>
                       <DeleteOutlineIcon size={22} color="#ef4444" />
                       <Text className="font-bold" style={{color: '#ef4444'}}>
-                        Delete
+                        {strings.imageViewer.delete}
                       </Text>
                     </>
                   )}
@@ -552,13 +607,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   accessible={true}
                   accessibilityLabel={
                     image?.isFavorite
-                      ? 'Remove from favorites'
-                      : 'Add to favorites'
+                      ? strings.imageViewer.removeFavourite
+                      : strings.imageViewer.addFavourite
                   }
                   accessibilityHint={
                     image?.isFavorite
-                      ? 'Removes this image from your favorites'
-                      : 'Adds this image to your favorites'
+                      ? strings.imageViewer.removeFavouriteHint
+                      : strings.imageViewer.addFavouriteHint
                   }>
                   <HeartIcon
                     size={22}
@@ -570,7 +625,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     style={{
                       color: image?.isFavorite ? '#FF4B8C' : colors.text,
                     }}>
-                    {image?.isFavorite ? 'Favorited' : 'Favorite'}
+                    {image?.isFavorite
+                      ? strings.imageViewer.favorited
+                      : strings.imageViewer.favorite}
                   </Text>
                 </TouchableOpacity>
 
@@ -581,15 +638,17 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
                   style={{backgroundColor: colors.primary}}
                   accessible={true}
-                  accessibilityLabel="Download image"
+                  accessibilityLabel={strings.imageViewer.downloadImage}
                   accessibilityState={{disabled: downloading}}
-                  accessibilityHint="Saves image to your device">
+                  accessibilityHint={strings.imageViewer.downloadImageHint}>
                   {downloading ? (
                     <ActivityIndicator color="white" />
                   ) : (
                     <>
                       <DownloadIcon size={22} color="white" />
-                      <Text className="text-white font-bold">Download</Text>
+                      <Text className="text-white font-bold">
+                        {strings.imageViewer.download}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -632,13 +691,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <Text
                   className="text-2xl font-semibold mb-3 text-center"
                   style={{color: colors.text}}>
-                  Delete Image?
+                  {strings.imageViewer.deleteImage}
                 </Text>
                 <Text
                   className="text-base mb-8 text-center leading-6"
                   style={{color: colors.secondaryText}}>
-                  This image will be permanently removed. This action cannot be
-                  undone.
+                  {strings.imageViewer.deleteConfirmation}
                 </Text>
 
                 <View className="flex-row justify-between">
@@ -647,11 +705,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     style={{backgroundColor: colors.surface}}
                     onPress={() => setShowDeleteDialog(false)}
                     accessible={true}
-                    accessibilityLabel="Cancel image deletion">
+                    accessibilityLabel={
+                      strings.imageViewer.cancelImageDeletion
+                    }>
                     <Text
                       className="text-center font-medium"
                       style={{color: colors.text}}>
-                      Cancel
+                      {strings.imageViewer.cancel}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -659,10 +719,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     style={{backgroundColor: '#ef4444'}}
                     onPress={() => deleteImage(image!)}
                     accessible={true}
-                    accessibilityLabel="Confirm image deletion"
-                    accessibilityHint="Permanently deletes this image">
+                    accessibilityLabel={strings.imageViewer.confirmDelete}
+                    accessibilityHint={strings.imageViewer.confirmDeleteHint}>
                     <Text className="text-white font-medium text-center">
-                      Delete
+                      {strings.imageViewer.confirmDelete}
                     </Text>
                   </TouchableOpacity>
                 </View>

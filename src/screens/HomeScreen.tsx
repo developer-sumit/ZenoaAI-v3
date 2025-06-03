@@ -41,12 +41,14 @@ import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
+import {useStrings} from '@src/hooks/useStrings';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
+  const strings = useStrings();
   const {isDark} = useThemeStore();
   const {showToast} = useToast();
   const {user} = useAuthStore();
@@ -78,7 +80,6 @@ const HomeScreen = () => {
 
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
 
-  // Add state for tutorial visibility
   const [showOnboarding, setShowOnboarding] = React.useState(false);
 
   // Load user's images when component mounts
@@ -115,7 +116,7 @@ const HomeScreen = () => {
       setGeneratedImages(validImages);
     } catch (error) {
       console.error('Failed to load images:', error);
-      showToast('Error fetching images', 'error');
+      showToast(strings.home.imageLoadFailed, 'error');
     } finally {
       // Set loading to false when done, regardless of success or failure
       setIsLoadingImages(false);
@@ -144,12 +145,12 @@ const HomeScreen = () => {
 
   const handleImageGeneration = async () => {
     if (!prompt.trim()) {
-      showToast('Please enter a description', 'error');
+      showToast(strings.home.enterDescription, 'error');
       return;
     }
 
     if (!user?.id) {
-      showToast('Sign In Required', 'error');
+      showToast(strings.home.signInRequired, 'error');
       return;
     }
 
@@ -331,15 +332,15 @@ const HomeScreen = () => {
       const successCount = results.filter(r => !(r instanceof Error)).length;
       if (successCount > 0) {
         showToast(
-          `${successCount} image${successCount > 1 ? 's' : ''} generated`,
+          `${successCount} ${strings.home.generationSuccess}`,
           'success',
         );
       } else {
-        showToast('Generation Failed', 'error');
+        showToast(strings.home.generationFailed, 'error');
       }
     } catch (error) {
       console.error('Generation error:', error);
-      showToast('Generation Failed', 'error');
+      showToast(strings.home.generationFailed, 'error');
 
       // Clean up placeholders if overall process fails
       setGeneratedImages(prev =>
@@ -373,9 +374,9 @@ const HomeScreen = () => {
     }, 300);
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('Prompt and settings applied', ToastAndroid.SHORT);
+      ToastAndroid.show(strings.home.promptApplied, ToastAndroid.SHORT);
     } else {
-      showToast('Prompt and settings applied', 'success');
+      showToast(strings.home.promptApplied, 'success');
     }
   };
 
@@ -437,10 +438,10 @@ const HomeScreen = () => {
             height: imageHeight,
           }}
           accessible={true}
-          accessibilityLabel="Image generation failed">
+          accessibilityLabel={strings.home.generationFailed}>
           <ErrorOutlineIcon size={40} color="#ef4444" />
           <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
-            Generation failed
+            {strings.home.generationFailed}
           </Text>
         </View>
       );
@@ -477,8 +478,8 @@ const HomeScreen = () => {
             className="py-2 px-3 rounded-lg flex-row items-center"
             style={{backgroundColor: colors.surface}}
             accessible={true}
-            accessibilityLabel="Reuse this prompt and settings"
-            accessibilityHint="Applies this prompt and style settings to generate new images">
+            accessibilityLabel={strings.home.reusePrompt}
+            accessibilityHint={strings.home.reusePromptHint}>
             <RefreshIcon size={16} color={colors.primary} />
             <Text
               style={{
@@ -487,14 +488,14 @@ const HomeScreen = () => {
                 fontWeight: '500',
                 fontSize: 13,
               }}>
-              Reuse
+              {strings.home.reuse}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Tags/Styles */}
         {item.parameters.styles.length > 0 && (
-          <View className="flex-row flex-wrap gap-1.5 mb-1.5">
+          <View className="flex-row flex-wrap gap-1.5 my-2">
             {item.parameters.styles.map(style => (
               <TouchableOpacity
                 key={style}
@@ -508,9 +509,6 @@ const HomeScreen = () => {
                 <Text style={{color: colors.primary}} className="text-xs">
                   {style}
                 </Text>
-                <View className="ml-1.5">
-                  <CloseIcon size={12} color={colors.primary} />
-                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -545,9 +543,9 @@ const HomeScreen = () => {
     setNegativePrompt('');
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+      ToastAndroid.show(strings.home.allCleared, ToastAndroid.SHORT);
     } else {
-      showToast('All cleared');
+      showToast(strings.home.allCleared);
     }
   };
 
@@ -556,7 +554,7 @@ const HomeScreen = () => {
     <View
       className="px-4 py-2 mb-2"
       accessible={true}
-      accessibilityLabel="Getting started guide">
+      accessibilityLabel={strings.home.gettingStartedGuide}>
       {/* Collapsible header */}
       <TouchableOpacity
         onPress={() => setShowOnboarding(!showOnboarding)}
@@ -564,17 +562,17 @@ const HomeScreen = () => {
         accessible={true}
         accessibilityRole="button"
         accessibilityLabel={`${
-          showOnboarding ? 'Hide' : 'Show'
-        } getting started guide`}
-        accessibilityHint="Toggles the visibility of the tutorial section">
+          showOnboarding ? strings.home.hide : strings.home.show
+        } ${strings.home.gettingStartedGuide}`}
+        accessibilityHint={strings.home.toggleGettingStartedHint}>
         <View className="flex-row items-center">
           <TipIcon size={20} color={colors.primary} />
           <Text className="text-lg font-bold ml-2" style={{color: colors.text}}>
-            Getting Started with {appConfig.name}
+            {strings.home.gettingStartedGuide}
           </Text>
         </View>
         <Text style={{color: colors.secondaryText, fontSize: 13}}>
-          {showOnboarding ? 'Hide' : 'Show'}
+          {showOnboarding ? strings.home.hide : strings.home.show}
         </Text>
       </TouchableOpacity>
 
@@ -588,13 +586,13 @@ const HomeScreen = () => {
             style={{color: colors.text, lineHeight: 22}}
             accessible={true}
             accessibilityRole="text">
-            Create stunning AI-generated images in 3 simple steps:
+            {strings.home.createStunningImages}
           </Text>
 
           <View
             className="flex-row items-center mb-3"
             accessible={true}
-            accessibilityLabel="Step 1: Describe what you want to see in the text box below">
+            accessibilityLabel={`${strings.home.step} 1: ${strings.home.step1}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
               style={{backgroundColor: colors.primary}}
@@ -602,14 +600,14 @@ const HomeScreen = () => {
               <Text className="text-white font-bold">1</Text>
             </View>
             <Text style={{color: colors.text, flex: 1}}>
-              Describe what you want to see in the text box below
+              {strings.home.step1}
             </Text>
           </View>
 
           <View
             className="flex-row items-center mb-3"
             accessible={true}
-            accessibilityLabel="Step 2: Add art styles or customize with advanced settings">
+            accessibilityLabel={`${strings.home.step} 1: ${strings.home.step2}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
               style={{backgroundColor: colors.primary}}
@@ -617,14 +615,14 @@ const HomeScreen = () => {
               <Text className="text-white font-bold">2</Text>
             </View>
             <Text style={{color: colors.text, flex: 1}}>
-              Add art styles or customize with advanced settings
+              {strings.home.step2}
             </Text>
           </View>
 
           <View
             className="flex-row items-center mb-4"
             accessible={true}
-            accessibilityLabel="Step 3: Tap Generate and watch your ideas come to life">
+            accessibilityLabel={`${strings.home.step} 1: ${strings.home.step3}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
               style={{backgroundColor: colors.primary}}
@@ -632,7 +630,7 @@ const HomeScreen = () => {
               <Text className="text-white font-bold">3</Text>
             </View>
             <Text style={{color: colors.text, flex: 1}}>
-              Tap "Generate" and watch your ideas come to life!
+              {strings.home.step3}
             </Text>
           </View>
 
@@ -642,10 +640,10 @@ const HomeScreen = () => {
             style={{backgroundColor: colors.primary + '20'}}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Browse prompt suggestions"
-            accessibilityHint="Opens a list of example prompts to help you get started">
+            accessibilityLabel={strings.home.promptSuggestions}
+            accessibilityHint={strings.home.promptSuggestionsHint}>
             <Text style={{color: colors.primary, fontWeight: '600'}}>
-              Need ideas? Browse prompt suggestions
+              {strings.home.needIdeas}
             </Text>
           </TouchableOpacity>
         </View>
@@ -657,7 +655,7 @@ const HomeScreen = () => {
     <View className="flex-1 justify-center items-center">
       <ActivityIndicator size="large" color={colors.primary} />
       <Text className="text-base mt-4" style={{color: colors.text}}>
-        Loading your images...
+        {strings.home.loadingImages}
       </Text>
     </View>
   );
@@ -698,10 +696,10 @@ const HomeScreen = () => {
               accessibilityRole="button"
               accessibilityLabel={
                 showOnboarding
-                  ? 'Hide getting started guide'
-                  : 'Show getting started guide'
+                  ? strings.home.hide + strings.home.gettingStartedGuide
+                  : strings.home.show + strings.home.gettingStartedGuide
               }
-              accessibilityHint="Toggles the visibility of the tutorial">
+              accessibilityHint={strings.home.toggleGettingStartedHint}>
               <InfoIcon size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -731,7 +729,6 @@ const HomeScreen = () => {
           )}
         </View>
 
-        {/* Enhanced Bottom Input Area with visual prompt assistance */}
         <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
@@ -747,22 +744,22 @@ const HomeScreen = () => {
               <TextInput
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder="Describe your vision..."
+                placeholder={strings.home.generatePrompt}
                 placeholderTextColor="#94a3b8"
                 className="text-lg p-4 max-h-[120px] flex-1"
                 style={{color: colors.text}}
                 multiline
                 numberOfLines={3}
                 accessible={true}
-                accessibilityLabel="Image description input"
-                accessibilityHint="Enter a description of the image you want to generate"
+                accessibilityLabel={strings.home.imageDescription}
+                accessibilityHint={strings.home.imageDescriptionHint}
               />
               <TouchableOpacity
                 onPress={() => setShowPromptSuggestions(true)}
                 className="pr-4"
                 accessible={true}
-                accessibilityLabel="Prompt suggestions"
-                accessibilityHint="Opens a list of prompt suggestions to help you get started"
+                accessibilityLabel={strings.home.promptSuggestions}
+                accessibilityHint={strings.home.promptSuggestionsHint}
                 accessibilityRole="button">
                 <LightbulbOutlineIcon
                   size={24}
@@ -813,15 +810,15 @@ const HomeScreen = () => {
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
                 accessible={true}
-                accessibilityLabel="Clear all inputs"
+                accessibilityLabel={strings.home.clearInputs}
                 accessibilityState={{
                   disabled: loading || prompt.trim().length === 0,
                 }}
                 accessibilityRole="button"
-                accessibilityHint="Resets the prompt and all selected styles">
+                accessibilityHint={strings.home.clearInputsHint}>
                 <RefreshIcon size={20} color={colors.text} />
                 <Text style={{color: colors.text}} className="ml-2 font-medium">
-                  Clear
+                  {strings.common.clear}
                 </Text>
               </TouchableOpacity>
 
@@ -856,9 +853,9 @@ const HomeScreen = () => {
                 className="p-3 rounded-2xl"
                 style={{backgroundColor: colors.primary + '20'}}
                 accessible={true}
-                accessibilityLabel="Advanced settings"
+                accessibilityLabel={strings.advancedSettings.title}
                 accessibilityRole="button"
-                accessibilityHint="Opens advanced settings for image generation">
+                accessibilityHint={strings.advancedSettings.title}>
                 <TuneIcon size={24} color={colors.primary} />
                 {/* <View
                   className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
@@ -875,19 +872,19 @@ const HomeScreen = () => {
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
                 accessible={true}
-                accessibilityLabel="Generate image"
+                accessibilityLabel={strings.home.generateImage}
                 accessibilityRole="button"
                 accessibilityState={{
                   disabled: loading || prompt.trim().length === 0,
                   busy: loading,
                 }}
-                accessibilityHint="Generates images based on your description and selected settings">
+                accessibilityHint={strings.home.generateImageHint}>
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
                   <>
                     <Text className="text-white mr-2 font-medium">
-                      Generate
+                      {strings.home.generate}
                     </Text>
                     <MagicWand color="white" />
                   </>
