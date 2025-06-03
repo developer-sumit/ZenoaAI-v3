@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {theme} from '@src/theme/Theme';
 import {useThemeStore} from '@src/store/themeStore';
+import {useStrings} from '@src/hooks/useStrings';
 
 interface InfoDialogProps {
   visible: boolean;
@@ -25,6 +26,7 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
   title,
   message,
 }) => {
+  const strings = useStrings();
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
 
@@ -63,7 +65,7 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
             <Text
               className="font-semibold text-center text-lg"
               style={{color: isDark ? colors.text : 'white'}}>
-              Got it
+              {strings.common.gotIt}
             </Text>
           </TouchableOpacity>
         </Pressable>

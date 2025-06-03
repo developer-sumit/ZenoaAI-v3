@@ -15,6 +15,7 @@ import CloseIcon from '@src/assets/icons/CloseIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import ChevronRightIcon from '@src/assets/icons/ChevronRightIcon';
+import {useStrings} from '@src/hooks/useStrings';
 
 if (
   Platform.OS === 'android' &&
@@ -77,6 +78,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   visible,
   setVisible,
 }) => {
+  const strings = useStrings();
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(
@@ -184,7 +186,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
               style={{color: colors.text}}
               accessible={true}
               accessibilityRole="header">
-              Prompt Ideas
+              {strings.home.promptIdeas}
             </Text>
           </View>
           <TouchableOpacity
@@ -192,9 +194,9 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
             className="p-2 rounded-full"
             style={{backgroundColor: colors.background + '80'}}
             accessible={true}
-            accessibilityLabel="Close prompt suggestions"
+            accessibilityLabel={strings.home.closePromptSuggestions}
             accessibilityRole="button"
-            accessibilityHint="Closes the prompt suggestions panel">
+            accessibilityHint={strings.home.closePromptSuggestions}>
             <CloseIcon size={20} color={colors.secondaryText} />
           </TouchableOpacity>
         </View>
@@ -205,7 +207,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
           style={{color: colors.secondaryText}}
           accessible={true}
           accessibilityRole="text">
-          Tap a category below to see ready-to-use prompts for stunning AI art
+          {strings.home.promptSuggestionsHint}
         </Text>
 
         {/* Categories */}
@@ -240,7 +242,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                     ? 'expanded'
                     : 'collapsed'
                 }`}
-                accessibilityHint="Double tap to expand or collapse this category">
+                accessibilityHint={strings.home.usePromptHint}>
                 <View className="flex-row items-center flex-1">
                   <Text className="text-2xl mr-3">
                     {category.category.split(' ')[0]}
@@ -279,8 +281,8 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                       }}
                       accessible={true}
                       accessibilityRole="button"
-                      accessibilityLabel={`Use prompt: ${prompt}`}
-                      accessibilityHint="Double tap to use this prompt for your image generation">
+                      accessibilityLabel={`${strings.home.usePrompt}: ${prompt}`}
+                      accessibilityHint={strings.home.usePromptHint}>
                       <Text
                         className="text-base leading-6 flex-1"
                         style={{color: colors.text}}>
@@ -292,7 +294,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                           backgroundColor: colors.primary + '20',
                           color: colors.primary,
                         }}>
-                        Use
+                        {strings.home.usePrompt}
                       </Text>
                     </TouchableOpacity>
                   ))}

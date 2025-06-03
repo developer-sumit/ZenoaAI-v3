@@ -21,6 +21,8 @@ import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
 import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
 import {feedbackService} from '@src/services/feedbackService';
+import LanguageSelector from '@src/components/LanguageSelector';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Icons
 import PersonIcon from '@src/assets/icons/PersonIcon';
@@ -34,6 +36,7 @@ import CloseIcon from '@src/assets/icons/CloseIcon';
 import ShieldIcon from '@src/assets/icons/ShieldIcon';
 import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
+import LanguageIcon from '@src/assets/icons/LanguageIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -43,12 +46,14 @@ if (Platform.OS === 'android') {
 }
 
 const ProfileScreen = () => {
+  const strings = useStrings();
   const navigation = useNavigation();
   const {user, logout} = useAuthStore();
   const {isDark, toggleTheme} = useThemeStore();
   const {showToast} = useToast();
   const colors = isDark ? theme.dark : theme.light;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const languageSelectorRef = useRef<{openModal: () => void}>(null);
 
   const [profileName, setProfileName] = useState('');
   const [profileAvatar, setProfileAvatar] = useState('');
@@ -92,12 +97,12 @@ const ProfileScreen = () => {
 
   const handleSubmitFeedback = async () => {
     if (feedbackRating === 0) {
-      showToast('Please select a rating', 'error');
+      showToast(strings.settings.selectRating, 'error');
       return;
     }
 
     if (!feedbackText.trim()) {
-      showToast('Please enter your feedback', 'error');
+      showToast(strings.settings.enterFeedback, 'error');
       return;
     }
 
@@ -113,13 +118,13 @@ const ProfileScreen = () => {
       );
 
       // Success handling
-      showToast('Thank you for your feedback!', 'success');
+      showToast(strings.settings.greetForFeedback, 'success');
       setShowFeedbackModal(false);
       setFeedbackText('');
       setFeedbackRating(0);
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      showToast('Failed to submit feedback', 'error');
+      showToast(strings.settings.feedbackFailed, 'error');
     } finally {
       setSubmittingFeedback(false);
     }
@@ -199,9 +204,9 @@ const ProfileScreen = () => {
             className="px-5 py-4 border-b"
             style={{borderColor: colors.secondaryText + '20'}}>
             <Text
-              className="text-lg font-semibold"
-              style={{color: colors.text}}>
-              Account
+              className="text-lg font-semibold mb-4"
+              style={{color: colors.secondaryText}}>
+              {strings.settings.account}
             </Text>
           </View>
 
@@ -211,19 +216,40 @@ const ProfileScreen = () => {
             style={{borderColor: colors.secondaryText + '20'}}
             onPress={handleEditProfile}
             accessible={true}
-            accessibilityLabel="Edit profile"
-            accessibilityHint="Go to profile editing screen">
+            accessibilityLabel={strings.settings.editProfile}
+            accessibilityHint={strings.settings.editProfileHint}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
                 style={{backgroundColor: colors.primary + '15'}}>
                 <PersonIcon size={20} color={colors.primary} />
               </View>
-              <Text className="text-base" style={{color: colors.text}}>
-                Edit Profile
+              <Text style={{color: colors.text}} className="text-base">
+                {strings.settings.editProfile}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={colors.secondaryText} />
+          </TouchableOpacity>
+
+          {/* Language Settings */}
+          <TouchableOpacity
+            className="px-5 py-4 border-b flex-row justify-between items-center"
+            accessible={true}
+            accessibilityLabel={strings.settings.changeLanguage}
+            accessibilityHint={strings.settings.changeLanguageHint}
+            style={{borderColor: colors.secondaryText + '20'}}
+            onPress={() => languageSelectorRef.current?.openModal()}>
+            <View className="flex-row items-center">
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{backgroundColor: colors.primary + '15'}}>
+                <LanguageIcon size={20} color={colors.primary} />
+              </View>
+              <Text style={{color: colors.text}} className="text-base">
+                {strings.settings.language}
+              </Text>
+            </View>
+            <LanguageSelector ref={languageSelectorRef} />
           </TouchableOpacity>
 
           {/* Dark Mode Option */}
@@ -238,8 +264,8 @@ const ProfileScreen = () => {
                   <LightModeIcon size={20} color={colors.primary} />
                 )}
               </View>
-              <Text className="text-base" style={{color: colors.text}}>
-                Dark Mode
+              <Text style={{color: colors.text}} className="text-base">
+                {strings.settings.darkMode}
               </Text>
             </View>
             <TouchableOpacity
@@ -248,7 +274,14 @@ const ProfileScreen = () => {
               onPress={toggleTheme}
               accessible={true}
               accessibilityLabel={
-                isDark ? 'Switch to light mode' : 'Switch to dark mode'
+                isDark
+                  ? strings.settings.switchLightMode
+                  : strings.settings.switchDarkMode
+              }
+              accessibilityHint={
+                isDark
+                  ? strings.settings.switchLightModeHint
+                  : strings.settings.switchDarkModeHint
               }
               accessibilityRole="switch"
               accessibilityState={{checked: isDark}}>
@@ -271,7 +304,7 @@ const ProfileScreen = () => {
             <Text
               className="text-lg font-semibold"
               style={{color: colors.text}}>
-              Help Us Improve
+              {strings.settings.helpImprove}
             </Text>
           </View>
 
@@ -279,8 +312,8 @@ const ProfileScreen = () => {
             className="px-5 py-4 flex-row justify-between items-center"
             onPress={() => setShowFeedbackModal(true)}
             accessible={true}
-            accessibilityLabel="Share feedback"
-            accessibilityHint="Opens a form to share your feedback about the app">
+            accessibilityLabel={strings.settings.shareFeedback}
+            accessibilityHint={strings.settings.shareFeedbackHint}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -288,7 +321,7 @@ const ProfileScreen = () => {
                 <FeedbackIcon size={20} color={colors.primary} />
               </View>
               <Text className="text-base" style={{color: colors.text}}>
-                Share Your Feedback
+                {strings.settings.shareFeedback}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={colors.secondaryText} />
@@ -305,7 +338,7 @@ const ProfileScreen = () => {
             <Text
               className="text-lg font-semibold"
               style={{color: colors.text}}>
-              About
+              {strings.settings.about}
             </Text>
           </View>
 
@@ -337,8 +370,8 @@ const ProfileScreen = () => {
             style={{borderColor: colors.secondaryText + '20'}}
             onPress={openPrivacyPolicy}
             accessible={true}
-            accessibilityLabel="View privacy policy"
-            accessibilityHint="Opens the privacy policy in your browser">
+            accessibilityLabel={strings.settings.privacyPolicy}
+            accessibilityHint={strings.settings.privacyPolicyHint}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -346,7 +379,7 @@ const ProfileScreen = () => {
                 <ShieldIcon size={20} color={colors.primary} />
               </View>
               <Text className="text-base" style={{color: colors.text}}>
-                Privacy Policy
+                {strings.settings.privacyPolicy}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={colors.secondaryText} />
@@ -356,8 +389,8 @@ const ProfileScreen = () => {
             className="px-5 py-4 flex-row justify-between items-center"
             onPress={openTermsOfService}
             accessible={true}
-            accessibilityLabel="View terms of service"
-            accessibilityHint="Opens the terms of service in your browser">
+            accessibilityLabel={strings.settings.termsOfService}
+            accessibilityHint={strings.settings.termsOfServiceHint}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -365,7 +398,7 @@ const ProfileScreen = () => {
                 <ShieldIcon size={20} color={colors.primary} />
               </View>
               <Text className="text-base" style={{color: colors.text}}>
-                Terms of Service
+                {strings.settings.termsOfService}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={colors.secondaryText} />
@@ -378,11 +411,11 @@ const ProfileScreen = () => {
           style={{backgroundColor: colors.surface}}
           onPress={logout}
           accessible={true}
-          accessibilityLabel="Sign out"
-          accessibilityHint="Signs you out of your account">
+          accessibilityLabel={strings.auth.signOut}
+          accessibilityHint={strings.auth.signOutHint}>
           <ExitToAppIcon size={20} color="#e11d48" style={{marginRight: 8}} />
           <Text style={{color: '#e11d48'}} className="font-medium text-base">
-            Sign Out
+            {strings.auth.signOut}
           </Text>
         </TouchableOpacity>
       </View>
@@ -418,14 +451,14 @@ const ProfileScreen = () => {
                   <Text
                     className="text-2xl font-semibold"
                     style={{color: colors.text}}>
-                    Share Your Feedback
+                    {strings.settings.shareFeedback}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowFeedbackModal(false)}
                     className="p-1 rounded-full"
                     style={{backgroundColor: colors.surface}}
                     accessible={true}
-                    accessibilityLabel="Close feedback form"
+                    accessibilityLabel={strings.settings.closeFeedback}
                     accessibilityRole="button">
                     <CloseIcon size={20} color={colors.text} />
                   </TouchableOpacity>
@@ -434,7 +467,7 @@ const ProfileScreen = () => {
                 <Text
                   className="text-base mb-2"
                   style={{color: colors.secondaryText}}>
-                  How would you rate your experience?
+                  {strings.settings.rateExperience}
                 </Text>
 
                 {renderRatingStars()}
@@ -442,7 +475,7 @@ const ProfileScreen = () => {
                 <Text
                   className="text-base mb-2 mt-4"
                   style={{color: colors.secondaryText}}>
-                  What can we improve?
+                  {strings.settings.whatToImprove}
                 </Text>
 
                 <TextInput
@@ -457,11 +490,11 @@ const ProfileScreen = () => {
                     height: 130,
                     textAlignVertical: 'top',
                   }}
-                  placeholder="Share your thoughts here..."
+                  placeholder={strings.settings.feedbackPlaceholder}
                   placeholderTextColor={colors.secondaryText}
                   accessible={true}
-                  accessibilityLabel="Feedback text"
-                  accessibilityHint="Enter your detailed feedback here"
+                  accessibilityLabel={strings.settings.feedbackPlaceholder}
+                  accessibilityHint={strings.settings.feedbackHint}
                 />
 
                 <TouchableOpacity
@@ -470,17 +503,17 @@ const ProfileScreen = () => {
                   onPress={handleSubmitFeedback}
                   disabled={submittingFeedback}
                   accessible={true}
-                  accessibilityLabel="Submit feedback"
+                  accessibilityLabel={strings.settings.submitFeedback}
                   accessibilityState={{disabled: submittingFeedback}}
-                  accessibilityHint="Sends your feedback to the developers">
+                  accessibilityHint={strings.settings.submitFeedbackHint}>
                   {submittingFeedback ? (
                     <Text className="text-white font-medium text-base">
-                      Submitting...
+                      {strings.settings.submitting}
                     </Text>
                   ) : (
                     <>
                       <Text className="text-white font-medium text-base mr-2">
-                        Submit Feedback
+                        {strings.settings.submitFeedback}
                       </Text>
                       <SendIcon size={18} color="white" />
                     </>

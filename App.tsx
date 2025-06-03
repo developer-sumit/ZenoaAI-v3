@@ -37,6 +37,7 @@ import {analyticsService} from '@src/services/analyticsService';
 import {crashlyticsService} from '@src/services/crashlyticsService';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
 import {userService} from '@src/services/userService';
+import {useLanguageStore} from '@src/store/languageStore';
 
 GoogleSignin.configure({
   webClientId: Config.GOOGLE_WEB_CLIENT_ID,
@@ -70,6 +71,7 @@ function HomeTabs() {
 
 function App() {
   const {isDark} = useThemeStore();
+  const {language} = useLanguageStore();
   const {
     user,
     isLoading,
@@ -217,6 +219,17 @@ function App() {
       crashlyticsService.setUserInfo(user);
     }
   }, [user]);
+
+  // Add this effect to track language changes
+  useEffect(() => {
+    // Update analytics when language changes
+    if (user) {
+      analyticsService.logEvent('language_changed', {
+        language,
+        userId: user.id,
+      });
+    }
+  }, [language, user]);
 
   return (
     <SafeAreaView
