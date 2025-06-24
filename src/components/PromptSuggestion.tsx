@@ -11,11 +11,13 @@ import {
   UIManager,
   Pressable,
 } from 'react-native';
+import {useStrings} from '@src/hooks/useStrings';
+
+// Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import ChevronRightIcon from '@src/assets/icons/ChevronRightIcon';
-import {useStrings} from '@src/hooks/useStrings';
 
 if (
   Platform.OS === 'android' &&

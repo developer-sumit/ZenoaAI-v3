@@ -1,76 +1,35 @@
-import firestore from '@react-native-firebase/firestore';
-import {User} from '@src/types';
+import {User, IUserQuota} from '@src/types';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import NetInfo from '@react-native-community/netinfo';
-import auth from '@react-native-firebase/auth';
+import {userAPI} from './axiosServer';
 
 /**
- * User data service that synchronizes between Firestore and secure local storage
+ * User data service that synchronizes between API and secure local storage
  */
 export const userService = {
   /**
-   * Save a user to Firestore and encrypted storage
+   * Save user data to local storage and set as current user
    */
-  async saveUser(userData: User): Promise<User> {
+  async saveUser(userData: User): Promise<void> {
     try {
-      const userWithTimestamp = {
-        ...userData,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Check if this user already exists and preserve any custom data
-      try {
-        const existingUser = await this.getUser(userData.id);
-        if (existingUser) {
-          // Keep existing data that wasn't explicitly provided in userData
-          Object.keys(existingUser).forEach(key => {
-            if (
-              key !== 'lastUpdated' &&
-              (userData as unknown as Record<string, unknown>)[key] ===
-                undefined
-            ) {
-              (userWithTimestamp as Record<string, unknown>)[key] = (
-                existingUser as unknown as Record<string, unknown>
-              )[key];
-            }
-          });
-        }
-      } catch (error) {
-        console.log('No existing user data found, creating new profile');
-      }
-
-      // Save to Firestore if connected
-      const isConnected = await NetInfo.fetch().then(
-        state => state.isConnected,
-      );
-      if (isConnected) {
-        try {
-          // Use React Native Firebase SDK syntax
-          await firestore()
-            .collection('users')
-            .doc(userData.id)
-            .set(userWithTimestamp, {merge: true});
-
-          console.log('User data successfully saved to Firestore');
-        } catch (firestoreError) {
-          console.error(
-            'Error saving to Firestore, falling back to local only:',
-            firestoreError,
-          );
-        }
-      }
-
-      // Always save to local encrypted storage
       await EncryptedStorage.setItem(
-        `user_${userData.id}`,
-        JSON.stringify(userWithTimestamp),
+        `user_${userData.uid}`,
+        JSON.stringify({
+          ...userData,
+          // Convert dates to ISO strings for JSON storage
+          createdAt: userData.createdAt.toISOString(),
+          updatedAt: userData.updatedAt.toISOString(),
+          lastLoginAt: userData.lastLoginAt?.toISOString(),
+          deletedAt: userData.deletedAt?.toISOString(),
+          recoveryExpiresAt: userData.recoveryExpiresAt?.toISOString(),
+          quota: {
+            ...userData.quota,
+            refreshAt: userData.quota.refreshAt.toISOString(),
+          },
+        }),
       );
-
-      // Remember current user ID
-      await EncryptedStorage.setItem('currentUserId', userData.id);
+      await EncryptedStorage.setItem('currentUserId', userData.uid);
       console.log('User data saved to local storage');
-
-      return userWithTimestamp;
     } catch (error) {
       console.error('Error saving user data:', error);
       throw error;
@@ -78,7 +37,7 @@ export const userService = {
   },
 
   /**
-   * Retrieve user data from Firestore or local storage
+   * Retrieve user data from API or local storage
    */
   async getUser(userId: string): Promise<User | null> {
     try {
@@ -93,7 +52,20 @@ export const userService = {
 
       if (localUserData) {
         try {
-          userData = JSON.parse(localUserData);
+          const parsedData = JSON.parse(localUserData);
+          userData = {
+            ...parsedData,
+            // Convert ISO strings back to Date objects
+            createdAt: new Date(parsedData.createdAt),
+            updatedAt: new Date(parsedData.updatedAt),
+            lastLoginAt: parsedData.lastLoginAt ? new Date(parsedData.lastLoginAt) : undefined,
+            deletedAt: parsedData.deletedAt ? new Date(parsedData.deletedAt) : undefined,
+            recoveryExpiresAt: parsedData.recoveryExpiresAt ? new Date(parsedData.recoveryExpiresAt) : undefined,
+            quota: {
+              ...parsedData.quota,
+              refreshAt: new Date(parsedData.quota.refreshAt),
+            },
+          };
 
           // Check if locally stored user is marked as deleted
           if (userData && userData.isDeleted) {
@@ -106,69 +78,74 @@ export const userService = {
         }
       }
 
-      // Check network connectivity for potential Firestore fetch
+      // Check network connectivity for potential API fetch
       const isConnected = await NetInfo.fetch().then(
         state => state.isConnected,
       );
 
-      // If connected, try to get the most up-to-date data from Firestore
+      // If connected, try to get the most up-to-date data from API
       if (isConnected) {
         try {
-          console.log('Attempting to fetch user data from Firestore');
-          // Use React Native Firebase SDK syntax
-          const userDoc = await firestore()
-            .collection('users')
-            .doc(userId)
-            .get();
+          console.log('Attempting to fetch user data from API');
 
-          if (userDoc.exists()) {
-            const firestoreData = userDoc.data() as User;
+          // Call the API endpoint using userAPI (token automatically added)
+          const response = await userAPI.getProfile();          if (response.data.success) {
+            const apiUser = response.data.profile;
+            const apiUserData: User = {
+              uid: userId,
+              email: apiUser.email || '',
+              profile: {
+                username: apiUser.username || apiUser.profile?.username || '',
+                avatar: apiUser.avatar || apiUser.profile?.avatar || '',
+                bio: apiUser.bio || apiUser.profile?.bio || '',
+                preferences: {
+                  theme: apiUser.theme || apiUser.profile?.preferences?.theme || 'system',
+                  language: apiUser.language || apiUser.profile?.preferences?.language || 'en',
+                  notifications: apiUser.notifications ?? apiUser.profile?.preferences?.notifications ?? true,
+                },
+              },
+              createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
+              updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
+              lastLoginAt: apiUser.lastLoginAt ? new Date(apiUser.lastLoginAt) : new Date(),
+              isDeleted: apiUser.isDeleted || false,
+              deletedAt: apiUser.deletedAt ? new Date(apiUser.deletedAt) : undefined,
+              recoveryExpiresAt: apiUser.recoveryExpiresAt ? new Date(apiUser.recoveryExpiresAt) : undefined,
+              planType: apiUser.planType || 'free',
+              quota: {
+                imagesRemaining: apiUser.quota?.imagesRemaining || 40,
+                apiCallsRemaining: apiUser.quota?.apiCallsRemaining || 100,
+                refreshAt: apiUser.quota?.refreshAt ? new Date(apiUser.quota.refreshAt) : new Date(),
+              },
+            };
 
-            // If account is marked as deleted in Firestore, return null
-            if (firestoreData.isDeleted) {
-              console.log('Account is marked as deleted in Firestore');
+            // If account is marked as deleted in API, return null
+            if (apiUserData.isDeleted) {
+              console.log('Account is marked as deleted in API');
               // Update local storage to reflect deleted status
-              await EncryptedStorage.setItem(
-                `user_${userId}`,
-                JSON.stringify({
-                  ...firestoreData,
-                  lastUpdated: new Date().toISOString(),
-                }),
-              );
+              await this.saveUser(apiUserData);
               return null;
             }
 
-            // Check if Firestore data is newer than local data
+            // Check if API data is newer than local data
             if (
               !userData ||
-              !userData.lastUpdated ||
-              (firestoreData.lastUpdated &&
-                new Date(firestoreData.lastUpdated) >
-                  new Date(userData.lastUpdated))
+              !userData.updatedAt ||
+              (apiUserData.updatedAt &&
+                new Date(apiUserData.updatedAt) > new Date(userData.updatedAt))
             ) {
-              console.log('Using newer Firestore data');
-              userData = firestoreData;
+              console.log('Using newer API data');
+              userData = apiUserData;
 
               // Update local cache with fresh data
-              await EncryptedStorage.setItem(
-                `user_${userId}`,
-                JSON.stringify({
-                  ...userData,
-                  lastUpdated: new Date().toISOString(),
-                }),
-              );
+              await this.saveUser(userData);
             }
-          } else {
-            console.log('User document does not exist in Firestore');
-            if (userData) {
-              console.log('Using local data only');
-            }
+
+            return userData;
           }
-        } catch (firestoreError) {
-          console.log(
-            'Firestore fetch failed, using local data:',
-            firestoreError,
-          );
+        } catch (apiError) {
+          console.log('API fetch failed, using cached data:', apiError);
+          // Return whatever we have in the cache
+          return userData;
         }
       } else {
         console.log('No network connection, using local data only');
@@ -191,76 +168,40 @@ export const userService = {
     try {
       console.log(`Starting profile update for userId: ${userId}`, profileData);
 
-      // Get existing user data
+      // Get existing user data for merging
       const existingUser = await this.getUser(userId);
       if (!existingUser) {
         console.error('User not found for update operation');
         throw new Error('User not found');
       }
 
-      // Merge with new profile data
+      // Prepare the merged data
       const updatedUser = {
         ...existingUser,
         ...profileData,
-        lastUpdated: new Date().toISOString(),
+        updatedAt: new Date(),
       };
 
-      console.log('Merged user data:', updatedUser);
+      // Format data for the API
+      const apiData = {
+        username: profileData.profile?.username || existingUser.profile.username,
+        avatar: profileData.profile?.avatar || existingUser.profile.avatar,
+        bio: profileData.profile?.bio || existingUser.profile.bio,        theme: profileData.profile?.preferences?.theme || existingUser.profile.preferences?.theme || 'system',
+        language: profileData.profile?.preferences?.language || existingUser.profile.preferences?.language || 'en',
+        notifications: profileData.profile?.preferences?.notifications ?? existingUser.profile.preferences?.notifications ?? true,
+      };
 
-      // Save to Firestore if connected
-      const isConnected = await NetInfo.fetch().then(
-        state => state.isConnected,
-      );
+      // Call the API endpoint using userAPI (token automatically added)
+      const response = await userAPI.updateProfile(apiData);
 
-      console.log(
-        `Network connection status: ${
-          isConnected ? 'Connected' : 'Disconnected'
-        }`,
-      );
-
-      if (isConnected) {
-        try {
-          // Check if Firebase authenticated
-          if (!auth().currentUser) {
-            console.log(
-              'No Firebase authentication, updating local storage only',
-            );
-          } else {
-            console.log(
-              `Firebase user authenticated: ${
-                auth().currentUser?.uid || 'unknown'
-              }`,
-            );
-            console.log(`Updating Firestore document for user: ${userId}`);
-
-            // Use React Native Firebase SDK syntax
-            await firestore()
-              .collection('users')
-              .doc(userId)
-              .set(
-                {
-                  ...profileData,
-                  lastUpdated: new Date().toISOString(),
-                },
-                {merge: true},
-              );
-
-            console.log('Profile successfully updated in Firestore');
-          }
-        } catch (firestoreError) {
-          console.error('Error updating profile in Firestore:', firestoreError);
-          // Continue to update local storage even if Firestore fails
-        }
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to update profile');
       }
 
-      // Always save to local storage
-      console.log('Saving updated profile to local storage');
-      await EncryptedStorage.setItem(
-        `user_${userId}`,
-        JSON.stringify(updatedUser),
-      );
-      console.log('Profile updated in local storage');
+      // Update local storage with the updated user
+      await this.saveUser(updatedUser);
 
+      console.log('Profile updated successfully through API');
       return updatedUser;
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -271,50 +212,34 @@ export const userService = {
   /**
    * Mark account as deleted but keep the data
    */
-  async markAccountAsDeleted(userId: string): Promise<void> {
+  async markAccountAsDeleted(userId: string, reason?: string): Promise<void> {
     try {
-      // Get existing user data
+      console.log('Initiating account deletion process');
+
+      // Call the backend API endpoint using userAPI (token automatically added)
+      const response = await userAPI.deleteAccount(reason);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to delete account');
+      }
+
+      // Update local storage to reflect deleted status immediately
       const existingUser = await this.getUser(userId);
-      if (!existingUser) {
-        throw new Error('User not found');
+      if (existingUser) {
+        const userWithDeletedFlag = {
+          ...existingUser,
+          isDeleted: true,
+          deletedAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await this.saveUser(userWithDeletedFlag);
       }
 
-      // Mark as deleted with timestamp
-      const userWithDeletedFlag = {
-        ...existingUser,
-        isDeleted: true,
-        deletedAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Update in Firestore if connected
-      const isConnected = await NetInfo.fetch().then(
-        state => state.isConnected,
-      );
-      if (isConnected) {
-        // Use React Native Firebase SDK syntax
-        await firestore()
-          .collection('users')
-          .doc(userId)
-          .update(userWithDeletedFlag);
-
-        console.log('User marked as deleted in Firestore');
-      } else {
-        console.log(
-          'No connection, account will be marked deleted on next sync',
-        );
-      }
-
-      // Update in local storage
-      await EncryptedStorage.setItem(
-        `user_${userId}`,
-        JSON.stringify(userWithDeletedFlag),
-      );
-
-      // Clear current user ID
+      // Clear current user ID from local storage
       await EncryptedStorage.removeItem('currentUserId');
 
-      console.log('Account marked as deleted');
+      console.log('Account successfully marked as deleted through API');
     } catch (error) {
       console.error('Error marking account as deleted:', error);
       throw error;
@@ -340,6 +265,147 @@ export const userService = {
       console.log('Cleared current user data');
     } catch (error) {
       console.error('Error clearing current user data:', error);
+    }
+  },
+
+  /**
+   * Recover a deleted account
+   */
+  async recoverAccount(userId: string): Promise<User | null> {
+    try {
+      console.log('Initiating account recovery process');
+
+      // Call the backend API endpoint using userAPI (token automatically added)
+      const response = await userAPI.recoverAccount();
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to recover account');
+      }      // Update local storage with recovered user data
+      const apiUser = response.data.profile;
+      const recoveredUser: User = {
+        uid: userId,
+        email: apiUser.email || '',
+        profile: {
+          username: apiUser.username || apiUser.profile?.username || '',
+          avatar: apiUser.avatar || apiUser.profile?.avatar || '',
+          bio: apiUser.bio || apiUser.profile?.bio || '',
+          preferences: {
+            theme: apiUser.theme || apiUser.profile?.preferences?.theme || 'system',
+            language: apiUser.language || apiUser.profile?.preferences?.language || 'en',
+            notifications: apiUser.notifications ?? apiUser.profile?.preferences?.notifications ?? true,
+          },
+        },
+        createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
+        updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
+        lastLoginAt: apiUser.lastLoginAt ? new Date(apiUser.lastLoginAt) : new Date(),
+        isDeleted: false, // Explicitly set to false since this is recovery
+        planType: apiUser.planType || 'free',
+        quota: {
+          imagesRemaining: apiUser.quota?.imagesRemaining || 40,
+          apiCallsRemaining: apiUser.quota?.apiCallsRemaining || 100,
+          refreshAt: apiUser.quota?.refreshAt ? new Date(apiUser.quota.refreshAt) : new Date(),
+        },
+      };
+
+      await this.saveUser(recoveredUser);
+
+      console.log('Account successfully recovered through API');
+      return recoveredUser;
+    } catch (error) {
+      console.error('Error recovering account:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check user quota information
+   */
+  async checkQuota(userId: string): Promise<IUserQuota | null> {
+    try {
+      console.log('Checking quota for user:', userId);
+
+      // Call the API endpoint using userAPI (token automatically added)
+      const response = await userAPI.checkQuota();
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to check quota');
+      }
+
+      const apiQuota = response.data.quota;
+      const quota: IUserQuota = {
+        imagesRemaining: apiQuota.imagesRemaining || 40,
+        apiCallsRemaining: apiQuota.apiCallsRemaining || 100,
+        refreshAt: apiQuota.refreshAt ? new Date(apiQuota.refreshAt) : new Date(),
+      };
+
+      console.log('Quota information retrieved successfully');
+      return quota;
+    } catch (error) {
+      console.error('Error checking user quota:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Handle offline mode by checking connectivity
+   */
+  async isOffline(): Promise<boolean> {
+    try {
+      const netInfo = await NetInfo.fetch();
+      return !netInfo.isConnected;
+    } catch (error) {
+      console.error('Error checking network status:', error);
+      // Default to assuming we're online
+      return false;
+    }
+  },
+
+  /**
+   * Get cached user data from storage
+   */
+  async getCachedUser(userId: string): Promise<User | null> {
+    try {
+      const localUserData = await EncryptedStorage.getItem(`user_${userId}`);
+      if (!localUserData) {
+        return null;
+      }
+
+      const parsedData = JSON.parse(localUserData);
+      const user: User = {
+        ...parsedData,
+        // Convert ISO strings back to Date objects
+        createdAt: new Date(parsedData.createdAt),
+        updatedAt: new Date(parsedData.updatedAt),
+        lastLoginAt: parsedData.lastLoginAt ? new Date(parsedData.lastLoginAt) : undefined,
+        deletedAt: parsedData.deletedAt ? new Date(parsedData.deletedAt) : undefined,
+        recoveryExpiresAt: parsedData.recoveryExpiresAt ? new Date(parsedData.recoveryExpiresAt) : undefined,
+        quota: {
+          ...parsedData.quota,
+          refreshAt: new Date(parsedData.quota.refreshAt),
+        },
+      };
+
+      // Check if user is marked as deleted
+      if (user.isDeleted) {
+        return null;
+      }
+
+      return user;
+    } catch (error) {
+      console.error('Error retrieving cached user data:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get current user ID from storage
+   */
+  async getCurrentUserId(): Promise<string | null> {
+    try {
+      return await EncryptedStorage.getItem('currentUserId');
+    } catch (error) {
+      console.error('Error getting current user ID:', error);
+      return null;
     }
   },
 };

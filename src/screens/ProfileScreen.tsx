@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -9,20 +9,23 @@ import {
   Animated,
   Modal,
   LayoutAnimation,
+  Linking,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import {useNavigation} from '@react-navigation/native';
+import {Toaster, useToast} from '@masumdev/rn-toast';
+
 import {useAuthStore} from '@src/store/authStore';
+import {userService} from '@src/services/userService';
 import {theme} from '@src/theme/Theme';
 import appConfig from '@src/config/app.config';
 import {useThemeStore} from '@src/store/themeStore';
-import {useNavigation} from '@react-navigation/native';
-import {Toaster, useToast} from '@masumdev/rn-toast';
 import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
-import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
 import {feedbackService} from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
+import {useQuota} from '@src/hooks/useQuota';
 
 // Icons
 import PersonIcon from '@src/assets/icons/PersonIcon';
@@ -37,6 +40,7 @@ import ShieldIcon from '@src/assets/icons/ShieldIcon';
 import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
+import urls from '@src/constants/urls';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -51,6 +55,7 @@ const ProfileScreen = () => {
   const {user, logout} = useAuthStore();
   const {isDark, toggleTheme} = useThemeStore();
   const {showToast} = useToast();
+  const {quota, isLoading: quotaLoading} = useQuota();
   const colors = isDark ? theme.dark : theme.light;
   const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
@@ -62,17 +67,38 @@ const ProfileScreen = () => {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  // Function to refresh user profile data
+  const refreshUserProfile = useCallback(async () => {
+    if (!user?.uid) {
+      return;
+    }
+
+    try {
+      console.log('ProfileScreen: Refreshing user profile data');
+      const freshUserData = await userService.getUser(user.uid);
+      if (freshUserData) {
+        // Update auth store with fresh data
+        const {updateUser} = useAuthStore.getState();
+        updateUser(freshUserData);
+        console.log('ProfileScreen: User profile refreshed successfully');
+      }
+    } catch (error) {
+      console.error('ProfileScreen: Failed to refresh user profile:', error);
+    }
+  }, [user?.uid]);
+
+  // Refresh user data when component mounts
+  useEffect(() => {
+    refreshUserProfile();
+  }, [refreshUserProfile]);
 
   useEffect(() => {
-    loadProfileData();
-  }, [user, user?.name]);
-
-  const loadProfileData = useCallback(() => {
     if (user) {
-      setProfileName(user.name || 'User');
+      // Use the new User interface structure
+      setProfileName(user.profile.username || 'User');
 
-      if (user.photo) {
-        setProfileAvatar(user.photo);
+      if (user.profile.avatar) {
+        setProfileAvatar(user.profile.avatar);
         setIsLocalImage(false);
       } else {
         setProfileAvatar('');
@@ -90,7 +116,7 @@ const ProfileScreen = () => {
       name: profileName,
       email: user?.email || '',
       avatar: profileAvatar,
-      isPro: false,
+      isPro: user?.planType === 'pro' || user?.planType === 'enterprise',
       isLocalImage,
     };
   };
@@ -109,9 +135,10 @@ const ProfileScreen = () => {
     try {
       setSubmittingFeedback(true);
 
+      // Use the updated User interface structure
       await feedbackService.submitFeedback(
-        user?.id || 'anonymous',
-        user?.name || 'Anonymous User',
+        user?.uid || 'anonymous',
+        user?.profile.username || 'Anonymous User',
         user?.email || 'Not provided',
         feedbackRating,
         feedbackText,
@@ -174,17 +201,39 @@ const ProfileScreen = () => {
       })}>
       {/* Animated Header */}
       <View className="items-center">
-        <FastImage
-          source={{uri: currentProfile.avatar}}
-          style={{
-            width: 150,
-            height: 150,
-            borderRadius: 90 / 2,
-            backgroundColor: colors.primary + '15',
-            marginBottom: 15,
-          }}
-          resizeMode={FastImage.resizeMode.cover}
-        />
+        {currentProfile.avatar ? (
+          <FastImage
+            source={{uri: currentProfile.avatar}}
+            style={{
+              width: 150,
+              height: 150,
+              borderRadius: 90 / 2,
+              backgroundColor: colors.primary + '15',
+              marginBottom: 15,
+            }}
+            resizeMode={FastImage.resizeMode.cover}
+          />
+        ) : (
+          <View
+            style={{
+              width: 150,
+              height: 150,
+              borderRadius: 75,
+              backgroundColor: colors.primary + '15',
+              marginBottom: 15,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 48,
+                fontWeight: 'bold',
+              }}>
+              {currentProfile.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <Text className="text-3xl font-bold" style={{color: colors.text}}>
           {currentProfile.name}
         </Text>
@@ -196,6 +245,117 @@ const ProfileScreen = () => {
       </View>
 
       <View className="mt-10">
+        {/* Quota Information Section */}
+        {user && quota && !quotaLoading && (
+          <View
+            className="rounded-3xl mb-6 overflow-hidden shadow-lg mx-0"
+            style={{backgroundColor: colors.surface}}>
+            <View
+              className="px-5 py-4 border-b"
+              style={{borderColor: colors.secondaryText + '20'}}>
+              <Text
+                className="text-lg font-semibold"
+                style={{color: colors.secondaryText}}>
+                Usage & Limits
+              </Text>
+            </View>
+
+            <View className="px-5 py-4">
+              {/* Images Remaining */}
+              <View className="mb-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text
+                    style={{color: colors.text}}
+                    className="text-base font-medium">
+                    Images Remaining
+                  </Text>
+                  <Text
+                    style={{color: colors.primary}}
+                    className="text-base font-bold">
+                    {quota.imagesRemaining}
+                  </Text>
+                </View>
+                <View
+                  className="h-2 rounded-full"
+                  style={{backgroundColor: colors.background}}>
+                  <View
+                    className="h-full rounded-full"
+                    style={{
+                      backgroundColor:
+                        quota.imagesRemaining > 5 ? colors.primary : '#ef4444',
+                      width: `${Math.min(
+                        (quota.imagesRemaining / 40) * 100,
+                        100,
+                      )}%`,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* API Calls Remaining */}
+              <View className="mb-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text
+                    style={{color: colors.text}}
+                    className="text-base font-medium">
+                    API Calls Remaining
+                  </Text>
+                  <Text
+                    style={{color: colors.primary}}
+                    className="text-base font-bold">
+                    {quota.apiCallsRemaining}
+                  </Text>
+                </View>
+                <View
+                  className="h-2 rounded-full"
+                  style={{backgroundColor: colors.background}}>
+                  <View
+                    className="h-full rounded-full"
+                    style={{
+                      backgroundColor:
+                        quota.apiCallsRemaining > 10
+                          ? colors.primary
+                          : '#ef4444',
+                      width: `${Math.min(
+                        (quota.apiCallsRemaining / 100) * 100,
+                        100,
+                      )}%`,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Plan Type */}
+              <View className="flex-row justify-between items-center">
+                <Text
+                  style={{color: colors.text}}
+                  className="text-base font-medium">
+                  Plan Type
+                </Text>
+                <View
+                  className="px-3 py-1 rounded-full"
+                  style={{
+                    backgroundColor:
+                      user.planType === 'free'
+                        ? colors.background
+                        : colors.primary + '20',
+                  }}>
+                  <Text
+                    className="text-sm font-medium capitalize"
+                    style={{
+                      color:
+                        user.planType === 'free'
+                          ? colors.secondaryText
+                          : colors.primary,
+                    }}>
+                    {user.planType}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Account Settings Card */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
@@ -303,7 +463,7 @@ const ProfileScreen = () => {
             style={{borderColor: colors.secondaryText + '20'}}>
             <Text
               className="text-lg font-semibold"
-              style={{color: colors.text}}>
+              style={{color: colors.secondaryText}}>
               {strings.settings.helpImprove}
             </Text>
           </View>
@@ -337,7 +497,7 @@ const ProfileScreen = () => {
             style={{borderColor: colors.secondaryText + '20'}}>
             <Text
               className="text-lg font-semibold"
-              style={{color: colors.text}}>
+              style={{color: colors.secondaryText}}>
               {strings.settings.about}
             </Text>
           </View>
@@ -368,7 +528,7 @@ const ProfileScreen = () => {
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
             style={{borderColor: colors.secondaryText + '20'}}
-            onPress={openPrivacyPolicy}
+            onPress={() => Linking.openURL(urls.privacyPolicy)}
             accessible={true}
             accessibilityLabel={strings.settings.privacyPolicy}
             accessibilityHint={strings.settings.privacyPolicyHint}>
@@ -387,7 +547,7 @@ const ProfileScreen = () => {
 
           <TouchableOpacity
             className="px-5 py-4 flex-row justify-between items-center"
-            onPress={openTermsOfService}
+            onPress={() => Linking.openURL(urls.termsOfService)}
             accessible={true}
             accessibilityLabel={strings.settings.termsOfService}
             accessibilityHint={strings.settings.termsOfServiceHint}>

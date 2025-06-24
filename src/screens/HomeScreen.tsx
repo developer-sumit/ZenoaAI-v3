@@ -13,22 +13,20 @@ import {
 } from 'react-native';
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
-import NetInfo from '@react-native-community/netinfo';
 
 import {theme} from '@src/theme/Theme';
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
+import ImageSkeleton from '@src/components/ImageSkeleton';
 import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
-import {generateImage} from '@src/config/api.config';
-import {imageService} from '@src/services/imageService';
+import {useImageStore} from '@src/store/imageStore';
+import {useQuota} from '@src/hooks/useQuota';
 import {AspectRatioType, GeneratedImage} from '../types';
-import LoadingAnimation from '@src/components/LoadingAnimation';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
-import {getStylePrompt} from '@src/data/stylePrompts';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
 
@@ -41,7 +39,9 @@ import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
+import {contentFilter} from '@src/utils/contentFilter';
 import {useStrings} from '@src/hooks/useStrings';
+import {useRoute} from '@react-navigation/native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
@@ -53,11 +53,19 @@ const HomeScreen = () => {
   const {showToast} = useToast();
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
-  const colors = isDark ? theme.dark : theme.light;
-  const [isLoadingImages, setIsLoadingImages] = React.useState(true);
+  const route = useRoute();
+  const colors = isDark ? theme.dark : theme.light; // Store hooks
+  const {
+    images: generatedImages,
+    currentGenerationBatch,
+    isLoading: imageLoading,
+    fetchImages,
+    generateBatch,
+  } = useImageStore();
+  const {hasImageQuota, refetch: refetchQuota} = useQuota();
+
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
-  const [loading, setLoading] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [selectedStyles, setSelectedStyles] = React.useState<string[]>([]);
   const [aspectRatio, setAspectRatio] = React.useState<AspectRatioType>({
@@ -70,67 +78,79 @@ const HomeScreen = () => {
   const [seed, setSeed] = React.useState('');
   const [sampler, setSampler] = React.useState('k_euler_ancestral');
   const [negativePrompt, setNegativePrompt] = React.useState('');
-  const [generatedImages, setGeneratedImages] = React.useState<
-    GeneratedImage[]
-  >([]);
   const [selectedImage, setSelectedImage] =
     React.useState<GeneratedImage | null>(null);
 
-  const flashListRef = useRef(null);
+  // New advanced settings
+  const [engine, setEngine] = React.useState<'quantum' | 'nebula'>('quantum');
+  const [guidance, setGuidance] = React.useState<number>(7.5);
+  const [steps, setSteps] = React.useState<number>(30);
+
+  const flashListRef = useRef<FlashList<any>>(null);
 
   const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
 
   const [showOnboarding, setShowOnboarding] = React.useState(false);
 
-  // Load user's images when component mounts
-  useEffect(() => {
-    if (user?.id) {
-      // Set loading to true before fetching
-      setIsLoadingImages(true);
-      loadUserImages();
-    } else {
-      // If no user, we're not loading anything
-      setIsLoadingImages(false);
-    }
-  }, [user?.id]);
-
-  const loadUserImages = async () => {
-    if (!user?.id) {
-      setIsLoadingImages(false);
-      return;
-    }
-
-    try {
-      const images = await imageService.getUserImages(user.id);
-      const typedImages = images as unknown as Partial<GeneratedImage>[];
-      const validImages = typedImages.filter(
-        (img): img is GeneratedImage =>
-          !!img.uri &&
-          !!img.prompt &&
-          !!img.styles &&
-          !!img.aspectRatio &&
-          img.quality !== undefined &&
-          img.timestamp !== undefined &&
-          !img.isDeleted,
-      );
-      setGeneratedImages(validImages);
-    } catch (error) {
-      console.error('Failed to load images:', error);
-      showToast(strings.home.imageLoadFailed, 'error');
-    } finally {
-      // Set loading to false when done, regardless of success or failure
-      setIsLoadingImages(false);
-    }
+  // Combined function to update both quota and profile
+  const updateQuotaAndProfile = async () => {
+    await refetchQuota();
   };
 
+  // Load user's images when component mounts
+  useEffect(() => {
+    if (user?.uid) {
+      fetchImages();
+    }
+  }, [user?.uid, fetchImages]);
+
+  // Handle remix data from navigation params
+  useEffect(() => {
+    const params = route.params as any;
+    if (params?.remixData) {
+      const remix = params.remixData;
+
+      // Apply the remix settings
+      setPrompt(remix.prompt || '');
+      setNegativePrompt(remix.negativePrompt || '');
+      setEngine(remix.engine || 'quantum');
+      setGuidance(remix.guidance || 7.5);
+      setSteps(remix.steps || 30);
+      setSeed(remix.seed?.toString() || '');
+      setSampler(remix.sampler || 'k_euler_ancestral');
+      setSelectedStyles(remix.styles || []);
+
+      // Set aspect ratio based on dimensions
+      if (remix.width && remix.height) {
+        const ratio = `${remix.width}:${remix.height}`;
+        const foundRatio = aspectRatios.find(ar => ar.ratio === ratio);
+        if (foundRatio) {
+          setAspectRatio({
+            ratio: foundRatio.ratio,
+            sizes: foundRatio.sizes,
+            size: 'medium',
+          });
+        }
+      }
+
+      showToast('Settings applied from remixed image!', 'success');
+    }
+  }, [route.params]);
+
   const getAspectRatio = (image: GeneratedImage): number => {
-    // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) {
-      return 1;
+    // Use actual image dimensions if available
+    if (image.width && image.height) {
+      return image.width / image.height;
     }
 
-    const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
-    return width / height;
+    // Fall back to aspectRatio if dimensions not available
+    if (image?.aspectRatio?.ratio) {
+      const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
+      return width / height;
+    }
+
+    // Default to 1:1 if nothing available
+    return 1;
   };
 
   // Get the height for an image based on its aspect ratio
@@ -149,209 +169,81 @@ const HomeScreen = () => {
       return;
     }
 
-    if (!user?.id) {
+    // Check for inappropriate content
+    if (!contentFilter.isClean(prompt)) {
+      showToast(contentFilter.getErrorMessage(), 'error');
+      return;
+    }
+
+    // Also check negative prompt if provided
+    if (negativePrompt && !contentFilter.isClean(negativePrompt)) {
+      showToast(
+        'Negative prompt contains inappropriate content. Please revise and try again.',
+        'error',
+      );
+      return;
+    }
+
+    if (!user?.uid) {
       showToast(strings.home.signInRequired, 'error');
       return;
     }
 
-    setLoading(true);
-    const generationTimestamp = Date.now();
-    const baseSeed = seed
-      ? parseInt(seed, 10)
-      : Math.floor(Math.random() * 1000000);
-    const tempImages: GeneratedImage[] = [];
-
-    const determineConcurrency = async () => {
-      // Check network type/speed
-      const connectionInfo = await NetInfo.fetch();
-
-      // Base concurrency on connection type and memory
-      if (connectionInfo.type === 'wifi') {
-        return Math.min(8, numberOfImages); // Higher on WiFi
-      } else if (connectionInfo.type === 'cellular') {
-        return connectionInfo.details.isConnectionExpensive ? 3 : 5;
-      }
-      return 4; // Default fallback
-    };
-
-    // Create a connection pool for better request management
-    const connectionPool = new Set();
-    const MAX_CONCURRENT_REQUESTS = await determineConcurrency();
+    // Check quota
+    if (!hasImageQuota) {
+      showToast('Image generation quota exceeded', 'error');
+      return;
+    }
 
     try {
-      // Step 1: Create placeholder images for all generations
-      for (let i = 0; i < numberOfImages; i++) {
-        const currentSeed = baseSeed + i;
-        const stylePrompts = selectedStyles
-          .map(style => getStylePrompt(style))
-          .join(', ');
-        const userPrompt = prompt.trim();
-        const fullPrompt = `${userPrompt}${
-          stylePrompts ? ', ' + stylePrompts : ''
-        }`;
+      console.log('Generating with:', {prompt, selectedStyles, aspectRatio});
 
-        tempImages.push({
-          uri: 'placeholder',
-          prompt: userPrompt,
-          fullPrompt: fullPrompt,
-          styles: selectedStyles,
-          aspectRatio,
-          quality,
-          sampler,
-          seed: currentSeed,
-          timestamp: generationTimestamp,
-          loading: true,
-          index: i,
-        });
-      }
+      // Find the aspect ratio data to get proper dimensions
+      const selectedAspectRatio = aspectRatios.find(
+        ratio => ratio.ratio === aspectRatio.ratio,
+      );
 
-      // Step 2: Add placeholders to state immediately
-      setGeneratedImages(prev => [...tempImages, ...prev]);
-
-      // Step 3: Generate images with controlled concurrency
-      const generateWithControl = async () => {
-        const results: (GeneratedImage | Error)[] = new Array(
-          tempImages.length,
-        );
-        let completedCount = 0;
-
-        // Create a queue of indexes to process
-        const queue = tempImages.map((_, index) => index);
-
-        // Process function that takes items from the queue
-        const processQueue = async () => {
-          while (queue.length > 0) {
-            const index = queue.shift()!;
-            const tempImage = tempImages[index];
-
-            try {
-              // Track this connection in the pool
-              const connectionId = `connection_${index}_${Date.now()}`;
-              connectionPool.add(connectionId);
-
-              // Configure request with timeout
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-
-              // Prepare generation parameters
-              const fullPrompt = tempImage.fullPrompt || '';
-              const currentSeed = tempImage.seed;
-
-              console.time(`image_gen_${index}`);
-
-              // Generate image via API with better error handling
-              try {
-                const response = await generateImage({
-                  prompt: fullPrompt,
-                  width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
-                  height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
-                  negativePrompt,
-                  quality,
-                  sampler,
-                  seed: currentSeed,
-                });
-
-                console.timeEnd(`image_gen_${index}`);
-                clearTimeout(timeoutId);
-
-                // Create final image object with API response
-                const generatedImage: GeneratedImage = {
-                  ...tempImage,
-                  uri: response.url,
-                  loading: false,
-                };
-
-                // Update UI immediately with this specific image
-                setGeneratedImages(prev =>
-                  prev.map(img =>
-                    img.timestamp === generationTimestamp && img.index === index
-                      ? generatedImage
-                      : img,
-                  ),
-                );
-
-                // Save image in background without waiting
-                if (user?.id) {
-                  // Fire and forget with error handling
-                  imageService
-                    .saveImage(user.id, generatedImage)
-                    .catch(err =>
-                      console.error(`Error saving image ${index}:`, err),
-                    );
-                }
-
-                // Store result
-                results[index] = generatedImage;
-              } catch (error) {
-                // Handle API errors
-                console.error(`Error generating image ${index}:`, error);
-
-                // Update the error state for this image
-                setGeneratedImages(prev =>
-                  prev.map(img =>
-                    img.timestamp === generationTimestamp && img.index === index
-                      ? {...img, loading: false, error: true}
-                      : img,
-                  ),
-                );
-
-                // Store error
-                results[index] =
-                  error instanceof Error ? error : new Error(String(error));
-              } finally {
-                // Always remove from connection pool
-                connectionPool.delete(connectionId);
-                completedCount++;
-              }
-            } catch (error) {
-              console.error(`Unexpected error for image ${index}:`, error);
-              results[index] =
-                error instanceof Error ? error : new Error(String(error));
-              completedCount++;
-            }
-          }
-        };
-
-        // Start multiple processors based on MAX_CONCURRENT_REQUESTS
-        const processors = Array(
-          Math.min(MAX_CONCURRENT_REQUESTS, tempImages.length),
-        )
-          .fill(0)
-          .map(() => processQueue());
-
-        // Wait for all processors to complete
-        await Promise.all(processors);
-
-        return results;
+      // Get dimensions from aspect ratio data, fallback to 1:1 if not found
+      const dimensions =
+        selectedAspectRatio?.sizes[aspectRatio.size || 'medium'] || '1024x1024';
+      const [width, height] = dimensions.split('x').map(Number); // Convert our settings to the API format (matching web)
+      const apiSettings = {
+        engine, // Use current engine setting
+        style: selectedStyles?.[0] || 'photorealistic',
+        aspectRatio: aspectRatio.ratio,
+        quality: 'standard' as const,
+        guidance, // Use current guidance setting
+        steps, // Use current steps setting
+        seed: seed ? parseInt(seed, 10) : undefined,
+        width,
+        height,
+        negativePrompt,
+        sampler,
+        isPrivate: false,
       };
 
-      // Execute the controlled generation
-      const results = await generateWithControl();
+      // Generate the batch using the store
+      const success = await generateBatch(
+        prompt,
+        apiSettings,
+        numberOfImages,
+        updateQuotaAndProfile,
+      );
 
-      // Show appropriate toast based on results
-      const successCount = results.filter(r => !(r instanceof Error)).length;
-      if (successCount > 0) {
-        showToast(
-          `${successCount} ${strings.home.generationSuccess}`,
-          'success',
-        );
+      if (success) {
+        console.log('Image generated successfully!');
+        // Scroll to top if needed
+        if (flashListRef.current) {
+          // @ts-ignore
+          flashListRef.current.scrollToOffset({offset: 0, animated: true});
+        }
       } else {
-        showToast(strings.home.generationFailed, 'error');
+        console.error('Image generation failed');
+        showToast('Failed to generate image', 'error');
       }
     } catch (error) {
-      console.error('Generation error:', error);
-      showToast(strings.home.generationFailed, 'error');
-
-      // Clean up placeholders if overall process fails
-      setGeneratedImages(prev =>
-        prev.filter(
-          img => !tempImages.some(temp => temp.timestamp === img.timestamp),
-        ),
-      );
-    } finally {
-      // Clean up any remaining connections
-      connectionPool.clear();
-      setLoading(false);
+      console.error('Generation failed:', error);
+      showToast('Failed to generate image', 'error');
     }
   };
 
@@ -379,6 +271,11 @@ const HomeScreen = () => {
       showToast(strings.home.promptApplied, 'success');
     }
   };
+  const getCombinedImages = () => {
+    // Show current generation batch at the top if there are any
+    const combinedImages = [...currentGenerationBatch, ...generatedImages];
+    return combinedImages;
+  };
 
   const groupImagesByParameters = (images: GeneratedImage[]) => {
     const groups: {[key: string]: GeneratedImage[]} = {};
@@ -386,11 +283,11 @@ const HomeScreen = () => {
     images.forEach(image => {
       // Group by timestamp to keep generation batches separate
       const groupKey = [
-        image.prompt,
-        image.styles.join(','),
-        image.aspectRatio.ratio,
-        image.quality,
-        image.timestamp,
+        image.originalPrompt || image.prompt || '',
+        (image.styles || []).join(','),
+        image.aspectRatio?.ratio || '1:1',
+        image.quality || 25,
+        image.timestamp || Date.now(),
       ].join('|');
 
       if (!groups[groupKey]) {
@@ -403,11 +300,15 @@ const HomeScreen = () => {
       key,
       items,
       parameters: {
-        prompt: items[0].prompt,
-        styles: items[0].styles,
-        aspectRatio: items[0].aspectRatio,
-        quality: items[0].quality,
-        timestamp: items[0].timestamp,
+        prompt: items[0].originalPrompt || items[0].prompt || '',
+        styles: items[0].styles || [],
+        aspectRatio: items[0].aspectRatio || {
+          ratio: '1:1',
+          sizes: {small: '512x512', medium: '1024x1024', large: '2048x2048'},
+          size: 'medium' as const,
+        },
+        quality: items[0].quality || 25,
+        timestamp: items[0].timestamp || Date.now(),
       },
     }));
   };
@@ -418,15 +319,11 @@ const HomeScreen = () => {
 
     if (image.loading) {
       return (
-        <View
-          className="rounded-2xl overflow-hidden items-center justify-center"
-          style={{
-            backgroundColor: colors.surface,
-            width: '100%',
-            height: imageHeight,
-          }}>
-          <LoadingAnimation color={colors.primary} />
-        </View>
+        <ImageSkeleton
+          width={COLUMN_WIDTH - 12} // Account for padding
+          height={imageHeight}
+          borderRadius={16}
+        />
       );
     } else if (image.error) {
       return (
@@ -704,31 +601,31 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-
         {/* Generated Images Grid with optional Getting Started for new users */}
         <View className="flex-1 pb-5">
-          {isLoadingImages ? (
-            renderLoading()
-          ) : (
-            <FlashList
-              ref={flashListRef}
-              data={groupImagesByParameters(generatedImages)}
-              estimatedItemSize={300}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{paddingBottom: 200}}
-              renderItem={renderGroup}
-              ListEmptyComponent={<EmptyState colors={colors} />}
-              ListHeaderComponent={
-                generatedImages.length > 0 && showOnboarding
-                  ? renderGettingStarted()
-                  : null
-              }
-              keyboardShouldPersistTaps="handled"
-              onScrollBeginDrag={Keyboard.dismiss}
-            />
-          )}
+          <FlashList
+            ref={flashListRef}
+            data={groupImagesByParameters(getCombinedImages())}
+            estimatedItemSize={300}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{paddingBottom: 200}}
+            renderItem={renderGroup}
+            ListEmptyComponent={
+              <EmptyState
+                icon={<MagicWand size={48} color={colors.primary} />}
+                title="No images yet"
+                description="Start creating your first AI-generated image"
+              />
+            }
+            ListHeaderComponent={
+              getCombinedImages().length > 0 && showOnboarding
+                ? renderGettingStarted()
+                : null
+            }
+            keyboardShouldPersistTaps="handled"
+            onScrollBeginDrag={Keyboard.dismiss}
+          />
         </View>
-
         <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
@@ -803,16 +700,16 @@ const HomeScreen = () => {
               style={{borderColor: colors.surface}}>
               <TouchableOpacity
                 onPress={clearInputs}
-                disabled={loading || prompt.trim().length === 0}
+                disabled={imageLoading || prompt.trim().length === 0}
                 style={{
-                  opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
+                  opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
                   backgroundColor: colors.surface,
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
                 accessible={true}
                 accessibilityLabel={strings.home.clearInputs}
                 accessibilityState={{
-                  disabled: loading || prompt.trim().length === 0,
+                  disabled: imageLoading || prompt.trim().length === 0,
                 }}
                 accessibilityRole="button"
                 accessibilityHint={strings.home.clearInputsHint}>
@@ -821,7 +718,6 @@ const HomeScreen = () => {
                   {strings.common.clear}
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() =>
@@ -847,6 +743,13 @@ const HomeScreen = () => {
                       setNegativePrompt: (value: string) =>
                         setNegativePrompt(value),
                       samplers,
+                      // Add new parameters
+                      engine,
+                      setEngine: (eng: 'quantum' | 'nebula') => setEngine(eng),
+                      guidance,
+                      setGuidance: (g: number) => setGuidance(g),
+                      steps,
+                      setSteps: (s: number) => setSteps(s),
                     },
                   })
                 }
@@ -862,12 +765,11 @@ const HomeScreen = () => {
                   style={{backgroundColor: colors.primary}}
                   accessibilityLabel="New feature"></View> */}
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={handleImageGeneration}
-                disabled={loading || prompt.trim().length === 0}
+                disabled={imageLoading || prompt.trim().length === 0}
                 style={{
-                  opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
+                  opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
                   backgroundColor: colors.primary,
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
@@ -875,11 +777,11 @@ const HomeScreen = () => {
                 accessibilityLabel={strings.home.generateImage}
                 accessibilityRole="button"
                 accessibilityState={{
-                  disabled: loading || prompt.trim().length === 0,
-                  busy: loading,
+                  disabled: imageLoading || prompt.trim().length === 0,
+                  busy: imageLoading,
                 }}
                 accessibilityHint={strings.home.generateImageHint}>
-                {loading ? (
+                {imageLoading ? (
                   <ActivityIndicator color="white" />
                 ) : (
                   <>
@@ -900,12 +802,11 @@ const HomeScreen = () => {
           onSelectPrompt={handleSelectPrompt}
           colors={colors}
         />
-
         {selectedImage && (
           <ImageViewer
             image={selectedImage}
             onClose={() => setSelectedImage(null)}
-            onImageDeleted={loadUserImages}
+            onImageDeleted={fetchImages}
           />
         )}
       </View>

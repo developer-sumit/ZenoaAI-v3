@@ -1,7 +1,8 @@
 import React from 'react';
 import {View, ActivityIndicator} from 'react-native';
-import {useThemeStore} from '@src/store/themeStore';
+
 import {theme} from '@src/theme/Theme';
+import {useThemeStore} from '@src/store/themeStore';
 
 const SplashScreen = () => {
   const {isDark} = useThemeStore();

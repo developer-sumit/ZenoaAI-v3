@@ -14,13 +14,14 @@ import {
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
+import {useToast} from '@masumdev/rn-toast';
+
+import {User} from '@src/types';
+import {theme} from '@src/theme/Theme';
 import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
-import {theme} from '@src/theme/Theme';
 import {userService} from '@src/services/userService';
-import {useToast} from '@masumdev/rn-toast';
-import EncryptedStorage from 'react-native-encrypted-storage';
-import firestore from '@react-native-firebase/firestore';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -28,7 +29,6 @@ import PersonIcon from '@src/assets/icons/PersonIcon';
 import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
-import {useStrings} from '@src/hooks/useStrings';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -41,14 +41,13 @@ const EditProfileScreen = () => {
   const strings = useStrings();
   const navigation = useNavigation();
   const {isDark} = useThemeStore();
-  const {user, logout} = useAuthStore();
+  const {user, logout, updateUser} = useAuthStore();
   const {showToast} = useToast();
   const colors = isDark ? theme.dark : theme.light;
 
   // Animation references
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-
   const [name, setName] = useState('');
   const [photoUri, setPhotoUri] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -57,8 +56,8 @@ const EditProfileScreen = () => {
   // Load user data on mount
   useEffect(() => {
     if (user) {
-      setName(user.name || '');
-      setPhotoUri(user.photo || '');
+      setName(user.profile.username || '');
+      setPhotoUri(user.profile.avatar || '');
     }
 
     // Animate content in
@@ -81,45 +80,43 @@ const EditProfileScreen = () => {
       showToast(strings.editProfile.pleaseLogin, 'error');
       return;
     }
-
     try {
       setIsSaving(true);
-      console.log('Starting profile update with user ID:', user.id);
+      console.log('Starting profile update with user ID:', user.uid);
 
-      if (name !== user.name) {
+      if (name !== user.profile.username) {
         // Debug log for better troubleshooting
-        console.log('Updating name from', user.name, 'to', name);
+        console.log(
+          'Updating username from',
+          user.profile.username,
+          'to',
+          name,
+        );
 
         try {
-          // Use React Native Firebase SDK syntax
-          await firestore()
-            .collection('users')
-            .doc(user.id)
-            .set(
-              {name: name, lastUpdated: new Date().toISOString()},
-              {merge: true},
-            );
+          // Prepare updated user data with proper type structure matching web API
+          const updatedUserData: Partial<User> = {
+            profile: {
+              ...user.profile,
+              username: name.trim(),
+            },
+          };
 
-          // Also update local encrypted storage
-          const localUserData = await EncryptedStorage.getItem(
-            `user_${user.id}`,
+          // Use userService to update profile via API - this matches web updateProfile structure
+          const updatedUser = await userService.updateProfile(
+            user.uid,
+            updatedUserData,
           );
-          if (localUserData) {
-            const userData = JSON.parse(localUserData);
-            userData.name = name;
-            userData.lastUpdated = new Date().toISOString();
-            await EncryptedStorage.setItem(
-              `user_${user.id}`,
-              JSON.stringify(userData),
-            );
+
+          if (updatedUser) {
+            // Update auth store with the new user data
+            updateUser(updatedUser);
+            console.log('Profile successfully updated via API');
+          } else {
+            throw new Error('Failed to update profile - no response data');
           }
-
-          // Update auth store
-          useAuthStore.getState().updateUser({...user, name});
-
-          console.log('Profile successfully updated');
         } catch (updateError) {
-          console.error('Direct update error:', updateError);
+          console.error('API update error:', updateError);
           throw updateError;
         }
       } else {
@@ -136,19 +133,19 @@ const EditProfileScreen = () => {
       showToast(strings.editProfile.updateFailed, 'error');
     }
   };
-
   const handleChangePhoto = () => {
-    // This would normally open image picker
+    // TODO: Implement image picker for avatar upload
+    // For now, show info message that this feature will be added
     showToast(strings.editProfile.uploadPhoto, 'info');
   };
 
   const handleAccountDeletion = async () => {
     try {
-      if (user?.id) {
+      if (user?.uid) {
         showToast(strings.editProfile.deletingAccount, 'info');
 
-        // Mark the account as deleted in Firestore
-        await userService.markAccountAsDeleted(user.id);
+        // Use userService to mark account as deleted via API
+        await userService.markAccountAsDeleted(user.uid);
 
         showToast(strings.editProfile.accountDeleted, 'success');
         await logout();

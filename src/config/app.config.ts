@@ -1,11 +1,13 @@
 const appConfig = {
   name: 'Zenoa AI',
-  version: '2.1.0',
+  longName: 'Zenoa AI - Image Generator',
+  version: '3.0.0',
   author: {
     name: 'Sumit Singh Rathore',
     avatar: 'https://github.com/developer-sumit.png',
   },
-  website: 'https://zenoa-ai.web.app/',
+  description:
+    'Zenoa AI is an advanced image generation application that leverages the power of AI to create stunning visuals from text prompts.',
 };
 
 export default appConfig;

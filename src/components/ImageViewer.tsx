@@ -2,8 +2,6 @@ import React, {useState, useEffect, useRef} from 'react';
 import RNFS from 'react-native-fs';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
-import {GeneratedImage} from '@src/types';
-import {theme} from '@src/theme/Theme';
 import {
   ActivityIndicator,
   BackHandler,
@@ -16,12 +14,18 @@ import {
   StatusBar,
   ToastAndroid,
 } from 'react-native';
-import {useThemeStore} from '@src/store/themeStore';
-import {useAuthStore} from '@src/store/authStore';
-import appConfig from '@src/config/app.config';
-import {imageService} from '@src/services/imageService';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Toaster, useToast} from '@masumdev/rn-toast';
+import {useNavigation} from '@react-navigation/native';
+
+import {GeneratedImage} from '@src/types';
+import {theme} from '@src/theme/Theme';
+import {useThemeStore} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
+import {useImageStore} from '@src/store/imageStore';
+import {useStrings} from '@src/hooks/useStrings';
+import Routes from '@src/constants/routes';
+import appConfig from '@src/config/app.config';
 
 // Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -37,9 +41,16 @@ import TuneIcon from '@src/assets/icons/TuneIcon';
 import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
 import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
-import {useStrings} from '@src/hooks/useStrings';
+import PrivacyIcon from '@src/assets/icons/PrivacyIcon';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
 
-type IconName = 'seed' | 'tune' | 'aspect-ratio' | 'chart-donut';
+type IconName =
+  | 'seed'
+  | 'tune'
+  | 'aspect-ratio'
+  | 'chart-donut'
+  | 'privacy'
+  | 'dimensions';
 
 interface ImageViewerProps {
   image: GeneratedImage | null;
@@ -58,6 +69,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const {isDark} = useThemeStore();
   const {showToast} = useToast();
   const {user} = useAuthStore();
+  const {deleteImage: storeDeleteImage} = useImageStore();
+  const navigation = useNavigation();
   const colors = isDark ? theme.dark : theme.light;
   const imageUri = image?.uri || '';
 
@@ -72,7 +85,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   // Add state to track if image failed to load
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [expandedStyles, setExpandedStyles] = useState(false); // New state for expanded styles
+  const [expandedStyles, setExpandedStyles] = useState(false);
 
   // Cleanup when component unmounts
   useEffect(() => {
@@ -149,23 +162,26 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const deleteImage = async (img: GeneratedImage) => {
-    if (!user?.id || !img.timestamp || !img.seed) {
+    if (!user?.uid || !img.id) {
       return;
     }
 
     try {
       setDeleting(true);
-      const imageId = `${img.timestamp}_${img.seed}`;
 
-      // Instead of fully deleting, just mark as deleted
-      await imageService.markImageAsDeleted(user.id, imageId);
+      // Use the image store to delete the image
+      const success = await storeDeleteImage(img.id);
 
-      showToast(strings.imageViewer.imageDeleted, 'success');
+      if (success) {
+        showToast(strings.imageViewer.imageDeleted, 'success');
 
-      if (onImageDeleted) {
-        onImageDeleted();
+        if (onImageDeleted) {
+          onImageDeleted();
+        }
+        onClose?.();
+      } else {
+        showToast(strings.imageViewer.failedToDelete, 'error');
       }
-      onClose?.();
     } catch (error) {
       console.error('Error deleting image:', error);
       showToast(strings.imageViewer.failedToDelete, 'error');
@@ -259,6 +275,31 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     // Default fallback
     return 1;
   };
+  const handleRemix = () => {
+    if (!image) {
+      return;
+    }
+
+    // Close the image viewer first
+    onClose?.();
+
+    // Navigate to home screen with a slight delay to ensure modal is closed
+    setTimeout(() => {
+      (navigation as any).navigate(Routes.HOME, {
+        remixData: {
+          prompt: image.originalPrompt || image.prompt,
+          negativePrompt: image.negativePrompt,
+          engine: image.engineType,
+          seed: image.seed,
+          steps: image.steps,
+          sampler: image.sampler,
+          styles: image.styles,
+          width: image.width,
+          height: image.height,
+        },
+      });
+    }, 100);
+  };
 
   return (
     <>
@@ -311,14 +352,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {/* Image Display - takes full screen in fullscreen mode */}
           <View
             className={`${
-              fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4 bg-black/5'
+              fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4'
             } justify-center overflow-hidden`}
-            style={[
-              !fullscreenMode && expandedPrompt ? {flex: 0.7} : {},
-              !fullscreenMode
-                ? {borderWidth: 1, borderColor: colors.background}
-                : {},
-            ]}>
+            style={[!fullscreenMode && expandedPrompt ? {flex: 0.7} : {}]}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={toggleFullscreen}
@@ -360,11 +396,34 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   setImageLoaded(false);
                 }}
               />
-
-              {/* Fullscreen icon overlay - only in normal mode */}
+              {/* Overlay buttons - only in normal mode */}
               {imageLoaded && !fullscreenMode && (
-                <View className="absolute top-2.5 right-2.5 bg-black/40 rounded-3xl p-2">
-                  <FullscreenIcon size={24} color="white" />
+                <View className="absolute top-2.5 right-2.5 flex-row gap-2">
+                  {/* Favorite Button */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (onToggleFavorite) {
+                        onToggleFavorite();
+                      }
+                    }}
+                    className="bg-black/40 rounded-3xl p-2"
+                    accessible={true}
+                    accessibilityLabel={
+                      image?.isFavorite
+                        ? 'Remove from favorites'
+                        : 'Add to favorites'
+                    }>
+                    <HeartIcon
+                      size={24}
+                      color={image?.isFavorite ? '#FF4B8C' : 'white'}
+                      fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Fullscreen Button */}
+                  <View className="bg-black/40 rounded-3xl p-2">
+                    <FullscreenIcon size={24} color="white" />
+                  </View>
                 </View>
               )}
             </TouchableOpacity>
@@ -474,31 +533,71 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   </TouchableOpacity>
                 </View>
               </View>
-
               {/* Metadata Grid */}
               <View className="flex-row flex-wrap gap-3">
+                {/* Engine - Top priority */}
+                <MetadataItem
+                  icon="tune"
+                  label="Engine"
+                  value={image?.engineType ? `${image.engineType}` : 'Quantum'}
+                />
+
+                {/* Image Dimensions - Top priority */}
+                <MetadataItem
+                  icon="dimensions"
+                  label="Dimensions"
+                  value={`${image?.width || 0} x ${image?.height || 0}`}
+                />
+
+                {/* Privacy Status */}
+                <MetadataItem
+                  icon="privacy"
+                  label="Visibility"
+                  value={image?.isPrivate ? 'Private' : 'Public'}
+                />
+
+                {/* Seed */}
                 <MetadataItem
                   icon="seed"
                   label={strings.advancedSettings.featureInfo.seed.title}
                   value={image?.seed.toString() || ''}
                   onCopy={() => copyToClipboard(image?.seed.toString() || '')}
                 />
+
+                {/* Image Quality */}
+                <MetadataItem
+                  icon="chart-donut"
+                  label="Quality"
+                  value={image?.quality ? `${image.quality}` : 'Standard'}
+                />
+
+                {/* Sampler - Last item as requested */}
                 <MetadataItem
                   icon="tune"
                   label={strings.advancedSettings.featureInfo.sampler.title}
-                  value={image?.sampler || ''}
-                />
-                <MetadataItem
-                  icon="aspect-ratio"
-                  label={strings.advancedSettings.featureInfo.aspectRatio.title}
-                  value={image?.aspectRatio.ratio || ''}
-                />
-                <MetadataItem
-                  icon="chart-donut"
-                  label={strings.advancedSettings.imageQuality}
-                  value={`${image?.quality} steps`}
+                  value={image?.sampler || '-'}
                 />
               </View>
+
+              {/* Negative Prompt Section */}
+              {image?.negativePrompt && image.negativePrompt.trim() && (
+                <View className="mt-4">
+                  <Text
+                    className="text-sm font-medium mb-2"
+                    style={{color: colors.text}}>
+                    Negative Prompt
+                  </Text>
+                  <View
+                    className="rounded-2xl p-3"
+                    style={{backgroundColor: colors.surface}}>
+                    <Text
+                      className="text-sm leading-5"
+                      style={{color: colors.secondaryText}}>
+                      {image.negativePrompt}
+                    </Text>
+                  </View>
+                </View>
+              )}
 
               {/* Style Chips */}
               {image?.styles && image.styles.length > 0 && (
@@ -593,41 +692,17 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   )}
                 </TouchableOpacity>
 
-                {/* Favorite Button */}
+                {/* Remix Button */}
                 <TouchableOpacity
-                  onPress={() => {
-                    if (onToggleFavorite) {
-                      onToggleFavorite();
-                    } else {
-                      console.warn('No onToggleFavorite handler provided');
-                    }
-                  }}
+                  onPress={handleRemix}
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
                   style={{backgroundColor: colors.surface}}
                   accessible={true}
-                  accessibilityLabel={
-                    image?.isFavorite
-                      ? strings.imageViewer.removeFavourite
-                      : strings.imageViewer.addFavourite
-                  }
-                  accessibilityHint={
-                    image?.isFavorite
-                      ? strings.imageViewer.removeFavouriteHint
-                      : strings.imageViewer.addFavouriteHint
-                  }>
-                  <HeartIcon
-                    size={22}
-                    color={image?.isFavorite ? '#FF4B8C' : colors.text}
-                    fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
-                  />
-                  <Text
-                    className="font-bold"
-                    style={{
-                      color: image?.isFavorite ? '#FF4B8C' : colors.text,
-                    }}>
-                    {image?.isFavorite
-                      ? strings.imageViewer.favorited
-                      : strings.imageViewer.favorite}
+                  accessibilityLabel="Remix this image"
+                  accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
+                  <RefreshIcon size={22} color={colors.text} />
+                  <Text className="font-bold" style={{color: colors.text}}>
+                    Remix
                   </Text>
                 </TouchableOpacity>
 
@@ -748,7 +823,6 @@ const MetadataItem = ({
 }) => {
   const {isDark} = useThemeStore();
   const colors = isDark ? theme.dark : theme.light;
-
   const renderIcon = () => {
     switch (icon) {
       case 'seed':
@@ -759,6 +833,10 @@ const MetadataItem = ({
         return <AspectRatioIcon size={16} color={colors.text} />;
       case 'chart-donut':
         return <ChartDonutIcon size={16} color={colors.text} />;
+      case 'privacy':
+        return <PrivacyIcon size={16} color={colors.text} />;
+      case 'dimensions':
+        return <AspectRatioIcon size={16} color={colors.text} />;
       default:
         return null;
     }

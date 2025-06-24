@@ -22,14 +22,17 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {FlashList} from '@shopify/flash-list';
+import FastImage from 'react-native-fast-image';
 
 import {theme} from '@src/theme/Theme';
 import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
-import {ArtStyleType, AspectRatioSizeType, AspectRatioType} from '@src/types';
+import {useStrings} from '@src/hooks/useStrings';
+import {useAuthStore} from '@src/store/authStore';
+import {userService} from '@src/services/userService';
 import {useThemeStore} from '@src/store/themeStore';
+import {ArtStyleType, AspectRatioSizeType, AspectRatioType} from '@src/types';
 import InfoDialog from '@src/components/InfoDialog';
-import FastImage from 'react-native-fast-image';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -38,7 +41,6 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
-import {useStrings} from '@src/hooks/useStrings';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -65,6 +67,15 @@ interface AdvancedSettingsScreenProps {
       negativePrompt: string;
       setNegativePrompt: (value: string) => void;
       samplers: string[];
+      imagesPrivateByDefault?: boolean;
+      setImagesPrivateByDefault?: (value: boolean) => void;
+      // Add new parameters to match web
+      engine?: 'quantum' | 'nebula';
+      setEngine?: (engine: 'quantum' | 'nebula') => void;
+      guidance?: number;
+      setGuidance?: (guidance: number) => void;
+      steps?: number;
+      setSteps?: (steps: number) => void;
     };
   };
 }
@@ -365,7 +376,7 @@ const ArtStylesDialog = memo(
           {selectedStyles.length > 0 && (
             <View className="px-4 py-2.5 bg-orange-500 border border-white flex-row justify-between items-center absolute bottom-5 self-center w-[90%] rounded-2xl">
               <Text className="text-white font-medium">
-                {selectedStyles.length}{' '}
+                {selectedStyles.length}
                 {selectedStyles.length === 1 ? 'style' : 'styles'} selected
               </Text>
               <TouchableOpacity
@@ -390,12 +401,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const strings = useStrings();
   const navigation = useNavigation();
   const {isDark} = useThemeStore();
+  const {user, updateUser} = useAuthStore();
   const colors = isDark ? theme.dark : theme.light;
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
   const negativePromptRef = useRef<TextInput>(null);
-
   // Create local state that mirrors the parent state
   const [localSelectedStyles, setLocalSelectedStyles] = useState<string[]>(
     params.selectedStyles,
@@ -412,6 +423,19 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [localNegativePrompt, setLocalNegativePrompt] = useState<string>(
     params.negativePrompt,
   );
+
+  // Add new local state for advanced settings
+  const [localEngine, setLocalEngine] = useState<'quantum' | 'nebula'>(
+    params.engine || 'quantum',
+  );
+  const [localGuidance, setLocalGuidance] = useState<number>(
+    params.guidance || 7.5,
+  );
+  const [localSteps, setLocalSteps] = useState<number>(params.steps || 30);
+
+  // Add privacy state
+  const [localImagesPrivateByDefault, setLocalImagesPrivateByDefault] =
+    useState<boolean>(params.imagesPrivateByDefault || false);
 
   const [showSamplerPicker, setShowSamplerPicker] = useState(false);
 
@@ -452,7 +476,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
       setDialogVisible(true);
     }
   }, []);
-
   // Effect to sync parent state changes to local state (if needed)
   useEffect(() => {
     setLocalSelectedStyles(params.selectedStyles);
@@ -462,6 +485,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     setLocalSeed(params.seed);
     setLocalSampler(params.sampler);
     setLocalNegativePrompt(params.negativePrompt);
+    setLocalImagesPrivateByDefault(params.imagesPrivateByDefault || false);
+    // Sync new parameters
+    setLocalEngine(params.engine || 'quantum');
+    setLocalGuidance(params.guidance || 7.5);
+    setLocalSteps(params.steps || 30);
   }, [params]);
 
   // Split art styles into initial and selected that aren't in initial
@@ -508,11 +536,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
       <View className="flex-row items-center justify-between py-3 px-4">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full items-center justify-center"
-          style={{backgroundColor: colors.surface}}>
-          <ArrowBackIcon size={20} color={colors.text} />
+          className="p-2"
+          accessible={true}
+          accessibilityLabel={strings.common.goBack}>
+          <ArrowBackIcon size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{color: colors.text}} className="font-bold text-xl">
+        <Text className="text-xl font-semibold" style={{color: colors.text}}>
           {strings.advancedSettings.title}
         </Text>
         <View style={{width: 40}} />
@@ -530,14 +559,110 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           keyboardDismissMode="none"
           contentInsetAdjustmentBehavior="always"
           removeClippedSubviews={false}>
+          {/* Engine Selection */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
+            <SectionHeader
+              title="AI Engine"
+              showInfoDialog={showInfoDialog}
+              colors={colors}
+            />
+
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => {
+                  setLocalEngine('quantum');
+                  if (params.setEngine) {
+                    params.setEngine('quantum');
+                  }
+                }}
+                style={{
+                  backgroundColor:
+                    localEngine === 'quantum'
+                      ? colors.primary
+                      : colors.background,
+                  elevation: localEngine === 'quantum' ? 8 : 0,
+                }}
+                className="flex-1 p-4 rounded-xl">
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'quantum'
+                        ? isDark
+                          ? colors.text
+                          : 'white'
+                        : colors.text,
+                  }}
+                  className="text-lg font-medium text-center">
+                  Quantum
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'quantum'
+                        ? isDark
+                          ? colors.secondaryText
+                          : 'white'
+                        : colors.secondaryText,
+                  }}
+                  className="text-xs text-center mt-1">
+                  Fast & efficient
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setLocalEngine('nebula');
+                  if (params.setEngine) {
+                    params.setEngine('nebula');
+                  }
+                }}
+                style={{
+                  backgroundColor:
+                    localEngine === 'nebula'
+                      ? colors.primary
+                      : colors.background,
+                  elevation: localEngine === 'nebula' ? 8 : 0,
+                }}
+                className="flex-1 p-4 rounded-xl">
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'nebula'
+                        ? isDark
+                          ? colors.text
+                          : 'white'
+                        : colors.text,
+                  }}
+                  className="text-lg font-medium text-center">
+                  Nebula
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'nebula'
+                        ? isDark
+                          ? colors.secondaryText
+                          : 'white'
+                        : colors.secondaryText,
+                  }}
+                  className="text-xs text-center mt-1">
+                  Advanced control
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Art Styles Section */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: colors.surface}}>
             <SectionHeader
               title={strings.advancedSettings.featureInfo.artStyles.title}
+              feature="artStyles"
               subtitle={strings.advancedSettings.artStylesSubtitle}
-              showInfoDialog={() => showInfoDialog('artStyles')}
+              showInfoDialog={showInfoDialog}
               colors={colors}
             />
 
@@ -552,13 +677,84 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             />
           </View>
 
+          {/* Privacy Settings */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: colors.surface}}>
+            <SectionHeader
+              title={strings.advancedSettings.privacy}
+              feature="defaultPrivacy"
+              showInfoDialog={showInfoDialog}
+              colors={colors}
+            />
+
+            <View className="flex-row justify-between items-center py-2">
+              <View className="flex-1 mr-4">
+                <Text style={{color: colors.text}} className="text-lg">
+                  {strings.advancedSettings.privateByDefault}
+                </Text>
+                <Text style={{color: colors.secondaryText}} className="text-xs">
+                  {strings.advancedSettings.privateByDefaultDescription}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                className="w-14 h-8 rounded-full p-1.5"
+                style={{
+                  backgroundColor: localImagesPrivateByDefault
+                    ? colors.primary
+                    : '#cbd5e1',
+                }}
+                onPress={async () => {
+                  LayoutAnimation.spring();
+                  const newValue = !localImagesPrivateByDefault;
+                  setLocalImagesPrivateByDefault(newValue);
+
+                  // Update parent component if callback exists
+                  if (params.setImagesPrivateByDefault) {
+                    params.setImagesPrivateByDefault(newValue);
+                  }
+
+                  // Update user profile
+                  if (user) {
+                    try {
+                      const updatedUser = await userService.updateProfile(
+                        user.id,
+                        {imagesPrivateByDefault: newValue},
+                      );
+                      if (updatedUser) {
+                        updateUser(updatedUser);
+                      }
+                    } catch (error) {
+                      console.error('Failed to update privacy setting:', error);
+                    }
+                  }
+                }}
+                accessible={true}
+                accessibilityLabel={
+                  localImagesPrivateByDefault
+                    ? strings.advancedSettings.turnOffPrivateHint
+                    : strings.advancedSettings.turnOnPrivateHint
+                }
+                accessibilityRole="switch"
+                accessibilityState={{checked: localImagesPrivateByDefault}}>
+                <View
+                  className={`w-5 h-5 rounded-full bg-white ${
+                    localImagesPrivateByDefault ? 'ml-6' : 'ml-0'
+                  }`}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Quality Toggle */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: colors.surface}}>
             <SectionHeader
-              title={strings.advancedSettings.imageQuality}
-              showInfoDialog={() => showInfoDialog('quality')}
+              title={strings.advancedSettings.featureInfo.quality.title}
+              feature="quality"
+              showInfoDialog={showInfoDialog}
               colors={colors}
             />
 
@@ -939,6 +1135,128 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               />
             </View>
           </View>
+
+          {/* Advanced Controls - Only show for Nebula engine */}
+          {localEngine === 'nebula' && (
+            <View
+              className="py-4 px-3 mt-4 rounded-2xl"
+              style={{backgroundColor: colors.surface}}>
+              <SectionHeader
+                title="Advanced Controls"
+                showInfoDialog={showInfoDialog}
+                colors={colors}
+              />
+              {/* Guidance Scale */}
+              <View className="mb-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text
+                    style={{color: colors.text}}
+                    className="text-base font-medium">
+                    Guidance Scale
+                  </Text>
+                  <Text
+                    style={{color: colors.primary}}
+                    className="text-base font-medium">
+                    {localGuidance}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={event => {
+                    // Simple touch-based slider
+                    const touchX = event.nativeEvent.locationX;
+                    const sliderWidth = 300; // Approximate width
+                    const percentage = Math.max(
+                      0,
+                      Math.min(1, touchX / sliderWidth),
+                    );
+                    const newGuidance =
+                      Math.round((1 + percentage * 19) * 10) / 10;
+                    setLocalGuidance(newGuidance);
+                    if (params.setGuidance) {
+                      params.setGuidance(newGuidance);
+                    }
+                  }}>
+                  <View
+                    className="h-1.5 rounded-full"
+                    style={{backgroundColor: colors.background}}>
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        backgroundColor: colors.primary,
+                        width: `${((localGuidance - 1) / 19) * 100}%`,
+                      }}
+                    />
+                  </View>
+                </TouchableOpacity>
+                <View className="flex-row justify-between mt-1">
+                  <Text
+                    style={{color: colors.secondaryText}}
+                    className="text-xs">
+                    1
+                  </Text>
+                  <Text
+                    style={{color: colors.secondaryText}}
+                    className="text-xs">
+                    20
+                  </Text>
+                </View>
+              </View>
+              {/* Steps */}
+              <View>
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text
+                    style={{color: colors.text}}
+                    className="text-base font-medium">
+                    Steps
+                  </Text>
+                  <Text
+                    style={{color: colors.primary}}
+                    className="text-base font-medium">
+                    {localSteps}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={event => {
+                    // Simple touch-based slider
+                    const touchX = event.nativeEvent.locationX;
+                    const sliderWidth = 300; // Approximate width
+                    const percentage = Math.max(
+                      0,
+                      Math.min(1, touchX / sliderWidth),
+                    );
+                    const newSteps = Math.round(10 + percentage * 90);
+                    setLocalSteps(newSteps);
+                    if (params.setSteps) {
+                      params.setSteps(newSteps);
+                    }
+                  }}>
+                  <View
+                    className="h-1.5 rounded-full"
+                    style={{backgroundColor: colors.background}}>
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        backgroundColor: colors.primary,
+                        width: `${((localSteps - 10) / 90) * 100}%`,
+                      }}
+                    />
+                  </View>
+                </TouchableOpacity>
+                <View className="flex-row justify-between mt-1">
+                  <Text
+                    style={{color: colors.secondaryText}}
+                    className="text-xs">
+                    10
+                  </Text>
+                  <Text
+                    style={{color: colors.secondaryText}}
+                    className="text-xs">
+                    100
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Add extra space at the bottom when keyboard is visible */}
           <View className={keyboardVisible ? 'mb-20' : 'mb-4'} />

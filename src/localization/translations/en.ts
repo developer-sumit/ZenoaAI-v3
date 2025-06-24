@@ -242,6 +242,28 @@ export const en = {
           "Specify what you DON'T want in your image. This helps avoid unwanted elements like extra limbs, distorted faces, or specific objects that might otherwise appear in the generated image.",
       },
     },
+    privacy: 'Privacy Settings',
+    privateByDefault: 'Private Images by Default',
+    privateByDefaultDescription: 'New images will be private and not shared to community',
+    turnOnPrivateHint: 'Turn on private images by default',
+    turnOffPrivateHint: 'Turn off private images by default',
+  },
+
+  community: {
+    title: 'Community',
+    noImages: 'No community images yet',
+    noImagesDescription: 'Be the first to share your creations with the community!',
+    noMatchingImages: 'No matching images found',
+    searchPlaceholder: 'Search by prompt, style, or creator...',
+    searchImages: 'Search community images',
+    searchHint: 'Type to search images by prompt, style, or creator',
+    loadingImages: 'Loading community images...',
+    loadFailed: 'Failed to load community images',
+    imageBy: 'Image by',
+    by: 'by',
+    filterBy: 'Filter by',
+    tryAdjusting: 'Try adjusting your search or filters',
+    clearFilters: 'Clear Filters',
   },
 
   common: {

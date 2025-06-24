@@ -12,7 +12,7 @@ export interface FeedbackData {
   platform: string;
   platformVersion: number;
   deviceModel: string;
-  createdAt: any; // Firebase timestamp
+  createdAt: any;
   status: 'new' | 'reviewed' | 'resolved' | 'closed';
 }
 

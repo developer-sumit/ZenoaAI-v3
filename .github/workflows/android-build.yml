@@ -1,0 +1,165 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+jobs:
+  build:
+    # Only run on push or merged PR events (not on open/update PR)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Make gradlew executable
+        run: |
+          cd android
+          chmod +x ./gradlew
+
+      # Get the version from app.config.ts
+      - name: Extract version from app config
+        id: extract_version
+        run: |
+          VERSION=$(node -e "console.log(require('./src/config/app.config.js').default.version)")
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+
+      # Modify build.gradle to customize APK and AAB filenames
+      - name: Configure custom APK and AAB filenames
+        run: |
+          cat << EOF >> android/app/build.gradle
+
+          // Custom APK/AAB output filename configuration
+          android {
+              applicationVariants.all { variant ->
+                  variant.outputs.all { output ->
+                      def flavor = variant.name
+                      def versionName = variant.versionName.replace('.', '_')
+                      def fileExtension = outputFile.name.endsWith('.aab') ? '.aab' : '.apk'
+                      def splitName = outputFile.name.contains("universal") ? "universal" : 
+                                      outputFile.name.contains("arm64-v8a") ? "arm64-v8a" : 
+                                      outputFile.name.contains("armeabi-v7a") ? "armeabi-v7a" : 
+                                      outputFile.name.contains("x86_64") ? "x86_64" : 
+                                      outputFile.name.contains("x86") ? "x86" : ""
+                      def newName = "zenoa-ai"
+                      
+                      if (splitName != "") {
+                          newName += "-\${splitName}"
+                      }
+                      
+                      newName += "-\${flavor}-v\${variant.versionName}\${fileExtension}"
+                      outputFileName = newName
+                  }
+              }
+          }
+          EOF
+
+      - name: Create .env file
+        run: |
+          echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
+          echo "FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" >> .env
+          echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
+          echo "FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}" >> .env
+          echo "FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> .env
+          echo "FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> .env
+          echo "FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}" >> .env
+          echo "GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}" >> .env
+
+      - name: Create keystore.properties
+        run: |
+          cd android
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > keystore.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> keystore.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> keystore.properties
+          echo "storeFile=zenoa-release-key.keystore" >> keystore.properties
+
+      - name: Decode Keystore
+        run: |
+          cd android/app
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > zenoa-release-key.jks
+
+      - name: Decode google-services.json
+        run: |
+          cd android/app
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > google-services.json
+
+      #   - name: Build Debug APK
+      #     run: |
+      #       cd android
+      #       ./gradlew assembleDebug --no-daemon
+
+      - name: Build Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Build Release Bundle (AAB)
+        run: |
+          cd android
+          ./gradlew bundleRelease --no-daemon
+
+      # Find and upload the renamed debug APKs
+      #   - name: Upload Debug APKs
+      #     uses: actions/upload-artifact@v3
+      #     with:
+      #       name: debug-apks
+      #       path: android/app/build/outputs/apk/debug/zenoa-ai-*-debug-*.apk
+
+      # Find and upload the renamed release APKs
+      - name: Upload Release APKs
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apks
+          path: android/app/build/outputs/apk/release/zenoa-ai-*-release-*.apk
+
+      # Find and upload the renamed release AAB
+      - name: Upload Release Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-bundle
+          path: android/app/build/outputs/bundle/release/zenoa-ai-*-release-*.aab
+
+      # For GitHub Release, use a step to find the actual file paths
+      - name: Find renamed APK and AAB paths
+        id: find_files
+        run: |
+          RELEASE_APK_PATH=$(find android/app/build/outputs/apk/release -name "zenoa-ai-*-release-*.apk" | head -n 1)
+          RELEASE_AAB_PATH=$(find android/app/build/outputs/bundle/release -name "zenoa-ai-*-release-*.aab" | head -n 1)
+          echo "RELEASE_APK_PATH=$RELEASE_APK_PATH" >> $GITHUB_ENV
+          echo "RELEASE_AAB_PATH=$RELEASE_AAB_PATH" >> $GITHUB_ENV
+          echo "Found APK: $RELEASE_APK_PATH"
+          echo "Found AAB: $RELEASE_AAB_PATH"
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' # Only create release on push to main
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: '${{ env.RELEASE_APK_PATH }},${{ env.RELEASE_AAB_PATH }}'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ env.APP_VERSION }}
+          name: 'Zenoa AI v${{ env.APP_VERSION }}'
+          body: 'Release built from commit ${{ github.sha }}'
+          generateReleaseNotes: true
