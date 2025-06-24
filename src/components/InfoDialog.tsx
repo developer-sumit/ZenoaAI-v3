@@ -8,8 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
 
 interface InfoDialogProps {
@@ -28,8 +27,7 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
   message,
 }) => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {isDark, theme} = useTheme();
 
   return (
     <Modal
@@ -43,29 +41,29 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
         onPress={onClose}>
         <Pressable
           className="rounded-3xl p-5 items-center shadow-lg elevation-md"
-          style={{width: width * 0.85, backgroundColor: colors.surface}}
+          style={{width: width * 0.85, backgroundColor: theme.surface}}
           onPress={e => e.stopPropagation()}>
           <Text
             className="text-2xl font-bold mb-2.5 text-center"
-            style={{color: colors.text}}>
+            style={{color: theme.text}}>
             {title}
           </Text>
           <View className="h-[1px] w-full mb-4 bg-[#E2E8F0]" />
           <Text
             className="text-lg mb-4 text-center"
-            style={{color: colors.secondaryText}}>
+            style={{color: theme.secondaryText}}>
             {message}
           </Text>
           <TouchableOpacity
             className="rounded-xl py-3 px-6 elevation-xl"
             style={{
-              backgroundColor: colors.primary,
-              shadowColor: colors.primary,
+              backgroundColor: theme.primary,
+              shadowColor: theme.primary,
             }}
             onPress={onClose}>
             <Text
               className="font-semibold text-center text-lg"
-              style={{color: isDark ? colors.text : 'white'}}>
+              style={{color: isDark ? theme.text : 'white'}}>
               {strings.common.gotIt}
             </Text>
           </TouchableOpacity>

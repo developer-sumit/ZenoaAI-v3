@@ -12,8 +12,7 @@ import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {useToast} from '@masumdev/rn-toast';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import appConfig from '@src/config/app.config';
 import {useAuthStore} from '@src/store/authStore';
 import {useStrings} from '@src/hooks/useStrings';
@@ -28,8 +27,7 @@ import urls from '@src/constants/urls';
 
 const LoginScreen = () => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {isDark, theme} = useTheme();
   const {login} = useAuthStore();
   const {showToast} = useToast();
   const [signingIn, setSigningIn] = React.useState(false);
@@ -105,7 +103,7 @@ const LoginScreen = () => {
   };
 
   return (
-    <View style={{backgroundColor: colors.background}} className="flex-1">
+    <View style={{backgroundColor: theme.background}} className="flex-1">
       {/* Rest of your component remains unchanged */}
       <BlurView
         style={StyleSheet.absoluteFill}
@@ -116,14 +114,14 @@ const LoginScreen = () => {
       {/* Language Selector Button */}
       <View
         className="absolute self-center mt-6 z-10 rounded-full px-1.5 pl-3"
-        style={{backgroundColor: colors.surface}}>
+        style={{backgroundColor: theme.surface}}>
         <TouchableOpacity
           onPress={() => languageSelectorRef.current?.openModal()}
           className="flex-row rounded-full items-center justify-center"
           accessible={true}
           accessibilityLabel={strings.settings.language}
           accessibilityHint={strings.settings.languageHint}>
-          <LanguageIcon size={22} color={colors.primary} />
+          <LanguageIcon size={22} color={theme.primary} />
           <LanguageSelector ref={languageSelectorRef} />
         </TouchableOpacity>
       </View>
@@ -135,17 +133,17 @@ const LoginScreen = () => {
         <View className="items-center mb-16">
           <SparklesIcon
             size={64}
-            color={colors.primary}
+            color={theme.primary}
             style={{marginBottom: 16}}
           />
           <Text
             className="text-4xl font-bold text-center mb-4"
-            style={{color: colors.text}}>
+            style={{color: theme.text}}>
             {appConfig.name}
           </Text>
           <Text
             className="text-lg font-bold text-center mt-2"
-            style={{color: colors.secondaryText}}>
+            style={{color: theme.secondaryText}}>
             {strings.auth.createAmazingImages}
           </Text>
         </View>
@@ -157,7 +155,7 @@ const LoginScreen = () => {
             onPress={handleGoogleSignIn}
             disabled={signingIn}
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: theme.surface,
               opacity: signingIn ? 0.7 : 1,
             }}
             className="flex-row items-center justify-center p-4 rounded-2xl mb-4 shadow-xl"
@@ -166,11 +164,11 @@ const LoginScreen = () => {
             accessibilityHint={strings.auth.continueWithGoogleHint}
             accessibilityState={{disabled: signingIn}}>
             {signingIn ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={theme.primary} />
             ) : (
               <>
-                <GoogleLogoIcon size={24} color={colors.text} />
-                <Text style={{color: colors.text}} className="ml-3 text-lg">
+                <GoogleLogoIcon size={24} color={theme.text} />
+                <Text style={{color: theme.text}} className="ml-3 text-lg">
                   {strings.auth.continueWithGoogle}
                 </Text>
               </>
@@ -179,7 +177,7 @@ const LoginScreen = () => {
 
           {/* Switch Account Note */}
           <Text
-            style={{color: colors.secondaryText}}
+            style={{color: theme.secondaryText}}
             className="text-center text-sm mt-4">
             {strings.auth.switchAccount}
           </Text>
@@ -188,13 +186,13 @@ const LoginScreen = () => {
         {/* Privacy Notice */}
         <Text
           className="text-center text-base px-8 mt-8"
-          style={{color: colors.secondaryText}}>
+          style={{color: theme.secondaryText}}>
           {strings.auth.agreeToTerms}&nbsp;
           <Text
             onPress={() => Linking.openURL(urls.termsOfService)}
             accessible={true}
             accessibilityLabel={strings.settings.termsOfServiceHint}
-            style={{color: colors.primary}}>
+            style={{color: theme.primary}}>
             {strings.settings.termsOfService}
           </Text>
           &nbsp;{strings.common.and}&nbsp;
@@ -202,7 +200,7 @@ const LoginScreen = () => {
             onPress={() => Linking.openURL(urls.privacyPolicy)}
             accessible={true}
             accessibilityLabel={strings.settings.privacyPolicyHint}
-            style={{color: colors.primary}}>
+            style={{color: theme.primary}}>
             {strings.settings.privacyPolicy}
           </Text>
         </Text>

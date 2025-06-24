@@ -11,8 +11,7 @@ import {
 import FastImage from 'react-native-fast-image';
 
 import {GeneratedImage} from '@src/types';
-import {useThemeStore} from '@src/store/themeStore';
-import {theme} from '@src/theme/Theme';
+import {useTheme} from '@src/store/themeStore';
 import SyncIcon from '@src/assets/icons/SyncIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
 import {useStrings} from '@src/hooks/useStrings';
@@ -54,8 +53,7 @@ const SyncIndicator = ({color}: {color: string}) => {
 
 const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
 
@@ -102,21 +100,21 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       {isLoading && !loadError && image.uri !== 'placeholder' && (
         <View
           className="absolute inset-0 justify-center items-center z-10"
-          style={{backgroundColor: colors.surface}}
+          style={{backgroundColor: theme.surface}}
           accessible={true}
           accessibilityLabel={strings.imageViewer.loading}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={theme.primary} />
         </View>
       )}
 
       {loadError && (
         <View
           className="absolute inset-0 justify-center items-center z-10"
-          style={{backgroundColor: colors.surface}}
+          style={{backgroundColor: theme.surface}}
           accessible={true}
           accessibilityLabel={strings.imageViewer.loadingError}>
           <BrokenImageIcon size={32} color="#ef4444" />
-          <Text className="mt-2 text-xs" style={{color: colors.secondaryText}}>
+          <Text className="mt-2 text-xs" style={{color: theme.secondaryText}}>
             {strings.imageViewer.loadingError}
           </Text>
         </View>
@@ -137,11 +135,11 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       ) : (
         <View
           className="justify-center items-center w-full"
-          style={[contentStyle, {backgroundColor: colors.surface}]}
+          style={[contentStyle, {backgroundColor: theme.surface}]}
           accessible={true}
           accessibilityLabel={strings.imageViewer.loading}>
-          <ActivityIndicator color={colors.primary} size="large" />
-          <Text className="mt-2 text-xs" style={{color: colors.secondaryText}}>
+          <ActivityIndicator color={theme.primary} size="large" />
+          <Text className="mt-2 text-xs" style={{color: theme.secondaryText}}>
             {strings.imageViewer.loadingPlaceholder}
           </Text>
         </View>

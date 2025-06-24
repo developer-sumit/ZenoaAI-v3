@@ -15,8 +15,7 @@ import {MasonryFlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 import {useToast} from '@masumdev/rn-toast';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types';
@@ -39,9 +38,8 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
 const GalleryScreen = () => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
+  const {isDark, theme} = useTheme();
   const {user} = useAuthStore();
-  const colors = isDark ? theme.dark : theme.light;
   const {showToast} = useToast();
 
   // Image store
@@ -261,7 +259,7 @@ const GalleryScreen = () => {
               style={{
                 width: item.dimensions.width,
                 height: item.dimensions.height,
-                backgroundColor: colors.surface,
+                backgroundColor: theme.surface,
               }}>
               {item.uri ? (
                 <FastImage
@@ -275,11 +273,11 @@ const GalleryScreen = () => {
               ) : (
                 <View
                   className="flex-1 justify-center items-center"
-                  style={{backgroundColor: colors.surface}}>
-                  <PhotoLibraryIcon size={40} color={colors.secondaryText} />
+                  style={{backgroundColor: theme.surface}}>
+                  <PhotoLibraryIcon size={40} color={theme.secondaryText} />
                   <Text
                     className="text-xs mt-2 text-center px-2"
-                    style={{color: colors.secondaryText}}>
+                    style={{color: theme.secondaryText}}>
                     Image not available
                   </Text>
                 </View>
@@ -324,7 +322,7 @@ const GalleryScreen = () => {
         </View>
       );
     },
-    [colors, handleToggleFavorite, strings],
+    [theme, handleToggleFavorite, strings],
   );
 
   // Empty state component
@@ -333,20 +331,20 @@ const GalleryScreen = () => {
       <View className="flex-1 justify-center items-center px-8">
         {activeTab === 'favorites' ? (
           <>
-            <BookmarkIcon size={60} color={colors.primary} />
+            <BookmarkIcon size={60} color={theme.primary} />
             <Text
               className="text-xl font-bold mt-4 mb-2"
-              style={{color: colors.text}}>
+              style={{color: theme.text}}>
               {strings.gallery.noFavorites}
             </Text>
             <Text
               className="text-base text-center"
-              style={{color: colors.secondaryText}}>
+              style={{color: theme.secondaryText}}>
               {strings.gallery.tapHeart}
             </Text>
             <TouchableOpacity
               className="mt-6 py-2.5 px-6 rounded-xl"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               onPress={() => switchTab('all')}
               accessible={true}
               accessibilityLabel={strings.gallery.viewAllImages}>
@@ -357,17 +355,17 @@ const GalleryScreen = () => {
           </>
         ) : (
           <>
-            <PhotoLibraryIcon size={60} color={colors.primary} />
+            <PhotoLibraryIcon size={60} color={theme.primary} />
             <Text
               className="text-xl font-bold mt-4 mb-2"
-              style={{color: colors.text}}>
+              style={{color: theme.text}}>
               {searchQuery || selectedFilter
                 ? strings.gallery.noMatchingImages
                 : strings.gallery.noImages}
             </Text>
             <Text
               className="text-base text-center"
-              style={{color: colors.secondaryText}}>
+              style={{color: theme.secondaryText}}>
               {searchQuery || selectedFilter
                 ? strings.gallery.tryAdjusting
                 : strings.gallery.imagesAppearHere}
@@ -376,7 +374,7 @@ const GalleryScreen = () => {
             {(searchQuery || selectedFilter) && (
               <TouchableOpacity
                 className="mt-6 py-2.5 px-6 rounded-xl"
-                style={{backgroundColor: colors.primary}}
+                style={{backgroundColor: theme.primary}}
                 onPress={() => {
                   setSearchQuery('');
                   setSelectedFilter(null);
@@ -392,7 +390,7 @@ const GalleryScreen = () => {
         )}
       </View>
     ),
-    [colors, searchQuery, selectedFilter, activeTab, switchTab, strings],
+    [theme, searchQuery, selectedFilter, activeTab, switchTab, strings],
   );
 
   // Animation for tab indicator position
@@ -402,10 +400,10 @@ const GalleryScreen = () => {
   });
 
   return (
-    <View className="flex-1" style={{backgroundColor: colors.background}}>
+    <View className="flex-1" style={{backgroundColor: theme.background}}>
       {/* Header with persistent search */}
       <View className="pt-6 pb-2 px-6">
-        <Text className="text-2xl font-bold mb-4" style={{color: colors.text}}>
+        <Text className="text-2xl font-bold mb-4" style={{color: theme.text}}>
           {strings.gallery.title}
         </Text>
 
@@ -423,7 +421,7 @@ const GalleryScreen = () => {
                 className="text-center font-medium"
                 style={{
                   color:
-                    activeTab === 'all' ? colors.primary : colors.secondaryText,
+                    activeTab === 'all' ? theme.primary : theme.secondaryText,
                 }}>
                 {strings.common.all} ({stats.total})
               </Text>
@@ -441,8 +439,8 @@ const GalleryScreen = () => {
                 style={{
                   color:
                     activeTab === 'favorites'
-                      ? colors.primary
-                      : colors.secondaryText,
+                      ? theme.primary
+                      : theme.secondaryText,
                 }}>
                 {strings.imageViewer.favorite} ({stats.favorites})
               </Text>
@@ -456,7 +454,7 @@ const GalleryScreen = () => {
               bottom: 0,
               width: SCREEN_WIDTH / 2 - 32,
               height: 3,
-              backgroundColor: colors.primary,
+              backgroundColor: theme.primary,
               borderRadius: 3,
               transform: [{translateX}],
               left: 0,
@@ -467,9 +465,9 @@ const GalleryScreen = () => {
         {/* Search Bar */}
         <View
           className="flex-row rounded-2xl overflow-hidden mb-3"
-          style={{backgroundColor: colors.surface}}>
+          style={{backgroundColor: theme.surface}}>
           <View className="px-3 justify-center">
-            <SearchIcon size={20} color={colors.secondaryText} />
+            <SearchIcon size={20} color={theme.secondaryText} />
           </View>
           <TextInput
             value={searchQuery}
@@ -479,9 +477,9 @@ const GalleryScreen = () => {
                 ? strings.gallery.searchFavorites
                 : strings.gallery.searchAll
             }
-            placeholderTextColor={colors.secondaryText}
+            placeholderTextColor={theme.secondaryText}
             className="flex-1 py-3 h-14"
-            style={{color: colors.text}}
+            style={{color: theme.text}}
             accessible={true}
             accessibilityLabel={strings.gallery.searchImages}
             accessibilityHint={strings.gallery.searchHint}
@@ -492,7 +490,7 @@ const GalleryScreen = () => {
               className="px-3 justify-center"
               accessible={true}
               accessibilityLabel={strings.gallery.clearSearch}>
-              <CloseIcon size={18} color={colors.secondaryText} />
+              <CloseIcon size={18} color={theme.secondaryText} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -517,7 +515,7 @@ const GalleryScreen = () => {
                 className="mr-2 py-2 px-3 rounded-full"
                 style={{
                   backgroundColor:
-                    selectedFilter === style ? colors.primary : colors.surface,
+                    selectedFilter === style ? theme.primary : theme.surface,
                 }}
                 accessible={true}
                 accessibilityLabel={`Filter by ${style} style`}
@@ -530,7 +528,7 @@ const GalleryScreen = () => {
                 <Text
                   style={{
                     color:
-                      selectedFilter === style ? 'white' : colors.secondaryText,
+                      selectedFilter === style ? 'white' : theme.secondaryText,
                   }}>
                   {style}
                 </Text>
@@ -543,8 +541,8 @@ const GalleryScreen = () => {
       {/* Gallery Content */}
       {isLoading && !refreshing ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-3" style={{color: colors.text}}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text className="mt-3" style={{color: theme.text}}>
             {strings.imageViewer.loading}
           </Text>
         </View>
@@ -567,8 +565,8 @@ const GalleryScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
             />
           }
           extraData={[isDark, searchQuery, selectedFilter, activeTab]}

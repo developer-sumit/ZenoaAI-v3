@@ -17,15 +17,15 @@ import {Toaster, useToast} from '@masumdev/rn-toast';
 
 import {useAuthStore} from '@src/store/authStore';
 import {userService} from '@src/services/userService';
-import {theme} from '@src/theme/Theme';
 import appConfig from '@src/config/app.config';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
 import {feedbackService} from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
 import {useQuota} from '@src/hooks/useQuota';
+import urls from '@src/constants/urls';
 
 // Icons
 import PersonIcon from '@src/assets/icons/PersonIcon';
@@ -40,7 +40,6 @@ import ShieldIcon from '@src/assets/icons/ShieldIcon';
 import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
-import urls from '@src/constants/urls';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -53,10 +52,9 @@ const ProfileScreen = () => {
   const strings = useStrings();
   const navigation = useNavigation();
   const {user, logout} = useAuthStore();
-  const {isDark, toggleTheme} = useThemeStore();
+  const {isDark, theme, toggleTheme} = useTheme();
   const {showToast} = useToast();
   const {quota, isLoading: quotaLoading} = useQuota();
-  const colors = isDark ? theme.dark : theme.light;
   const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
 
@@ -179,7 +177,7 @@ const ProfileScreen = () => {
             <StarIcon
               size={40}
               color={
-                star <= feedbackRating ? '#F59E0B' : colors.secondaryText + '80'
+                star <= feedbackRating ? '#F59E0B' : theme.secondaryText + '80'
               }
               filled={star <= feedbackRating}
             />
@@ -192,7 +190,7 @@ const ProfileScreen = () => {
   return (
     <Animated.ScrollView
       className="flex-1"
-      style={{backgroundColor: colors.background}}
+      style={{backgroundColor: theme.background}}
       contentContainerClassName="pb-[90px] pt-10 px-5"
       showsVerticalScrollIndicator={false}
       scrollEventThrottle={16}
@@ -208,7 +206,7 @@ const ProfileScreen = () => {
               width: 150,
               height: 150,
               borderRadius: 90 / 2,
-              backgroundColor: colors.primary + '15',
+              backgroundColor: theme.primary + '15',
               marginBottom: 15,
             }}
             resizeMode={FastImage.resizeMode.cover}
@@ -219,14 +217,14 @@ const ProfileScreen = () => {
               width: 150,
               height: 150,
               borderRadius: 75,
-              backgroundColor: colors.primary + '15',
+              backgroundColor: theme.primary + '15',
               marginBottom: 15,
               justifyContent: 'center',
               alignItems: 'center',
             }}>
             <Text
               style={{
-                color: colors.primary,
+                color: theme.primary,
                 fontSize: 48,
                 fontWeight: 'bold',
               }}>
@@ -234,12 +232,12 @@ const ProfileScreen = () => {
             </Text>
           </View>
         )}
-        <Text className="text-3xl font-bold" style={{color: colors.text}}>
+        <Text className="text-3xl font-bold" style={{color: theme.text}}>
           {currentProfile.name}
         </Text>
         <Text
           className="text-white opacity-80 text-sm mt-1"
-          style={{color: colors.text}}>
+          style={{color: theme.text}}>
           {currentProfile.email}
         </Text>
       </View>
@@ -249,13 +247,13 @@ const ProfileScreen = () => {
         {user && quota && !quotaLoading && (
           <View
             className="rounded-3xl mb-6 overflow-hidden shadow-lg mx-0"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <View
               className="px-5 py-4 border-b"
-              style={{borderColor: colors.secondaryText + '20'}}>
+              style={{borderColor: theme.secondaryText + '20'}}>
               <Text
                 className="text-lg font-semibold"
-                style={{color: colors.secondaryText}}>
+                style={{color: theme.secondaryText}}>
                 Usage & Limits
               </Text>
             </View>
@@ -265,24 +263,24 @@ const ProfileScreen = () => {
               <View className="mb-4">
                 <View className="flex-row justify-between items-center mb-2">
                   <Text
-                    style={{color: colors.text}}
+                    style={{color: theme.text}}
                     className="text-base font-medium">
                     Images Remaining
                   </Text>
                   <Text
-                    style={{color: colors.primary}}
+                    style={{color: theme.primary}}
                     className="text-base font-bold">
                     {quota.imagesRemaining}
                   </Text>
                 </View>
                 <View
                   className="h-2 rounded-full"
-                  style={{backgroundColor: colors.background}}>
+                  style={{backgroundColor: theme.background}}>
                   <View
                     className="h-full rounded-full"
                     style={{
                       backgroundColor:
-                        quota.imagesRemaining > 5 ? colors.primary : '#ef4444',
+                        quota.imagesRemaining > 5 ? theme.primary : '#ef4444',
                       width: `${Math.min(
                         (quota.imagesRemaining / 40) * 100,
                         100,
@@ -296,25 +294,25 @@ const ProfileScreen = () => {
               <View className="mb-4">
                 <View className="flex-row justify-between items-center mb-2">
                   <Text
-                    style={{color: colors.text}}
+                    style={{color: theme.text}}
                     className="text-base font-medium">
                     API Calls Remaining
                   </Text>
                   <Text
-                    style={{color: colors.primary}}
+                    style={{color: theme.primary}}
                     className="text-base font-bold">
                     {quota.apiCallsRemaining}
                   </Text>
                 </View>
                 <View
                   className="h-2 rounded-full"
-                  style={{backgroundColor: colors.background}}>
+                  style={{backgroundColor: theme.background}}>
                   <View
                     className="h-full rounded-full"
                     style={{
                       backgroundColor:
                         quota.apiCallsRemaining > 10
-                          ? colors.primary
+                          ? theme.primary
                           : '#ef4444',
                       width: `${Math.min(
                         (quota.apiCallsRemaining / 100) * 100,
@@ -328,7 +326,7 @@ const ProfileScreen = () => {
               {/* Plan Type */}
               <View className="flex-row justify-between items-center">
                 <Text
-                  style={{color: colors.text}}
+                  style={{color: theme.text}}
                   className="text-base font-medium">
                   Plan Type
                 </Text>
@@ -337,16 +335,16 @@ const ProfileScreen = () => {
                   style={{
                     backgroundColor:
                       user.planType === 'free'
-                        ? colors.background
-                        : colors.primary + '20',
+                        ? theme.background
+                        : theme.primary + '20',
                   }}>
                   <Text
                     className="text-sm font-medium capitalize"
                     style={{
                       color:
                         user.planType === 'free'
-                          ? colors.secondaryText
-                          : colors.primary,
+                          ? theme.secondaryText
+                          : theme.primary,
                     }}>
                     {user.planType}
                   </Text>
@@ -359,13 +357,13 @@ const ProfileScreen = () => {
         {/* Account Settings Card */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
-          style={{backgroundColor: colors.surface}}>
+          style={{backgroundColor: theme.surface}}>
           <View
             className="px-5 py-4 border-b"
-            style={{borderColor: colors.secondaryText + '20'}}>
+            style={{borderColor: theme.secondaryText + '20'}}>
             <Text
               className="text-lg font-semibold mb-4"
-              style={{color: colors.secondaryText}}>
+              style={{color: theme.secondaryText}}>
               {strings.settings.account}
             </Text>
           </View>
@@ -373,7 +371,7 @@ const ProfileScreen = () => {
           {/* Edit Profile Option */}
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
-            style={{borderColor: colors.secondaryText + '20'}}
+            style={{borderColor: theme.secondaryText + '20'}}
             onPress={handleEditProfile}
             accessible={true}
             accessibilityLabel={strings.settings.editProfile}
@@ -381,14 +379,14 @@ const ProfileScreen = () => {
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
-                <PersonIcon size={20} color={colors.primary} />
+                style={{backgroundColor: theme.primary + '15'}}>
+                <PersonIcon size={20} color={theme.primary} />
               </View>
-              <Text style={{color: colors.text}} className="text-base">
+              <Text style={{color: theme.text}} className="text-base">
                 {strings.settings.editProfile}
               </Text>
             </View>
-            <ChevronRightIcon size={20} color={colors.secondaryText} />
+            <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
 
           {/* Language Settings */}
@@ -397,15 +395,15 @@ const ProfileScreen = () => {
             accessible={true}
             accessibilityLabel={strings.settings.changeLanguage}
             accessibilityHint={strings.settings.changeLanguageHint}
-            style={{borderColor: colors.secondaryText + '20'}}
+            style={{borderColor: theme.secondaryText + '20'}}
             onPress={() => languageSelectorRef.current?.openModal()}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
-                <LanguageIcon size={20} color={colors.primary} />
+                style={{backgroundColor: theme.primary + '15'}}>
+                <LanguageIcon size={20} color={theme.primary} />
               </View>
-              <Text style={{color: colors.text}} className="text-base">
+              <Text style={{color: theme.text}} className="text-base">
                 {strings.settings.language}
               </Text>
             </View>
@@ -417,20 +415,20 @@ const ProfileScreen = () => {
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
+                style={{backgroundColor: theme.primary + '15'}}>
                 {isDark ? (
-                  <DarkModeIcon size={20} color={colors.primary} />
+                  <DarkModeIcon size={20} color={theme.primary} />
                 ) : (
-                  <LightModeIcon size={20} color={colors.primary} />
+                  <LightModeIcon size={20} color={theme.primary} />
                 )}
               </View>
-              <Text style={{color: colors.text}} className="text-base">
+              <Text style={{color: theme.text}} className="text-base">
                 {strings.settings.darkMode}
               </Text>
             </View>
             <TouchableOpacity
               className="w-14 h-8 rounded-full p-1.5"
-              style={{backgroundColor: isDark ? colors.primary : '#cbd5e1'}}
+              style={{backgroundColor: isDark ? theme.primary : '#cbd5e1'}}
               onPress={toggleTheme}
               accessible={true}
               accessibilityLabel={
@@ -457,13 +455,13 @@ const ProfileScreen = () => {
         {/* Feedback Section */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
-          style={{backgroundColor: colors.surface}}>
+          style={{backgroundColor: theme.surface}}>
           <View
             className="px-5 py-4 border-b"
-            style={{borderColor: colors.secondaryText + '20'}}>
+            style={{borderColor: theme.secondaryText + '20'}}>
             <Text
               className="text-lg font-semibold"
-              style={{color: colors.secondaryText}}>
+              style={{color: theme.secondaryText}}>
               {strings.settings.helpImprove}
             </Text>
           </View>
@@ -477,46 +475,46 @@ const ProfileScreen = () => {
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
-                <FeedbackIcon size={20} color={colors.primary} />
+                style={{backgroundColor: theme.primary + '15'}}>
+                <FeedbackIcon size={20} color={theme.primary} />
               </View>
-              <Text className="text-base" style={{color: colors.text}}>
+              <Text className="text-base" style={{color: theme.text}}>
                 {strings.settings.shareFeedback}
               </Text>
             </View>
-            <ChevronRightIcon size={20} color={colors.secondaryText} />
+            <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
         </View>
 
         {/* About Section */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
-          style={{backgroundColor: colors.surface}}>
+          style={{backgroundColor: theme.surface}}>
           <View
             className="px-5 py-4 border-b"
-            style={{borderColor: colors.secondaryText + '20'}}>
+            style={{borderColor: theme.secondaryText + '20'}}>
             <Text
               className="text-lg font-semibold"
-              style={{color: colors.secondaryText}}>
+              style={{color: theme.secondaryText}}>
               {strings.settings.about}
             </Text>
           </View>
 
           <View
             className="px-5 py-4 border-b"
-            style={{borderColor: colors.secondaryText + '20'}}>
+            style={{borderColor: theme.secondaryText + '20'}}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
-                <InfoOutlineIcon size={20} color={colors.primary} />
+                style={{backgroundColor: theme.primary + '15'}}>
+                <InfoOutlineIcon size={20} color={theme.primary} />
               </View>
               <View>
-                <Text style={{color: colors.text}} className="text-base">
+                <Text style={{color: theme.text}} className="text-base">
                   {appConfig.name} v{appConfig.version}
                 </Text>
                 <Text
-                  style={{color: colors.secondaryText}}
+                  style={{color: theme.secondaryText}}
                   className="text-sm mt-1">
                   {appConfig.author.name}
                 </Text>
@@ -527,7 +525,7 @@ const ProfileScreen = () => {
           {/* Privacy & Terms */}
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
-            style={{borderColor: colors.secondaryText + '20'}}
+            style={{borderColor: theme.secondaryText + '20'}}
             onPress={() => Linking.openURL(urls.privacyPolicy)}
             accessible={true}
             accessibilityLabel={strings.settings.privacyPolicy}
@@ -535,14 +533,14 @@ const ProfileScreen = () => {
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
-                <ShieldIcon size={20} color={colors.primary} />
+                style={{backgroundColor: theme.primary + '15'}}>
+                <ShieldIcon size={20} color={theme.primary} />
               </View>
-              <Text className="text-base" style={{color: colors.text}}>
+              <Text className="text-base" style={{color: theme.text}}>
                 {strings.settings.privacyPolicy}
               </Text>
             </View>
-            <ChevronRightIcon size={20} color={colors.secondaryText} />
+            <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -554,21 +552,21 @@ const ProfileScreen = () => {
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: colors.primary + '15'}}>
-                <ShieldIcon size={20} color={colors.primary} />
+                style={{backgroundColor: theme.primary + '15'}}>
+                <ShieldIcon size={20} color={theme.primary} />
               </View>
-              <Text className="text-base" style={{color: colors.text}}>
+              <Text className="text-base" style={{color: theme.text}}>
                 {strings.settings.termsOfService}
               </Text>
             </View>
-            <ChevronRightIcon size={20} color={colors.secondaryText} />
+            <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
         </View>
 
         {/* Sign Out Button */}
         <TouchableOpacity
           className="rounded-2xl py-4 mb-4 items-center flex-row justify-center shadow-lg"
-          style={{backgroundColor: colors.surface}}
+          style={{backgroundColor: theme.surface}}
           onPress={logout}
           accessible={true}
           accessibilityLabel={strings.auth.signOut}
@@ -595,7 +593,7 @@ const ProfileScreen = () => {
             <View
               className="w-full max-w-md rounded-3xl overflow-hidden"
               style={{
-                backgroundColor: colors.background,
+                backgroundColor: theme.background,
                 shadowColor: '#000',
                 shadowOffset: {width: 0, height: 10},
                 shadowOpacity: 0.2,
@@ -604,29 +602,29 @@ const ProfileScreen = () => {
               }}>
               <View
                 className="w-full h-1"
-                style={{backgroundColor: colors.primary}}
+                style={{backgroundColor: theme.primary}}
               />
               <View className="p-6">
                 <View className="flex-row justify-between items-center mb-4">
                   <Text
                     className="text-2xl font-semibold"
-                    style={{color: colors.text}}>
+                    style={{color: theme.text}}>
                     {strings.settings.shareFeedback}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowFeedbackModal(false)}
                     className="p-1 rounded-full"
-                    style={{backgroundColor: colors.surface}}
+                    style={{backgroundColor: theme.surface}}
                     accessible={true}
                     accessibilityLabel={strings.settings.closeFeedback}
                     accessibilityRole="button">
-                    <CloseIcon size={20} color={colors.text} />
+                    <CloseIcon size={20} color={theme.text} />
                   </TouchableOpacity>
                 </View>
 
                 <Text
                   className="text-base mb-2"
-                  style={{color: colors.secondaryText}}>
+                  style={{color: theme.secondaryText}}>
                   {strings.settings.rateExperience}
                 </Text>
 
@@ -634,7 +632,7 @@ const ProfileScreen = () => {
 
                 <Text
                   className="text-base mb-2 mt-4"
-                  style={{color: colors.secondaryText}}>
+                  style={{color: theme.secondaryText}}>
                   {strings.settings.whatToImprove}
                 </Text>
 
@@ -645,13 +643,13 @@ const ProfileScreen = () => {
                   numberOfLines={5}
                   className="p-4 rounded-xl mb-6 text-base"
                   style={{
-                    backgroundColor: colors.surface,
-                    color: colors.text,
+                    backgroundColor: theme.surface,
+                    color: theme.text,
                     height: 130,
                     textAlignVertical: 'top',
                   }}
                   placeholder={strings.settings.feedbackPlaceholder}
-                  placeholderTextColor={colors.secondaryText}
+                  placeholderTextColor={theme.secondaryText}
                   accessible={true}
                   accessibilityLabel={strings.settings.feedbackPlaceholder}
                   accessibilityHint={strings.settings.feedbackHint}
@@ -659,7 +657,7 @@ const ProfileScreen = () => {
 
                 <TouchableOpacity
                   className="py-4 rounded-xl flex-row items-center justify-center"
-                  style={{backgroundColor: colors.primary}}
+                  style={{backgroundColor: theme.primary}}
                   onPress={handleSubmitFeedback}
                   disabled={submittingFeedback}
                   accessible={true}

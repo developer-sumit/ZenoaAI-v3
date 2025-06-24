@@ -28,7 +28,7 @@ if (
 
 interface PromptSuggestionsProps {
   onSelectPrompt: (prompt: string) => void;
-  colors: any;
+  theme: any;
   visible: boolean;
   setVisible: (visible: boolean) => void;
 }
@@ -76,7 +76,7 @@ const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   onSelectPrompt,
-  colors,
+  theme,
   visible,
   setVisible,
 }) => {
@@ -166,7 +166,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
       <Animated.View
         className="rounded-t-3xl max-h-[80%] pb-8"
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: theme.surface,
           transform: [{translateY: slideAnim}],
           shadowColor: '#000',
           shadowOffset: {width: 0, height: -4},
@@ -182,10 +182,10 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
         {/* Header */}
         <View className="flex-row justify-between items-center px-5 py-4">
           <View className="flex-row items-center">
-            <LightbulbOutlineIcon size={24} color={colors.primary} />
+            <LightbulbOutlineIcon size={24} color={theme.primary} />
             <Text
               className="text-xl font-bold ml-3"
-              style={{color: colors.text}}
+              style={{color: theme.text}}
               accessible={true}
               accessibilityRole="header">
               {strings.home.promptIdeas}
@@ -194,19 +194,19 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
           <TouchableOpacity
             onPress={() => setVisible(false)}
             className="p-2 rounded-full"
-            style={{backgroundColor: colors.background + '80'}}
+            style={{backgroundColor: theme.background + '80'}}
             accessible={true}
             accessibilityLabel={strings.home.closePromptSuggestions}
             accessibilityRole="button"
             accessibilityHint={strings.home.closePromptSuggestions}>
-            <CloseIcon size={20} color={colors.secondaryText} />
+            <CloseIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
         </View>
 
         {/* Introduction text */}
         <Text
           className="text-base mx-5 mb-4"
-          style={{color: colors.secondaryText}}
+          style={{color: theme.secondaryText}}
           accessible={true}
           accessibilityRole="text">
           {strings.home.promptSuggestionsHint}
@@ -229,11 +229,11 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                 style={{
                   backgroundColor:
                     expandedCategory === category.category
-                      ? colors.primary + '15'
-                      : colors.background + '50',
+                      ? theme.primary + '15'
+                      : theme.background + '50',
                   borderColor:
                     expandedCategory === category.category
-                      ? colors.primary + '30'
+                      ? theme.primary + '30'
                       : 'transparent',
                 }}
                 onPress={() => toggleCategory(category.category)}
@@ -252,20 +252,20 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                   <View className="flex-1">
                     <Text
                       className="text-base font-semibold"
-                      style={{color: colors.text}}>
+                      style={{color: theme.text}}>
                       {category.category.split(' ')[1]}
                     </Text>
                     <Text
                       className="text-sm mt-0.5"
-                      style={{color: colors.secondaryText}}>
+                      style={{color: theme.secondaryText}}>
                       {category.description}
                     </Text>
                   </View>
                 </View>
                 {expandedCategory === category.category ? (
-                  <ChevronDownIcon size={20} color={colors.primary} />
+                  <ChevronDownIcon size={20} color={theme.primary} />
                 ) : (
-                  <ChevronRightIcon size={20} color={colors.primary} />
+                  <ChevronRightIcon size={20} color={theme.primary} />
                 )}
               </TouchableOpacity>
 
@@ -278,8 +278,8 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                       onPress={() => handleSelectPrompt(prompt)}
                       className="p-4 rounded-xl flex-row items-center border-l-4 mb-1"
                       style={{
-                        backgroundColor: colors.background + '70',
-                        borderLeftColor: colors.primary,
+                        backgroundColor: theme.background + '70',
+                        borderLeftColor: theme.primary,
                       }}
                       accessible={true}
                       accessibilityRole="button"
@@ -287,14 +287,14 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                       accessibilityHint={strings.home.usePromptHint}>
                       <Text
                         className="text-base leading-6 flex-1"
-                        style={{color: colors.text}}>
+                        style={{color: theme.text}}>
                         {prompt}
                       </Text>
                       <Text
                         className="ml-2 px-2 py-1 rounded-md text-xs font-medium"
                         style={{
-                          backgroundColor: colors.primary + '20',
-                          color: colors.primary,
+                          backgroundColor: theme.primary + '20',
+                          color: theme.primary,
                         }}>
                         {strings.home.usePrompt}
                       </Text>

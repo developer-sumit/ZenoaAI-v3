@@ -1,8 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {View, Animated} from 'react-native';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 
 interface ImageSkeletonProps {
   width: number;
@@ -15,8 +14,7 @@ const ImageSkeleton: React.FC<ImageSkeletonProps> = ({
   height,
   borderRadius = 16,
 }) => {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,7 +40,7 @@ const ImageSkeleton: React.FC<ImageSkeletonProps> = ({
 
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.surface, colors.background],
+    outputRange: [theme.surface, theme.background],
   });
 
   return (
@@ -54,14 +52,14 @@ const ImageSkeleton: React.FC<ImageSkeletonProps> = ({
         className="absolute top-1/2 left-1/2 w-6 h-6 rounded-xl"
         style={{
           transform: [{translateX: -12}, {translateY: -12}],
-          backgroundColor: colors.primary + '30',
+          backgroundColor: theme.primary + '30',
         }}
       />
 
       {/* Corner accent */}
       <View
         className="absolute top-2 right-2 w-2 h-2 rounded-md"
-        style={{backgroundColor: colors.primary + '20'}}
+        style={{backgroundColor: theme.primary + '20'}}
       />
     </Animated.View>
   );

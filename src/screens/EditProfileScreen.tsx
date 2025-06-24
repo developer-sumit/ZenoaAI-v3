@@ -17,8 +17,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useToast} from '@masumdev/rn-toast';
 
 import {User} from '@src/types';
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {userService} from '@src/services/userService';
 import {useStrings} from '@src/hooks/useStrings';
@@ -40,10 +39,9 @@ if (Platform.OS === 'android') {
 const EditProfileScreen = () => {
   const strings = useStrings();
   const navigation = useNavigation();
-  const {isDark} = useThemeStore();
+  const {isDark, theme} = useTheme();
   const {user, logout, updateUser} = useAuthStore();
   const {showToast} = useToast();
-  const colors = isDark ? theme.dark : theme.light;
 
   // Animation references
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -160,8 +158,8 @@ const EditProfileScreen = () => {
     return (
       <View
         className="flex-1 justify-center items-center"
-        style={{backgroundColor: colors.background}}>
-        <Text style={{color: colors.text}}>
+        style={{backgroundColor: theme.background}}>
+        <Text style={{color: theme.text}}>
           {strings.editProfile.pleaseLogin}
         </Text>
       </View>
@@ -172,28 +170,28 @@ const EditProfileScreen = () => {
     <>
       <ScrollView
         className="flex-1"
-        style={{backgroundColor: colors.background}}
+        style={{backgroundColor: theme.background}}
         contentContainerStyle={{paddingBottom: 120}}
         showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-5 flex-row items-center justify-between py-5">
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center"
-            style={{backgroundColor: colors.surface}}
+            style={{backgroundColor: theme.surface}}
             onPress={() => navigation.goBack()}
             accessible={true}
             accessibilityLabel={strings.common.goBack}>
-            <ArrowBackIcon size={20} color={colors.text} />
+            <ArrowBackIcon size={20} color={theme.text} />
           </TouchableOpacity>
           <Text
             className="text-xl font-semibold tracking-tight"
-            style={{color: colors.text}}>
+            style={{color: theme.text}}>
             {strings.editProfile.title}
           </Text>
           <TouchableOpacity
             className="rounded-full px-5 py-2.5"
             style={{
-              backgroundColor: colors.primary,
+              backgroundColor: theme.primary,
               opacity: isSaving ? 0.7 : 1,
             }}
             onPress={saveProfile}
@@ -217,12 +215,12 @@ const EditProfileScreen = () => {
                 style={{
                   width: 150,
                   height: 150,
-                  shadowColor: colors.primary,
+                  shadowColor: theme.primary,
                   shadowOffset: {width: 0, height: 8},
                   shadowOpacity: 0.15,
                   shadowRadius: 16,
                   elevation: 10,
-                  backgroundColor: colors.surface,
+                  backgroundColor: theme.surface,
                 }}>
                 <FastImage
                   source={{uri: photoUri}}
@@ -230,7 +228,7 @@ const EditProfileScreen = () => {
                     width: '100%',
                     height: '100%',
                     borderWidth: 4,
-                    borderColor: colors.surface,
+                    borderColor: theme.surface,
                   }}
                   resizeMode={FastImage.resizeMode.cover}
                 />
@@ -240,9 +238,9 @@ const EditProfileScreen = () => {
               <TouchableOpacity
                 className="absolute bottom-0 right-0 w-12 h-12 rounded-full items-center justify-center"
                 style={{
-                  backgroundColor: colors.primary,
+                  backgroundColor: theme.primary,
                   borderWidth: 3,
-                  borderColor: colors.background,
+                  borderColor: theme.background,
                 }}
                 onPress={handleChangePhoto}
                 accessible={true}
@@ -251,9 +249,7 @@ const EditProfileScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <Text
-              className="text-sm mt-4"
-              style={{color: colors.secondaryText}}>
+            <Text className="text-sm mt-4" style={{color: theme.secondaryText}}>
               {strings.editProfile.tapCamera}
             </Text>
           </View>
@@ -261,13 +257,13 @@ const EditProfileScreen = () => {
           <View className="px-5">
             <View
               className="rounded-3xl mb-6 overflow-hidden shadow-lg"
-              style={{backgroundColor: colors.surface}}>
+              style={{backgroundColor: theme.surface}}>
               <View
                 className="px-5 py-4 border-b"
-                style={{borderColor: colors.secondaryText + '20'}}>
+                style={{borderColor: theme.secondaryText + '20'}}>
                 <Text
                   className="text-lg font-semibold"
-                  style={{color: colors.text}}>
+                  style={{color: theme.text}}>
                   {strings.editProfile.personalInfo}
                 </Text>
               </View>
@@ -275,16 +271,16 @@ const EditProfileScreen = () => {
               {/* Name field */}
               <View
                 className="px-5 py-4 border-b flex-row items-center"
-                style={{borderColor: colors.secondaryText + '20'}}>
+                style={{borderColor: theme.secondaryText + '20'}}>
                 <View
                   className="w-10 h-10 rounded-full items-center justify-center mr-4"
-                  style={{backgroundColor: colors.primary + '15'}}>
-                  <PersonIcon size={20} color={colors.primary} />
+                  style={{backgroundColor: theme.primary + '15'}}>
+                  <PersonIcon size={20} color={theme.primary} />
                 </View>
                 <View className="flex-1">
                   <Text
                     className="text-xs mb-1"
-                    style={{color: colors.secondaryText}}>
+                    style={{color: theme.secondaryText}}>
                     {strings.editProfile.fullName}
                   </Text>
                   <TextInput
@@ -292,12 +288,12 @@ const EditProfileScreen = () => {
                     onChangeText={setName}
                     className="text-base py-1"
                     style={{
-                      color: colors.text,
+                      color: theme.text,
                       borderBottomWidth: 1,
-                      borderBottomColor: colors.secondaryText + '30',
+                      borderBottomColor: theme.secondaryText + '30',
                     }}
                     placeholder={strings.editProfile.yourName}
-                    placeholderTextColor={colors.secondaryText}
+                    placeholderTextColor={theme.secondaryText}
                     accessible={true}
                     accessibilityLabel={strings.editProfile.yourName}
                     accessibilityHint={strings.editProfile.fullNameHint}
@@ -309,23 +305,23 @@ const EditProfileScreen = () => {
               <View className="px-5 py-4 flex-row items-center">
                 <View
                   className="w-10 h-10 rounded-full items-center justify-center mr-4"
-                  style={{backgroundColor: colors.primary + '15'}}>
-                  <EmailIcon size={20} color={colors.primary} />
+                  style={{backgroundColor: theme.primary + '15'}}>
+                  <EmailIcon size={20} color={theme.primary} />
                 </View>
                 <View className="flex-1">
                   <Text
                     className="text-xs mb-1"
-                    style={{color: colors.secondaryText}}>
+                    style={{color: theme.secondaryText}}>
                     {strings.editProfile.email}
                   </Text>
                   <Text
                     className="text-base py-1"
-                    style={{color: colors.secondaryText}}>
+                    style={{color: theme.secondaryText}}>
                     {user?.email || 'Not available'}
                   </Text>
                   <Text
                     className="text-xs mt-1"
-                    style={{color: colors.secondaryText + '80'}}>
+                    style={{color: theme.secondaryText + '80'}}>
                     {strings.editProfile.emailCannotChange}
                   </Text>
                 </View>
@@ -335,13 +331,13 @@ const EditProfileScreen = () => {
             {/* Account Management Card */}
             <View
               className="rounded-3xl mb-6 overflow-hidden shadow-lg"
-              style={{backgroundColor: colors.surface}}>
+              style={{backgroundColor: theme.surface}}>
               <View
                 className="px-5 py-4 border-b"
-                style={{borderColor: colors.secondaryText + '20'}}>
+                style={{borderColor: theme.secondaryText + '20'}}>
                 <Text
                   className="text-lg font-semibold"
-                  style={{color: colors.text}}>
+                  style={{color: theme.text}}>
                   {strings.editProfile.accountManagement}
                 </Text>
               </View>
@@ -364,7 +360,7 @@ const EditProfileScreen = () => {
                   </Text>
                   <Text
                     className="text-xs mt-1"
-                    style={{color: colors.secondaryText}}>
+                    style={{color: theme.secondaryText}}>
                     {strings.editProfile.deleteAccountHint}
                   </Text>
                 </View>
@@ -384,7 +380,7 @@ const EditProfileScreen = () => {
             <View
               className="w-full max-w-md rounded-3xl overflow-hidden"
               style={{
-                backgroundColor: colors.background,
+                backgroundColor: theme.background,
                 shadowColor: '#000',
                 shadowOffset: {width: 0, height: 10},
                 shadowOpacity: 0.2,
@@ -404,12 +400,12 @@ const EditProfileScreen = () => {
                   </View>
                   <Text
                     className="text-2xl font-semibold mb-2 text-center"
-                    style={{color: colors.text}}>
+                    style={{color: theme.text}}>
                     {strings.editProfile.deleteMyAccount}?
                   </Text>
                   <Text
                     className="text-base mb-6 text-center leading-6"
-                    style={{color: colors.secondaryText}}>
+                    style={{color: theme.secondaryText}}>
                     {strings.editProfile.deleteAccountWarning}
                   </Text>
                 </View>
@@ -417,7 +413,7 @@ const EditProfileScreen = () => {
                 <View className="flex-row justify-between">
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
-                    style={{backgroundColor: colors.surface}}
+                    style={{backgroundColor: theme.surface}}
                     onPress={() => setShowDeleteModal(false)}
                     accessible={true}
                     accessibilityLabel={
@@ -425,7 +421,7 @@ const EditProfileScreen = () => {
                     }>
                     <Text
                       className="text-center font-medium"
-                      style={{color: colors.text}}>
+                      style={{color: theme.text}}>
                       {strings.common.cancel}
                     </Text>
                   </TouchableOpacity>
