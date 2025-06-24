@@ -3,9 +3,8 @@ import {View, TouchableOpacity, Text, Platform} from 'react-native';
 import {BottomTabBarProps} from '@react-navigation/bottom-tabs';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {theme} from '@src/theme/Theme';
 import {useStrings} from '@src/hooks/useStrings';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 
 // Icons
 import RobotIcon from '@src/assets/icons/RobotIcon';
@@ -19,12 +18,11 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
   navigation,
 }) => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
   const insets = useSafeAreaInsets();
 
   const getTabIcon = (routeName: string, isFocused: boolean) => {
-    const iconColor = isFocused ? colors.primary : colors.secondaryText + 'bb';
+    const iconColor = isFocused ? theme.primary : theme.secondaryText + 'bb';
     const size = 24;
 
     switch (routeName) {
@@ -60,7 +58,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
     <View
       className="flex-row shadow-lg"
       style={{
-        backgroundColor: colors.surface,
+        backgroundColor: theme.surface,
         paddingVertical: Platform.OS === 'ios' ? insets.bottom : 7,
       }}>
       {state.routes.map((route, index) => {
@@ -96,7 +94,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
             <Text
               className="mt-1 text-sm"
               style={{
-                color: isFocused ? colors.primary : colors.secondaryText + 'bb',
+                color: isFocused ? theme.primary : theme.secondaryText + 'bb',
                 fontWeight: isFocused ? '600' : '400',
               }}>
               {getTabLabel(route.name)}

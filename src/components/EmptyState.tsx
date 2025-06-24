@@ -1,8 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 
 interface EmptyStateProps {
   icon: React.ReactNode;
@@ -20,26 +19,25 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   description,
   actionButton,
 }) => {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
 
   return (
     <View className="flex-1 justify-center items-center px-8">
       {icon}
       <Text
         className="text-xl font-bold mt-4 mb-2 text-center"
-        style={{color: colors.text}}>
+        style={{color: theme.text}}>
         {title}
       </Text>
       <Text
         className="text-base text-center mb-6"
-        style={{color: colors.secondaryText}}>
+        style={{color: theme.secondaryText}}>
         {description}
       </Text>
       {actionButton && (
         <TouchableOpacity
           className="py-3 px-6 rounded-xl"
-          style={{backgroundColor: colors.primary}}
+          style={{backgroundColor: theme.primary}}
           onPress={actionButton.onPress}
           accessible={true}
           accessibilityLabel={actionButton.title}>

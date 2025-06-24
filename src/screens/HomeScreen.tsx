@@ -14,13 +14,12 @@ import {
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
 
-import {theme} from '@src/theme/Theme';
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
 import ImageSkeleton from '@src/components/ImageSkeleton';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useQuota} from '@src/hooks/useQuota';
@@ -49,12 +48,11 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
+  const {theme} = useTheme();
   const {showToast} = useToast();
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
   const route = useRoute();
-  const colors = isDark ? theme.dark : theme.light; // Store hooks
   const {
     images: generatedImages,
     currentGenerationBatch,
@@ -330,14 +328,14 @@ const HomeScreen = () => {
         <View
           className="rounded-2xl overflow-hidden items-center justify-center"
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: theme.surface,
             width: '100%',
             height: imageHeight,
           }}
           accessible={true}
           accessibilityLabel={strings.home.generationFailed}>
           <ErrorOutlineIcon size={40} color="#ef4444" />
-          <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
+          <Text style={{color: theme.secondaryText}} className="text-xs mt-2">
             {strings.home.generationFailed}
           </Text>
         </View>
@@ -363,7 +361,7 @@ const HomeScreen = () => {
       <View className="px-4">
         <View className="flex-row items-center justify-between gap-3">
           <Text
-            style={{color: colors.text}}
+            style={{color: theme.text}}
             className="text-lg font-semibold mb-2 flex-1"
             numberOfLines={1}
             ellipsizeMode="tail">
@@ -373,14 +371,14 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
             className="py-2 px-3 rounded-lg flex-row items-center"
-            style={{backgroundColor: colors.surface}}
+            style={{backgroundColor: theme.surface}}
             accessible={true}
             accessibilityLabel={strings.home.reusePrompt}
             accessibilityHint={strings.home.reusePromptHint}>
-            <RefreshIcon size={16} color={colors.primary} />
+            <RefreshIcon size={16} color={theme.primary} />
             <Text
               style={{
-                color: colors.primary,
+                color: theme.primary,
                 marginLeft: 4,
                 fontWeight: '500',
                 fontSize: 13,
@@ -396,14 +394,14 @@ const HomeScreen = () => {
             {item.parameters.styles.map(style => (
               <TouchableOpacity
                 key={style}
-                style={{backgroundColor: colors.primary + '15'}}
+                style={{backgroundColor: theme.primary + '15'}}
                 onPress={() =>
                   setSelectedStyles(styles => styles.filter(s => s !== style))
                 }
                 className="py-1 px-3 rounded-full flex-row items-center"
                 accessible={true}
                 accessibilityLabel={`Remove ${style} style`}>
-                <Text style={{color: colors.primary}} className="text-xs">
+                <Text style={{color: theme.primary}} className="text-xs">
                   {style}
                 </Text>
               </TouchableOpacity>
@@ -463,12 +461,12 @@ const HomeScreen = () => {
         } ${strings.home.gettingStartedGuide}`}
         accessibilityHint={strings.home.toggleGettingStartedHint}>
         <View className="flex-row items-center">
-          <TipIcon size={20} color={colors.primary} />
-          <Text className="text-lg font-bold ml-2" style={{color: colors.text}}>
+          <TipIcon size={20} color={theme.primary} />
+          <Text className="text-lg font-bold ml-2" style={{color: theme.text}}>
             {strings.home.gettingStartedGuide}
           </Text>
         </View>
-        <Text style={{color: colors.secondaryText, fontSize: 13}}>
+        <Text style={{color: theme.secondaryText, fontSize: 13}}>
           {showOnboarding ? strings.home.hide : strings.home.show}
         </Text>
       </TouchableOpacity>
@@ -477,10 +475,10 @@ const HomeScreen = () => {
       {showOnboarding && (
         <View
           className="rounded-3xl p-5 mb-2"
-          style={{backgroundColor: colors.surface}}>
+          style={{backgroundColor: theme.surface}}>
           <Text
             className="text-base mb-4"
-            style={{color: colors.text, lineHeight: 22}}
+            style={{color: theme.text, lineHeight: 22}}
             accessible={true}
             accessibilityRole="text">
             {strings.home.createStunningImages}
@@ -492,11 +490,11 @@ const HomeScreen = () => {
             accessibilityLabel={`${strings.home.step} 1: ${strings.home.step1}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               importantForAccessibility="no">
               <Text className="text-white font-bold">1</Text>
             </View>
-            <Text style={{color: colors.text, flex: 1}}>
+            <Text style={{color: theme.text, flex: 1}}>
               {strings.home.step1}
             </Text>
           </View>
@@ -507,11 +505,11 @@ const HomeScreen = () => {
             accessibilityLabel={`${strings.home.step} 1: ${strings.home.step2}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               importantForAccessibility="no">
               <Text className="text-white font-bold">2</Text>
             </View>
-            <Text style={{color: colors.text, flex: 1}}>
+            <Text style={{color: theme.text, flex: 1}}>
               {strings.home.step2}
             </Text>
           </View>
@@ -522,11 +520,11 @@ const HomeScreen = () => {
             accessibilityLabel={`${strings.home.step} 1: ${strings.home.step3}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               importantForAccessibility="no">
               <Text className="text-white font-bold">3</Text>
             </View>
-            <Text style={{color: colors.text, flex: 1}}>
+            <Text style={{color: theme.text, flex: 1}}>
               {strings.home.step3}
             </Text>
           </View>
@@ -534,12 +532,12 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => setShowPromptSuggestions(true)}
             className="py-3 rounded-xl items-center"
-            style={{backgroundColor: colors.primary + '20'}}
+            style={{backgroundColor: theme.primary + '20'}}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={strings.home.promptSuggestions}
             accessibilityHint={strings.home.promptSuggestionsHint}>
-            <Text style={{color: colors.primary, fontWeight: '600'}}>
+            <Text style={{color: theme.primary, fontWeight: '600'}}>
               {strings.home.needIdeas}
             </Text>
           </TouchableOpacity>
@@ -548,26 +546,17 @@ const HomeScreen = () => {
     </View>
   );
 
-  const renderLoading = () => (
-    <View className="flex-1 justify-center items-center">
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text className="text-base mt-4" style={{color: colors.text}}>
-        {strings.home.loadingImages}
-      </Text>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
-      style={{backgroundColor: colors.background}}>
+      style={{backgroundColor: theme.background}}>
       <View className="flex-1">
         {/* Header with App Name, Version Badge and Help Icon */}
         <View className="flex-row justify-between items-center p-4">
           <Text
             className="text-3xl font-bold"
-            style={{color: colors.text}}
+            style={{color: theme.text}}
             accessibilityRole="header">
             {appConfig.name}
           </Text>
@@ -576,7 +565,7 @@ const HomeScreen = () => {
             {/* Version badge */}
             <View
               className="py-1 px-3 rounded-full"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               accessible={true}
               accessibilityLabel={`Version ${appConfig.version}`}>
               <Text className="text-xs font-medium text-white">
@@ -588,7 +577,7 @@ const HomeScreen = () => {
             <TouchableOpacity
               onPress={() => setShowOnboarding(!showOnboarding)}
               className="p-2 rounded-full"
-              style={{backgroundColor: colors.surface}}
+              style={{backgroundColor: theme.surface}}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={
@@ -597,7 +586,7 @@ const HomeScreen = () => {
                   : strings.home.show + strings.home.gettingStartedGuide
               }
               accessibilityHint={strings.home.toggleGettingStartedHint}>
-              <InfoIcon size={20} color={colors.primary} />
+              <InfoIcon size={20} color={theme.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -612,7 +601,7 @@ const HomeScreen = () => {
             renderItem={renderGroup}
             ListEmptyComponent={
               <EmptyState
-                icon={<MagicWand size={48} color={colors.primary} />}
+                icon={<MagicWand size={48} color={theme.primary} />}
                 title="No images yet"
                 description="Start creating your first AI-generated image"
               />
@@ -630,7 +619,7 @@ const HomeScreen = () => {
           <View
             className="rounded-3xl shadow-md"
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: theme.surface,
               shadowColor: '#000',
               shadowOffset: {width: 0, height: 2},
               shadowOpacity: 0.1,
@@ -644,7 +633,7 @@ const HomeScreen = () => {
                 placeholder={strings.home.generatePrompt}
                 placeholderTextColor="#94a3b8"
                 className="text-lg p-4 max-h-[120px] flex-1"
-                style={{color: colors.text}}
+                style={{color: theme.text}}
                 multiline
                 numberOfLines={3}
                 accessible={true}
@@ -661,7 +650,7 @@ const HomeScreen = () => {
                 <LightbulbOutlineIcon
                   size={24}
                   color={
-                    prompt.length === 0 ? colors.primary : colors.secondaryText
+                    prompt.length === 0 ? theme.primary : theme.secondaryText
                   }
                 />
               </TouchableOpacity>
@@ -673,7 +662,7 @@ const HomeScreen = () => {
                 {selectedStyles.map(style => (
                   <TouchableOpacity
                     key={style}
-                    style={{backgroundColor: colors.primary + '15'}}
+                    style={{backgroundColor: theme.primary + '15'}}
                     onPress={() =>
                       setSelectedStyles(styles =>
                         styles.filter(s => s !== style),
@@ -684,11 +673,11 @@ const HomeScreen = () => {
                     accessibilityLabel={`Remove ${style} style`}
                     accessibilityRole="button"
                     accessibilityHint={`Tap to remove the ${style} style`}>
-                    <Text style={{color: colors.primary}} className="text-xs">
+                    <Text style={{color: theme.primary}} className="text-xs">
                       {style}
                     </Text>
                     <View className="ml-1.5">
-                      <CloseIcon size={12} color={colors.primary} />
+                      <CloseIcon size={12} color={theme.primary} />
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -697,13 +686,13 @@ const HomeScreen = () => {
 
             <View
               className="flex-row justify-end p-2 border-t gap-2"
-              style={{borderColor: colors.surface}}>
+              style={{borderColor: theme.surface}}>
               <TouchableOpacity
                 onPress={clearInputs}
                 disabled={imageLoading || prompt.trim().length === 0}
                 style={{
                   opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
-                  backgroundColor: colors.surface,
+                  backgroundColor: theme.surface,
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
                 accessible={true}
@@ -713,8 +702,8 @@ const HomeScreen = () => {
                 }}
                 accessibilityRole="button"
                 accessibilityHint={strings.home.clearInputsHint}>
-                <RefreshIcon size={20} color={colors.text} />
-                <Text style={{color: colors.text}} className="ml-2 font-medium">
+                <RefreshIcon size={20} color={theme.text} />
+                <Text style={{color: theme.text}} className="ml-2 font-medium">
                   {strings.common.clear}
                 </Text>
               </TouchableOpacity>
@@ -754,15 +743,15 @@ const HomeScreen = () => {
                   })
                 }
                 className="p-3 rounded-2xl"
-                style={{backgroundColor: colors.primary + '20'}}
+                style={{backgroundColor: theme.primary + '20'}}
                 accessible={true}
                 accessibilityLabel={strings.advancedSettings.title}
                 accessibilityRole="button"
                 accessibilityHint={strings.advancedSettings.title}>
-                <TuneIcon size={24} color={colors.primary} />
+                <TuneIcon size={24} color={theme.primary} />
                 {/* <View
                   className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
-                  style={{backgroundColor: colors.primary}}
+                  style={{backgroundColor: theme.primary}}
                   accessibilityLabel="New feature"></View> */}
               </TouchableOpacity>
               <TouchableOpacity
@@ -770,7 +759,7 @@ const HomeScreen = () => {
                 disabled={imageLoading || prompt.trim().length === 0}
                 style={{
                   opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
-                  backgroundColor: colors.primary,
+                  backgroundColor: theme.primary,
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
                 accessible={true}
@@ -800,7 +789,7 @@ const HomeScreen = () => {
           visible={showPromptSuggestions}
           setVisible={setShowPromptSuggestions}
           onSelectPrompt={handleSelectPrompt}
-          colors={colors}
+          theme={theme}
         />
         {selectedImage && (
           <ImageViewer

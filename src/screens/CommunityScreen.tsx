@@ -14,8 +14,7 @@ import {MasonryFlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 import {useToast} from '@masumdev/rn-toast';
 
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
@@ -36,8 +35,7 @@ const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
 const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
 const CommunityScreen = () => {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
   const {showToast} = useToast();
   // Image store
   const {publicImages, isLoadingPublic, fetchPublicImages, toggleFavorite} =
@@ -170,7 +168,8 @@ const CommunityScreen = () => {
     const defaultHeight = COLUMN_WIDTH / aspectRatio;
     console.log(`Image ${item.id}: using default height: ${defaultHeight}`);
     return defaultHeight;
-  };  const renderImageItem = ({item}: {item: GeneratedImage}) => {
+  };
+  const renderImageItem = ({item}: {item: GeneratedImage}) => {
     const imageHeight = calculateImageHeight(item);
 
     return (
@@ -188,7 +187,7 @@ const CommunityScreen = () => {
               {
                 width: COLUMN_WIDTH,
                 height: imageHeight,
-                backgroundColor: colors.surface,
+                backgroundColor: theme.surface,
               },
             ]}
             resizeMode={FastImage.resizeMode.cover}
@@ -198,12 +197,12 @@ const CommunityScreen = () => {
           <View
             style={[
               styles.imageOverlay,
-              {backgroundColor: colors.surface + '90'},
+              {backgroundColor: theme.surface + '90'},
             ]}>
             <View style={styles.imageInfo}>
               <View style={styles.userInfo}>
-                <PersonIcon size={16} color={colors.text} />
-                <Text style={[styles.userName, {color: colors.text}]}>
+                <PersonIcon size={16} color={theme.text} />
+                <Text style={[styles.userName, {color: theme.text}]}>
                   {item.userName || 'Anonymous'}
                 </Text>
               </View>
@@ -223,7 +222,7 @@ const CommunityScreen = () => {
 
   const renderEmptyState = () => (
     <EmptyState
-      icon={<CommunityIcon size={64} color={colors.secondaryText} />}
+      icon={<CommunityIcon size={64} color={theme.secondaryText} />}
       title="No Community Images"
       description={
         searchQuery
@@ -234,19 +233,19 @@ const CommunityScreen = () => {
   );
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.background}]}>
+    <View style={[styles.container, {backgroundColor: theme.background}]}>
       {/* Header */}
-      <View style={[styles.header, {backgroundColor: colors.background}]}>
-        <Text style={[styles.title, {color: colors.text}]}>Community</Text>
+      <View style={[styles.header, {backgroundColor: theme.background}]}>
+        <Text style={[styles.title, {color: theme.text}]}>Community</Text>
       </View>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, {backgroundColor: colors.surface}]}>
-          <SearchIcon size={20} color={colors.secondaryText} />
+        <View style={[styles.searchBar, {backgroundColor: theme.surface}]}>
+          <SearchIcon size={20} color={theme.secondaryText} />
           <TextInput
-            style={[styles.searchInput, {color: colors.text}]}
+            style={[styles.searchInput, {color: theme.text}]}
             placeholder="Search images, prompts, or users..."
-            placeholderTextColor={colors.secondaryText}
+            placeholderTextColor={theme.secondaryText}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -257,7 +256,7 @@ const CommunityScreen = () => {
               accessible={true}
               accessibilityLabel="Clear search"
               accessibilityRole="button">
-              <CloseIcon size={16} color={colors.secondaryText} />
+              <CloseIcon size={16} color={theme.secondaryText} />
             </TouchableOpacity>
           )}
         </View>
@@ -265,11 +264,12 @@ const CommunityScreen = () => {
       {/* Images Grid */}
       {isLoadingPublic && filteredImages.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, {color: colors.secondaryText}]}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, {color: theme.secondaryText}]}>
             Loading community images...
           </Text>
-        </View>      ) : filteredImages.length > 0 ? (
+        </View>
+      ) : filteredImages.length > 0 ? (
         <MasonryFlashList
           data={filteredImages}
           numColumns={NUM_COLUMNS}
@@ -280,8 +280,8 @@ const CommunityScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
             />
           }
           onEndReached={handleLoadMore}
@@ -289,7 +289,7 @@ const CommunityScreen = () => {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.loadMoreContainer}>
-                <ActivityIndicator size="small" color={colors.primary} />
+                <ActivityIndicator size="small" color={theme.primary} />
               </View>
             ) : null
           }
@@ -367,7 +367,8 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     marginTop: 16,
-  },  gridContent: {
+  },
+  gridContent: {
     paddingHorizontal: SPACING,
     paddingBottom: 100,
   },

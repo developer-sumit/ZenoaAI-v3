@@ -24,13 +24,12 @@ import {useNavigation} from '@react-navigation/native';
 import {FlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 
-import {theme} from '@src/theme/Theme';
 import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
 import {useStrings} from '@src/hooks/useStrings';
 import {useAuthStore} from '@src/store/authStore';
 import {userService} from '@src/services/userService';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {ArtStyleType, AspectRatioSizeType, AspectRatioType} from '@src/types';
 import InfoDialog from '@src/components/InfoDialog';
 
@@ -87,12 +86,12 @@ const StyleItem = memo(
     item,
     isSelected,
     onToggle,
-    colors,
+    theme,
   }: {
     item: ArtStyleType;
     isSelected: boolean;
     onToggle: () => void;
-    colors: any;
+    theme: any;
     isDark: boolean;
   }) => (
     <TouchableOpacity
@@ -104,8 +103,8 @@ const StyleItem = memo(
           className="w-full h-full rounded-2xl overflow-hidden"
           style={{
             borderWidth: isSelected ? 3 : 0,
-            borderColor: colors.primary,
-            shadowColor: colors.primary,
+            borderColor: theme.primary,
+            shadowColor: theme.primary,
             elevation: isSelected ? 8 : 0,
           }}>
           <FastImage
@@ -122,7 +121,7 @@ const StyleItem = memo(
         {isSelected && (
           <View className="h-full w-full bg-black/30 absolute rounded-2xl items-center justify-center overflow-hidden">
             <View
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               className="rounded-full p-3">
               <CheckmarkIcon size={40} color="white" />
             </View>
@@ -131,7 +130,7 @@ const StyleItem = memo(
       </View>
       <Text
         className="font-medium mt-1 text-center text-base"
-        style={{color: colors.text}}>
+        style={{color: theme.text}}>
         {item.name}
       </Text>
     </TouchableOpacity>
@@ -141,7 +140,7 @@ const StyleItem = memo(
     return (
       prevProps.item === nextProps.item &&
       prevProps.isSelected === nextProps.isSelected &&
-      prevProps.colors === nextProps.colors &&
+      prevProps.theme === nextProps.theme &&
       prevProps.isDark === nextProps.isDark
     );
   },
@@ -152,28 +151,28 @@ const SectionHeader = memo(
     title,
     subtitle,
     showInfoDialog,
-    colors,
+    theme,
   }: {
     title: string;
     subtitle?: string;
     showInfoDialog: (title: string) => void;
-    colors: any;
+    theme: any;
   }) => (
     <>
       <View className="flex-row items-center mb-2">
         <Text
-          style={{color: colors.secondaryText}}
+          style={{color: theme.secondaryText}}
           className="text-lg font-medium mr-2">
           {title}
         </Text>
         <TouchableOpacity
           onPress={() => showInfoDialog(title)}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <InfoIcon size={18} color={colors.secondaryText} />
+          <InfoIcon size={18} color={theme.secondaryText} />
         </TouchableOpacity>
       </View>
       {subtitle && (
-        <Text style={{color: colors.secondaryText}} className="text-sm mb-3">
+        <Text style={{color: theme.secondaryText}} className="text-sm mb-3">
           {subtitle}
         </Text>
       )}
@@ -186,7 +185,7 @@ const StylesGrid = memo(
     data,
     selectedStyles,
     toggleStyle,
-    colors,
+    theme,
     isDark,
     showButton = false,
     onShowAllPress = () => {},
@@ -196,7 +195,7 @@ const StylesGrid = memo(
     data: ArtStyleType[];
     selectedStyles: string[];
     toggleStyle: (name: string) => void;
-    colors: any;
+    theme: any;
     isDark: boolean;
     showButton?: boolean;
     onShowAllPress?: () => void;
@@ -212,11 +211,11 @@ const StylesGrid = memo(
           item={item}
           isSelected={selectedStyles.includes(item.name)}
           onToggle={() => toggleStyle(item.name)}
-          colors={colors}
+          theme={theme}
           isDark={isDark}
         />
       ),
-      [data, selectedStyles, toggleStyle, colors, isDark],
+      [data, selectedStyles, toggleStyle, theme, isDark],
     );
 
     const keyExtractor = useCallback((item: ArtStyleType) => item.id, []);
@@ -242,14 +241,14 @@ const StylesGrid = memo(
         {showButton && (
           <TouchableOpacity
             onPress={onShowAllPress}
-            style={{backgroundColor: colors.background}}
+            style={{backgroundColor: theme.background}}
             className="p-3 mt-2 rounded-2xl flex-row justify-center items-center">
             <Text
-              style={{color: colors.primary}}
+              style={{color: theme.primary}}
               className="font-bold text-base">
               {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
             </Text>
-            <ChevronDownIcon size={16} color={colors.primary} />
+            <ChevronDownIcon size={16} color={theme.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -259,7 +258,7 @@ const StylesGrid = memo(
     return (
       prevProps.data === nextProps.data &&
       prevProps.selectedStyles === nextProps.selectedStyles &&
-      prevProps.colors === nextProps.colors &&
+      prevProps.theme === nextProps.theme &&
       prevProps.isDark === nextProps.isDark &&
       prevProps.showButton === nextProps.showButton
     );
@@ -270,14 +269,14 @@ const ArtStylesDialog = memo(
   ({
     visible,
     onClose,
-    colors,
+    theme,
     isDark,
     selectedStyles,
     toggleStyle,
   }: {
     visible: boolean;
     onClose: () => void;
-    colors: typeof theme.light | typeof theme.dark;
+    theme: any;
     isDark: boolean;
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
@@ -305,16 +304,16 @@ const ArtStylesDialog = memo(
         onRequestClose={onClose}>
         <SafeAreaView
           className="flex-1"
-          style={{backgroundColor: colors.background}}>
+          style={{backgroundColor: theme.background}}>
           {/* Header */}
           <View className="flex-row items-center justify-between p-4">
             <TouchableOpacity
               onPress={onClose}
               className="w-10 h-10 rounded-full items-center justify-center"
-              style={{backgroundColor: colors.surface}}>
-              <ArrowBackIcon size={20} color={colors.text} />
+              style={{backgroundColor: theme.surface}}>
+              <ArrowBackIcon size={20} color={theme.text} />
             </TouchableOpacity>
-            <Text style={{color: colors.text}} className="font-bold text-xl">
+            <Text style={{color: theme.text}} className="font-bold text-xl">
               {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
             </Text>
             <View style={{width: 40}} />
@@ -323,15 +322,15 @@ const ArtStylesDialog = memo(
           {/* Search Bar */}
           <View
             className="mx-4 my-3 rounded-xl flex-row items-center px-3"
-            style={{backgroundColor: colors.surface}}>
-            <SearchIcon size={28} color={colors.secondaryText} />
+            style={{backgroundColor: theme.surface}}>
+            <SearchIcon size={28} color={theme.secondaryText} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}...`}
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor={theme.secondaryText}
               className="flex-1 py-3 px-2 h-12 text-lg"
-              style={{color: colors.text}}
+              style={{color: theme.text}}
               autoCapitalize="none"
               autoCorrect={false}
               clearButtonMode="while-editing"
@@ -347,7 +346,7 @@ const ArtStylesDialog = memo(
                 accessible={true}
                 accessibilityLabel={`${strings.common.clear} ${strings.advancedSettings.featureInfo.artStyles.title}`}
                 accessibilityRole="button">
-                <CloseIcon size={18} color={colors.secondaryText} />
+                <CloseIcon size={18} color={theme.secondaryText} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -358,14 +357,14 @@ const ArtStylesDialog = memo(
               data={filteredStyles}
               selectedStyles={selectedStyles}
               toggleStyle={toggleStyle}
-              colors={colors}
+              theme={theme}
               isDark={isDark}
               scrollEnabled={true}
             />
           ) : (
             <View className="flex-1 justify-center items-center p-4">
               <Text
-                style={{color: colors.secondaryText}}
+                style={{color: theme.secondaryText}}
                 className="text-lg text-center">
                 No styles found matching "{searchQuery}"
               </Text>
@@ -400,9 +399,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const params = route.params;
   const strings = useStrings();
   const navigation = useNavigation();
-  const {isDark} = useThemeStore();
+  const {isDark, theme} = useTheme();
   const {user, updateUser} = useAuthStore();
-  const colors = isDark ? theme.dark : theme.light;
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
@@ -476,6 +474,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
       setDialogVisible(true);
     }
   }, []);
+
   // Effect to sync parent state changes to local state (if needed)
   useEffect(() => {
     setLocalSelectedStyles(params.selectedStyles);
@@ -530,7 +529,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
 
   return (
     <SafeAreaView
-      style={{backgroundColor: colors.background}}
+      style={{backgroundColor: theme.background}}
       className="flex-1">
       {/* Header */}
       <View className="flex-row items-center justify-between py-3 px-4">
@@ -539,9 +538,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           className="p-2"
           accessible={true}
           accessibilityLabel={strings.common.goBack}>
-          <ArrowBackIcon size={24} color={colors.text} />
+          <ArrowBackIcon size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{color: colors.text}}>
+        <Text className="text-xl font-semibold" style={{color: theme.text}}>
           {strings.advancedSettings.title}
         </Text>
         <View style={{width: 40}} />
@@ -562,11 +561,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Engine Selection */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title="AI Engine"
               showInfoDialog={showInfoDialog}
-              colors={colors}
+              theme={theme}
             />
 
             <View className="flex-row gap-2">
@@ -580,8 +579,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 style={{
                   backgroundColor:
                     localEngine === 'quantum'
-                      ? colors.primary
-                      : colors.background,
+                      ? theme.primary
+                      : theme.background,
                   elevation: localEngine === 'quantum' ? 8 : 0,
                 }}
                 className="flex-1 p-4 rounded-xl">
@@ -590,9 +589,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     color:
                       localEngine === 'quantum'
                         ? isDark
-                          ? colors.text
+                          ? theme.text
                           : 'white'
-                        : colors.text,
+                        : theme.text,
                   }}
                   className="text-lg font-medium text-center">
                   Quantum
@@ -602,9 +601,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     color:
                       localEngine === 'quantum'
                         ? isDark
-                          ? colors.secondaryText
+                          ? theme.secondaryText
                           : 'white'
-                        : colors.secondaryText,
+                        : theme.secondaryText,
                   }}
                   className="text-xs text-center mt-1">
                   Fast & efficient
@@ -620,9 +619,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 }}
                 style={{
                   backgroundColor:
-                    localEngine === 'nebula'
-                      ? colors.primary
-                      : colors.background,
+                    localEngine === 'nebula' ? theme.primary : theme.background,
                   elevation: localEngine === 'nebula' ? 8 : 0,
                 }}
                 className="flex-1 p-4 rounded-xl">
@@ -631,9 +628,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     color:
                       localEngine === 'nebula'
                         ? isDark
-                          ? colors.text
+                          ? theme.text
                           : 'white'
-                        : colors.text,
+                        : theme.text,
                   }}
                   className="text-lg font-medium text-center">
                   Nebula
@@ -643,9 +640,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     color:
                       localEngine === 'nebula'
                         ? isDark
-                          ? colors.secondaryText
+                          ? theme.secondaryText
                           : 'white'
-                        : colors.secondaryText,
+                        : theme.secondaryText,
                   }}
                   className="text-xs text-center mt-1">
                   Advanced control
@@ -657,20 +654,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Art Styles Section */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title={strings.advancedSettings.featureInfo.artStyles.title}
               feature="artStyles"
               subtitle={strings.advancedSettings.artStylesSubtitle}
               showInfoDialog={showInfoDialog}
-              colors={colors}
+              theme={theme}
             />
 
             <StylesGrid
               data={stylesToShow}
               selectedStyles={localSelectedStyles}
               toggleStyle={toggleStyle}
-              colors={colors}
+              theme={theme}
               isDark={isDark}
               showButton={true}
               onShowAllPress={() => setArtStylesDialogVisible(true)}
@@ -680,20 +677,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Privacy Settings */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title={strings.advancedSettings.privacy}
               feature="defaultPrivacy"
               showInfoDialog={showInfoDialog}
-              colors={colors}
+              theme={theme}
             />
 
             <View className="flex-row justify-between items-center py-2">
               <View className="flex-1 mr-4">
-                <Text style={{color: colors.text}} className="text-lg">
+                <Text style={{color: theme.text}} className="text-lg">
                   {strings.advancedSettings.privateByDefault}
                 </Text>
-                <Text style={{color: colors.secondaryText}} className="text-xs">
+                <Text style={{color: theme.secondaryText}} className="text-xs">
                   {strings.advancedSettings.privateByDefaultDescription}
                 </Text>
               </View>
@@ -702,7 +699,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
                   backgroundColor: localImagesPrivateByDefault
-                    ? colors.primary
+                    ? theme.primary
                     : '#cbd5e1',
                 }}
                 onPress={async () => {
@@ -750,20 +747,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Quality Toggle */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title={strings.advancedSettings.featureInfo.quality.title}
               feature="quality"
               showInfoDialog={showInfoDialog}
-              colors={colors}
+              theme={theme}
             />
 
             <View className="flex-row justify-between items-center py-2">
               <View>
-                <Text style={{color: colors.text}} className="text-lg">
+                <Text style={{color: theme.text}} className="text-lg">
                   {strings.advancedSettings.premiumImages}
                 </Text>
-                <Text style={{color: colors.secondaryText}} className="text-xs">
+                <Text style={{color: theme.secondaryText}} className="text-xs">
                   {strings.advancedSettings.generateHigherQualityImages}
                 </Text>
               </View>
@@ -772,7 +769,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
                   backgroundColor:
-                    localQuality === 50 ? colors.primary : '#cbd5e1',
+                    localQuality === 50 ? theme.primary : '#cbd5e1',
                 }}
                 onPress={() => {
                   LayoutAnimation.spring();
@@ -800,11 +797,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Batch Count */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title={strings.advancedSettings.featureInfo.batchCount.title}
               showInfoDialog={() => showInfoDialog('batchCount')}
-              colors={colors}
+              theme={theme}
             />
 
             <View className="flex-row flex-wrap gap-2">
@@ -819,9 +816,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   style={{
                     backgroundColor:
                       localNumberOfImages === count
-                        ? colors.primary
-                        : colors.background,
-                    shadowColor: colors.primary,
+                        ? theme.primary
+                        : theme.background,
+                    shadowColor: theme.primary,
                     elevation: localNumberOfImages === count ? 8 : 0,
                     minWidth: 55,
                     width: '15%',
@@ -832,9 +829,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       color:
                         localNumberOfImages === count
                           ? isDark
-                            ? colors.text
+                            ? theme.text
                             : 'white'
-                          : colors.secondaryText,
+                          : theme.secondaryText,
                     }}
                     className="text-lg">
                     {count}
@@ -847,13 +844,13 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Aspect Ratio and Size */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             {/* Aspect Ratio Section */}
             <View className="mb-5">
               <SectionHeader
                 title={strings.advancedSettings.featureInfo.aspectRatio.title}
                 showInfoDialog={() => showInfoDialog('aspectRatio')}
-                colors={colors}
+                theme={theme}
               />
 
               <View className="flex-row flex-wrap gap-2">
@@ -896,9 +893,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       style={{
                         backgroundColor:
                           localAspectRatio.ratio === ratio.ratio
-                            ? colors.primary
-                            : colors.background,
-                        shadowColor: colors.primary,
+                            ? theme.primary
+                            : theme.background,
+                        shadowColor: theme.primary,
                         elevation:
                           localAspectRatio.ratio === ratio.ratio ? 8 : 0,
                       }}
@@ -915,9 +912,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                             borderColor:
                               localAspectRatio.ratio === ratio.ratio
                                 ? isDark
-                                  ? colors.text
+                                  ? theme.text
                                   : 'white'
-                                : colors.secondaryText,
+                                : theme.secondaryText,
                             borderRadius: 3,
                           }}
                         />
@@ -927,9 +924,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           color:
                             localAspectRatio.ratio === ratio.ratio
                               ? isDark
-                                ? colors.text
+                                ? theme.text
                                 : 'white'
-                              : colors.secondaryText,
+                              : theme.secondaryText,
                           textAlign: 'center',
                         }}
                         className="text-base font-medium">
@@ -946,7 +943,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               <SectionHeader
                 title={strings.advancedSettings.featureInfo.imageSize.title}
                 showInfoDialog={() => showInfoDialog('imageSize')}
-                colors={colors}
+                theme={theme}
               />
 
               <View className="flex-row gap-2">
@@ -966,9 +963,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       style={{
                         backgroundColor:
                           localAspectRatio.size === size
-                            ? colors.primary
-                            : colors.background,
-                        shadowColor: colors.primary,
+                            ? theme.primary
+                            : theme.background,
+                        shadowColor: theme.primary,
                         elevation: localAspectRatio.size === size ? 8 : 0,
                       }}
                       className="flex-1 p-3 rounded-xl">
@@ -977,9 +974,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           color:
                             localAspectRatio.size === size
                               ? isDark
-                                ? colors.text
+                                ? theme.text
                                 : 'white'
-                              : colors.secondaryText,
+                              : theme.secondaryText,
                         }}
                         className="text-center text-lg">
                         {strings.common[size as keyof typeof strings.common] ||
@@ -990,9 +987,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           color:
                             localAspectRatio.size === size
                               ? isDark
-                                ? colors.text
+                                ? theme.text
                                 : 'white'
-                              : colors.secondaryText,
+                              : theme.secondaryText,
                         }}
                         className="text-center text-sm">
                         {resolution}
@@ -1007,13 +1004,13 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Sampler, Seed, and Negative Prompt */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             {/* Sampler Picker */}
             <View className="mb-5">
               <SectionHeader
                 title={strings.advancedSettings.featureInfo.sampler.title}
                 showInfoDialog={() => showInfoDialog('sampler')}
-                colors={colors}
+                theme={theme}
               />
 
               <TouchableOpacity
@@ -1023,14 +1020,14 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   );
                   setShowSamplerPicker(!showSamplerPicker);
                 }}
-                style={{backgroundColor: colors.background}}
+                style={{backgroundColor: theme.background}}
                 className="p-4 rounded-xl flex-row justify-between items-center">
-                <Text style={{color: colors.text}} className="text-lg">
+                <Text style={{color: theme.text}} className="text-lg">
                   {localSampler}
                 </Text>
                 <ChevronDownIcon
                   size={16}
-                  color={colors.secondaryText}
+                  color={theme.secondaryText}
                   style={{
                     transform: [
                       {rotate: showSamplerPicker ? '180deg' : '0deg'},
@@ -1041,7 +1038,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
 
               {showSamplerPicker && (
                 <View
-                  style={{backgroundColor: colors.background}}
+                  style={{backgroundColor: theme.background}}
                   className="mt-2 rounded-xl overflow-hidden">
                   {params.samplers.map((s, index) => (
                     <TouchableOpacity
@@ -1053,8 +1050,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                         setShowSamplerPicker(false);
                       }}
                       className="p-4 border-b"
-                      style={{borderColor: colors.surface}}>
-                      <Text style={{color: colors.text}} className="text-base">
+                      style={{borderColor: theme.surface}}>
+                      <Text style={{color: theme.text}} className="text-base">
                         {s}
                       </Text>
                     </TouchableOpacity>
@@ -1068,7 +1065,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               <SectionHeader
                 title={strings.advancedSettings.featureInfo.seed.title}
                 showInfoDialog={() => showInfoDialog('seed')}
-                colors={colors}
+                theme={theme}
               />
 
               <TextInput
@@ -1081,7 +1078,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 placeholder={strings.advancedSettings.seedPlaceholder}
                 keyboardType="numeric"
                 className="p-4 rounded-xl text-lg"
-                style={{backgroundColor: colors.background, color: colors.text}}
+                style={{backgroundColor: theme.background, color: theme.text}}
                 placeholderTextColor="#6B7280"
                 accessible={true}
                 accessibilityLabel={
@@ -1102,7 +1099,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   strings.advancedSettings.featureInfo.negativePrompt.title
                 }
                 showInfoDialog={() => showInfoDialog('negativePrompt')}
-                colors={colors}
+                theme={theme}
               />
 
               <TextInput
@@ -1118,8 +1115,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 className="p-4 rounded-xl text-lg"
                 textAlignVertical="top"
                 style={{
-                  backgroundColor: colors.background,
-                  color: colors.text,
+                  backgroundColor: theme.background,
+                  color: theme.text,
                   minHeight: 100,
                 }}
                 placeholderTextColor="#6B7280"
@@ -1140,22 +1137,22 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {localEngine === 'nebula' && (
             <View
               className="py-4 px-3 mt-4 rounded-2xl"
-              style={{backgroundColor: colors.surface}}>
+              style={{backgroundColor: theme.surface}}>
               <SectionHeader
                 title="Advanced Controls"
                 showInfoDialog={showInfoDialog}
-                colors={colors}
+                theme={theme}
               />
               {/* Guidance Scale */}
               <View className="mb-4">
                 <View className="flex-row justify-between items-center mb-2">
                   <Text
-                    style={{color: colors.text}}
+                    style={{color: theme.text}}
                     className="text-base font-medium">
                     Guidance Scale
                   </Text>
                   <Text
-                    style={{color: colors.primary}}
+                    style={{color: theme.primary}}
                     className="text-base font-medium">
                     {localGuidance}
                   </Text>
@@ -1178,11 +1175,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   }}>
                   <View
                     className="h-1.5 rounded-full"
-                    style={{backgroundColor: colors.background}}>
+                    style={{backgroundColor: theme.background}}>
                     <View
                       className="h-full rounded-full"
                       style={{
-                        backgroundColor: colors.primary,
+                        backgroundColor: theme.primary,
                         width: `${((localGuidance - 1) / 19) * 100}%`,
                       }}
                     />
@@ -1190,12 +1187,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 </TouchableOpacity>
                 <View className="flex-row justify-between mt-1">
                   <Text
-                    style={{color: colors.secondaryText}}
+                    style={{color: theme.secondaryText}}
                     className="text-xs">
                     1
                   </Text>
                   <Text
-                    style={{color: colors.secondaryText}}
+                    style={{color: theme.secondaryText}}
                     className="text-xs">
                     20
                   </Text>
@@ -1205,12 +1202,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               <View>
                 <View className="flex-row justify-between items-center mb-2">
                   <Text
-                    style={{color: colors.text}}
+                    style={{color: theme.text}}
                     className="text-base font-medium">
                     Steps
                   </Text>
                   <Text
-                    style={{color: colors.primary}}
+                    style={{color: theme.primary}}
                     className="text-base font-medium">
                     {localSteps}
                   </Text>
@@ -1232,11 +1229,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   }}>
                   <View
                     className="h-1.5 rounded-full"
-                    style={{backgroundColor: colors.background}}>
+                    style={{backgroundColor: theme.background}}>
                     <View
                       className="h-full rounded-full"
                       style={{
-                        backgroundColor: colors.primary,
+                        backgroundColor: theme.primary,
                         width: `${((localSteps - 10) / 90) * 100}%`,
                       }}
                     />
@@ -1244,12 +1241,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 </TouchableOpacity>
                 <View className="flex-row justify-between mt-1">
                   <Text
-                    style={{color: colors.secondaryText}}
+                    style={{color: theme.secondaryText}}
                     className="text-xs">
                     10
                   </Text>
                   <Text
-                    style={{color: colors.secondaryText}}
+                    style={{color: theme.secondaryText}}
                     className="text-xs">
                     100
                   </Text>
@@ -1277,7 +1274,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
       <ArtStylesDialog
         visible={artStylesDialogVisible}
         onClose={() => setArtStylesDialogVisible(false)}
-        colors={colors}
+        theme={theme}
         isDark={isDark}
         selectedStyles={localSelectedStyles}
         toggleStyle={toggleStyle}

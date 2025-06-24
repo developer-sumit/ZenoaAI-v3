@@ -25,8 +25,7 @@ import {Toaster} from '@masumdev/rn-toast';
 
 import CustomTabBar from '@src/components/CustomTabBar';
 import Routes from '@src/constants/routes';
-import {useThemeStore} from '@src/store/themeStore';
-import {theme} from '@src/theme/Theme';
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
@@ -74,7 +73,7 @@ function HomeTabs() {
 }
 
 function App() {
-  const {isDark} = useThemeStore();
+  const {isDark, theme} = useTheme();
   const {language} = useLanguageStore();
   const {
     user,
@@ -248,11 +247,7 @@ function App() {
   return (
     <SafeAreaView
       className="flex-1"
-      style={{
-        backgroundColor: isDark
-          ? theme.dark.background
-          : theme.light.background,
-      }}>
+      style={{backgroundColor: theme.background}}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor="transparent"

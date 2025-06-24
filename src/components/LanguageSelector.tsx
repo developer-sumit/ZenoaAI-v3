@@ -8,9 +8,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useLanguageStore} from '@src/store/languageStore';
-import {theme} from '@src/theme/Theme';
 import CheckmarkIcon from '@src/assets/icons/CheckmarkIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import {useStrings} from '@src/hooks/useStrings';
@@ -26,10 +25,9 @@ interface LanguageSelectorRef {
 const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
   ({iconOnly = false}, ref) => {
     const strings = useStrings();
-    const {isDark} = useThemeStore();
+    const {isDark, theme} = useTheme();
     const {language, setLanguage} = useLanguageStore();
     const [modalVisible, setModalVisible] = useState(false);
-    const colors = isDark ? theme.dark : theme.light;
 
     // Expose the openModal function through ref
     useImperativeHandle(ref, () => ({
@@ -68,12 +66,12 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
           className={`${
             iconOnly ? 'p-2 rounded-full' : 'flex-row items-center p-3'
           }`}
-          style={{backgroundColor: iconOnly ? colors.surface : 'transparent'}}
+          style={{backgroundColor: iconOnly ? theme.surface : 'transparent'}}
           accessible={true}
           accessibilityLabel={language}
           accessibilityHint={strings.settings.languageHint}>
           {!iconOnly && (
-            <Text className="ml-3" style={{color: colors.text}}>
+            <Text className="ml-3" style={{color: theme.text}}>
               {languages.find(lang => lang.code === language)?.name ||
                 'English'}
             </Text>
@@ -96,7 +94,7 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
             <View
               className="max-h-[80%] w-full max-w-md rounded-3xl overflow-hidden pb-10"
               style={{
-                backgroundColor: colors.background,
+                backgroundColor: theme.background,
                 shadowColor: '#000',
                 shadowOffset: {width: 0, height: 10},
                 shadowOpacity: 0.2,
@@ -105,14 +103,14 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
               }}>
               <View
                 className="w-full h-1.5"
-                style={{backgroundColor: colors.primary}}
+                style={{backgroundColor: theme.primary}}
               />
 
               <View className="p-6 pr-0">
                 <View className="flex-row justify-between items-center mb-5">
                   <Text
                     className="text-2xl font-semibold"
-                    style={{color: colors.text}}>
+                    style={{color: theme.text}}>
                     {strings.common.selectLanguage}
                   </Text>
                   <TouchableOpacity
@@ -120,7 +118,7 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                     className="p-1 pr-6"
                     accessible={true}
                     accessibilityLabel={strings.settings.closeLanguage}>
-                    <CloseIcon size={24} color={colors.text} />
+                    <CloseIcon size={24} color={theme.text} />
                   </TouchableOpacity>
                 </View>
 
@@ -130,7 +128,7 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                       key={lang.code}
                       onPress={() => handleLanguageChange(lang.code)}
                       className="flex-row items-center justify-between py-4 border-b pr-6"
-                      style={{borderColor: colors.secondaryText + '20'}}
+                      style={{borderColor: theme.secondaryText + '20'}}
                       accessible={true}
                       accessibilityLabel={lang.name}
                       accessibilityState={{selected: language === lang.code}}
@@ -138,14 +136,14 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                       <Text
                         className="text-lg"
                         style={{
-                          color: colors.text,
+                          color: theme.text,
                           fontWeight:
                             language === lang.code ? 'bold' : 'normal',
                         }}>
                         {lang.name}
                       </Text>
                       {language === lang.code && (
-                        <CheckmarkIcon size={20} color={colors.primary} />
+                        <CheckmarkIcon size={20} color={theme.primary} />
                       )}
                     </TouchableOpacity>
                   ))}

@@ -19,8 +19,7 @@ import {Toaster, useToast} from '@masumdev/rn-toast';
 import {useNavigation} from '@react-navigation/native';
 
 import {GeneratedImage} from '@src/types';
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useStrings} from '@src/hooks/useStrings';
@@ -66,12 +65,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onToggleFavorite,
 }) => {
   const strings = useStrings();
-  const {isDark} = useThemeStore();
+  const {isDark, theme} = useTheme();
   const {showToast} = useToast();
   const {user} = useAuthStore();
   const {deleteImage: storeDeleteImage} = useImageStore();
   const navigation = useNavigation();
-  const colors = isDark ? theme.dark : theme.light;
   const imageUri = image?.uri || '';
 
   // Track if component is mounted to prevent state updates after unmount
@@ -341,10 +339,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               <TouchableOpacity
                 onPress={onClose}
                 className="p-2.5 rounded-full"
-                style={{backgroundColor: colors.surface}}
+                style={{backgroundColor: theme.surface}}
                 accessible={true}
                 accessibilityLabel={strings.imageViewer.closeHint}>
-                <CloseIcon size={24} color={colors.text} />
+                <CloseIcon size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
           )}
@@ -432,12 +430,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             {!imageLoaded && !imageLoadFailed && (
               <View className="absolute inset-0 justify-center items-center">
                 <ActivityIndicator
-                  color={fullscreenMode ? 'white' : colors.primary}
+                  color={fullscreenMode ? 'white' : theme.primary}
                   size="large"
                 />
                 <Text
                   className="mt-3 text-base"
-                  style={{color: fullscreenMode ? 'white' : colors.text}}>
+                  style={{color: fullscreenMode ? 'white' : theme.text}}>
                   {strings.imageViewer.loading}
                 </Text>
               </View>
@@ -447,7 +445,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             {imageLoadFailed && (
               <View className="absolute inset-0 justify-center items-center">
                 <Text
-                  style={{color: fullscreenMode ? 'white' : colors.text}}
+                  style={{color: fullscreenMode ? 'white' : theme.text}}
                   className="text-base mb-3">
                   {strings.imageViewer.loadingError}
                 </Text>
@@ -467,10 +465,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   style={{
                     backgroundColor: fullscreenMode
                       ? 'white/20'
-                      : colors.primary + '40',
+                      : theme.primary + '40',
                   }}>
                   <Text
-                    style={{color: fullscreenMode ? 'white' : colors.primary}}>
+                    style={{color: fullscreenMode ? 'white' : theme.primary}}>
                     {strings.common.retry}
                   </Text>
                 </TouchableOpacity>
@@ -495,14 +493,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {!fullscreenMode && (
             <View
               className="rounded-3xl p-4 mb-4"
-              style={{backgroundColor: colors.background}}>
+              style={{backgroundColor: theme.background}}>
               {/* Prompt with expansion toggle */}
               <View className="flex-row justify-between items-start mb-4">
                 <Text
                   className={`text-base font-semibold flex-1 ${
                     !expandedPrompt ? 'max-h-[66px]' : ''
                   }`}
-                  style={{color: colors.primary}}
+                  style={{color: theme.primary}}
                   numberOfLines={expandedPrompt ? undefined : 3}
                   onPress={togglePromptExpansion}
                   accessible={true}
@@ -519,9 +517,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
                     }>
                     {expandedPrompt ? (
-                      <ChevronUpIcon size={18} color={colors.secondaryText} />
+                      <ChevronUpIcon size={18} color={theme.secondaryText} />
                     ) : (
-                      <ChevronDownIcon size={18} color={colors.secondaryText} />
+                      <ChevronDownIcon size={18} color={theme.secondaryText} />
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -529,7 +527,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     className="p-1 ml-2"
                     accessible={true}
                     accessibilityLabel={strings.imageViewer.copyPrompt}>
-                    <ContentCopyIcon size={18} color={colors.secondaryText} />
+                    <ContentCopyIcon size={18} color={theme.secondaryText} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -584,15 +582,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <View className="mt-4">
                   <Text
                     className="text-sm font-medium mb-2"
-                    style={{color: colors.text}}>
+                    style={{color: theme.text}}>
                     Negative Prompt
                   </Text>
                   <View
                     className="rounded-2xl p-3"
-                    style={{backgroundColor: colors.surface}}>
+                    style={{backgroundColor: theme.surface}}>
                     <Text
                       className="text-sm leading-5"
-                      style={{color: colors.secondaryText}}>
+                      style={{color: theme.secondaryText}}>
                       {image.negativePrompt}
                     </Text>
                   </View>
@@ -606,7 +604,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   <View className="flex-row items-center justify-between mb-2">
                     <Text
                       className="text-sm font-medium"
-                      style={{color: colors.text}}>
+                      style={{color: theme.text}}>
                       {strings.advancedSettings.featureInfo.artStyles.title} (
                       {image.styles.length})
                     </Text>
@@ -621,12 +619,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                         {expandedStyles ? (
                           <ChevronUpIcon
                             size={18}
-                            color={colors.secondaryText}
+                            color={theme.secondaryText}
                           />
                         ) : (
                           <ChevronDownIcon
                             size={18}
-                            color={colors.secondaryText}
+                            color={theme.secondaryText}
                           />
                         )}
                       </TouchableOpacity>
@@ -641,11 +639,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                         <View
                           key={index}
                           className="flex-row items-center rounded-full px-3 py-1.5"
-                          style={{backgroundColor: colors.primary + '20'}}>
-                          <PaletteIcon size={14} color={colors.primary} />
+                          style={{backgroundColor: theme.primary + '20'}}>
+                          <PaletteIcon size={14} color={theme.primary} />
                           <Text
                             className="ml-1 text-sm"
-                            style={{color: colors.primary}}>
+                            style={{color: theme.primary}}>
                             {style}
                           </Text>
                         </View>
@@ -656,10 +654,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       <TouchableOpacity
                         onPress={() => setExpandedStyles(true)}
                         className="flex-row items-center rounded-full px-3 py-1.5"
-                        style={{backgroundColor: colors.secondaryText + '20'}}>
+                        style={{backgroundColor: theme.secondaryText + '20'}}>
                         <Text
                           className="text-sm"
-                          style={{color: colors.secondaryText}}>
+                          style={{color: theme.secondaryText}}>
                           +{image.styles.length - 3} {strings.common.more}
                         </Text>
                       </TouchableOpacity>
@@ -675,7 +673,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   onPress={handleDeletePress}
                   disabled={deleting}
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: colors.surface}}
+                  style={{backgroundColor: theme.surface}}
                   accessible={true}
                   accessibilityLabel={strings.imageViewer.deleteImage}
                   accessibilityState={{disabled: deleting}}
@@ -696,12 +694,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <TouchableOpacity
                   onPress={handleRemix}
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: colors.surface}}
+                  style={{backgroundColor: theme.surface}}
                   accessible={true}
                   accessibilityLabel="Remix this image"
                   accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
-                  <RefreshIcon size={22} color={colors.text} />
-                  <Text className="font-bold" style={{color: colors.text}}>
+                  <RefreshIcon size={22} color={theme.text} />
+                  <Text className="font-bold" style={{color: theme.text}}>
                     Remix
                   </Text>
                 </TouchableOpacity>
@@ -711,7 +709,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   onPress={handleDownloadPress}
                   disabled={downloading}
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: colors.primary}}
+                  style={{backgroundColor: theme.primary}}
                   accessible={true}
                   accessibilityLabel={strings.imageViewer.downloadImage}
                   accessibilityState={{disabled: downloading}}
@@ -751,7 +749,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             <View
               className="w-full max-w-md rounded-3xl overflow-hidden"
               style={{
-                backgroundColor: colors.background,
+                backgroundColor: theme.background,
                 shadowColor: '#000',
                 shadowOffset: {width: 0, height: 10},
                 shadowOpacity: 0.2,
@@ -765,19 +763,19 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               <View className="p-6">
                 <Text
                   className="text-2xl font-semibold mb-3 text-center"
-                  style={{color: colors.text}}>
+                  style={{color: theme.text}}>
                   {strings.imageViewer.deleteImage}
                 </Text>
                 <Text
                   className="text-base mb-8 text-center leading-6"
-                  style={{color: colors.secondaryText}}>
+                  style={{color: theme.secondaryText}}>
                   {strings.imageViewer.deleteConfirmation}
                 </Text>
 
                 <View className="flex-row justify-between">
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
-                    style={{backgroundColor: colors.surface}}
+                    style={{backgroundColor: theme.surface}}
                     onPress={() => setShowDeleteDialog(false)}
                     accessible={true}
                     accessibilityLabel={
@@ -785,7 +783,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     }>
                     <Text
                       className="text-center font-medium"
-                      style={{color: colors.text}}>
+                      style={{color: theme.text}}>
                       {strings.imageViewer.cancel}
                     </Text>
                   </TouchableOpacity>
@@ -821,22 +819,22 @@ const MetadataItem = ({
   value: string;
   onCopy?: () => void;
 }) => {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
+
   const renderIcon = () => {
     switch (icon) {
       case 'seed':
-        return <SeedIcon size={16} color={colors.text} />;
+        return <SeedIcon size={16} color={theme.text} />;
       case 'tune':
-        return <TuneIcon size={16} color={colors.text} />;
+        return <TuneIcon size={16} color={theme.text} />;
       case 'aspect-ratio':
-        return <AspectRatioIcon size={16} color={colors.text} />;
+        return <AspectRatioIcon size={16} color={theme.text} />;
       case 'chart-donut':
-        return <ChartDonutIcon size={16} color={colors.text} />;
+        return <ChartDonutIcon size={16} color={theme.text} />;
       case 'privacy':
-        return <PrivacyIcon size={16} color={colors.text} />;
+        return <PrivacyIcon size={16} color={theme.text} />;
       case 'dimensions':
-        return <AspectRatioIcon size={16} color={colors.text} />;
+        return <AspectRatioIcon size={16} color={theme.text} />;
       default:
         return null;
     }
@@ -845,19 +843,19 @@ const MetadataItem = ({
   return (
     <View
       className="flex-row items-center gap-2 rounded-2xl p-2.5 flex-1 min-w-[45%]"
-      style={{backgroundColor: colors.surface}}>
+      style={{backgroundColor: theme.surface}}>
       {renderIcon()}
       <View className="flex-1">
-        <Text className="text-xs" style={{color: colors.secondaryText}}>
+        <Text className="text-xs" style={{color: theme.secondaryText}}>
           {label}
         </Text>
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm" style={{color: colors.text}}>
+          <Text className="text-sm" style={{color: theme.text}}>
             {value}
           </Text>
           {onCopy && (
             <TouchableOpacity onPress={onCopy} className="p-1">
-              <ContentCopyIcon size={14} color={colors.text} />
+              <ContentCopyIcon size={14} color={theme.text} />
             </TouchableOpacity>
           )}
         </View>
