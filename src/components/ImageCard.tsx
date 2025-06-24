@@ -5,12 +5,14 @@ import {
   Text,
   ActivityIndicator,
   ViewStyle,
+  Animated,
+  Easing,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
+
 import {GeneratedImage} from '@src/types';
 import {useThemeStore} from '@src/store/themeStore';
 import {theme} from '@src/theme/Theme';
-import {Animated, Easing} from 'react-native';
 import SyncIcon from '@src/assets/icons/SyncIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
 import {useStrings} from '@src/hooks/useStrings';
@@ -88,8 +90,8 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
-      className="rounded-2xl overflow-hidden"
-      style={[{backgroundColor: '#f0f0f0'}, style]}
+      className="rounded-2xl overflow-hidden bg-[#f0f0f0]"
+      style={style}
       accessible={true}
       accessibilityLabel={
         image.prompt

@@ -8,18 +8,19 @@ import {
   TextInput,
   ScrollView,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
-import {MMKV} from 'react-native-mmkv';
 import {useToast} from '@masumdev/rn-toast';
 
 import {theme} from '@src/theme/Theme';
 import {useThemeStore} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
-import {imageService} from '@src/services/imageService';
+import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types';
+import {useStrings} from '@src/hooks/useStrings';
 import ImageViewer from '@src/components/ImageViewer';
 
 // Icons
@@ -28,10 +29,6 @@ import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
-import {useStrings} from '@src/hooks/useStrings';
-
-// Initialize MMKV storage
-export const storage = new MMKV();
 
 // Constants
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
@@ -39,7 +36,6 @@ const NUM_COLUMNS = 2;
 const SPACING = 12;
 const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
 const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
-const FAVORITES_STORAGE_KEY = 'zenoa_favorite_images';
 
 const GalleryScreen = () => {
   const strings = useStrings();
@@ -48,286 +44,115 @@ const GalleryScreen = () => {
   const colors = isDark ? theme.dark : theme.light;
   const {showToast} = useToast();
 
-  // State
-  const [images, setImages] = useState<GeneratedImage[]>([]);
-  const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
-    null,
-  );
-
-  // Search and filtering
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'favorites'>('all');
+  // Image store
+  const {
+    images,
+    isLoading,
+    fetchImages,
+    toggleFavorite: storeToggleFavorite,
+  } = useImageStore();
 
   // Animation for tab indicator
   const tabIndicatorAnim = useState(new Animated.Value(0))[0];
 
-  // Load favorites from storage when component mounts
+  // State
+  const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'favorites'>('all');
+  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
+    null,
+  );
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null); // Load user's images when focused - but only if we don't have any cached images
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.uid && images.length === 0) {
+        console.log('Gallery: Loading images for the first time');
+        fetchImages();
+      } else if (user?.uid) {
+        console.log('Gallery: Using cached images, count:', images.length);
+      }
+    }, [user?.uid, fetchImages, images.length]),
+  );
+
+  // Filter images based on search and active tab
   useEffect(() => {
-    loadFavorites();
-  }, []);
+    if (images.length > 0) {
+      let filtered = [...images];
 
-  // Load user's images when focused
-  useFocusEffect(
-    useCallback(() => {
-      if (user?.id) {
-        fetchUserImages();
+      // Apply favorites filter if on favorites tab
+      if (activeTab === 'favorites') {
+        filtered = filtered.filter(img => img.isFavorite);
       }
-    }, [user?.id]),
-  );
 
-  // Filter images based on current filters and search
-  useFocusEffect(
-    useCallback(() => {
-      if (images.length > 0) {
-        let filtered = [...images];
-
-        // Apply favorites filter if on favorites tab
-        if (activeTab === 'favorites') {
-          filtered = filtered.filter(img => img.isFavorite);
-          console.log(`Filtered to ${filtered.length} favorite images`);
-        }
-
-        // Apply search query filter
-        if (searchQuery) {
-          filtered = filtered.filter(
-            img =>
-              img.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              img.styles.some(style =>
-                style.toLowerCase().includes(searchQuery.toLowerCase()),
-              ),
+      // Apply search query filter - search by prompt or ID
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(img => {
+          const searchablePrompt = img.originalPrompt || img.prompt || '';
+          return (
+            img.id.toLowerCase().includes(query) ||
+            searchablePrompt.toLowerCase().includes(query) ||
+            (img.finalPrompt && img.finalPrompt.toLowerCase().includes(query))
           );
-        }
-
-        // Apply style filter
-        if (selectedFilter) {
-          filtered = filtered.filter(img =>
-            img.styles.includes(selectedFilter),
-          );
-        }
-
-        setFilteredImages(filtered);
-      } else {
-        setFilteredImages([]);
+        });
       }
-    }, [images, searchQuery, selectedFilter, activeTab]),
-  );
 
-  // Load favorites from MMKV
-  const loadFavorites = useCallback(() => {
-    try {
-      const favoritesJson = storage.getString(FAVORITES_STORAGE_KEY);
-      return favoritesJson ? JSON.parse(favoritesJson) : [];
-    } catch (error) {
-      console.error('Error loading favorites:', error);
-      return [];
-    }
-  }, []);
-
-  // Save favorites to MMKV
-  const saveFavorites = useCallback((favoriteIds: string[]) => {
-    try {
-      storage.set(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteIds));
-    } catch (error) {
-      console.error('Error saving favorites:', error);
-    }
-  }, []);
-
-  const fetchUserImages = async () => {
-    if (!user?.id) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log('Fetching images for user:', user.id);
-
-      // Get images from service
-      const userImages = await imageService.getUserImages(user.id);
-      console.log(`Fetched ${userImages.length} images`);
-
-      // Load local favorites
-      const localFavoriteIds = loadFavorites();
-      console.log(
-        `Loaded ${localFavoriteIds.length} local favorites:`,
-        localFavoriteIds,
-      );
-
-      // Map to include isFavorite property from Firestore or local storage
-      const imagesWithFavorites = (userImages as GeneratedImage[]).map(img => {
-        const imageId = `${img.timestamp}_${img.seed}`;
-
-        // Check if the image has the isFavorite field from Firestore
-        const isFavoriteInFirestore = img.isFavorite === true;
-
-        // Check if in local favorites
-        const isInLocalFavorites = localFavoriteIds.includes(imageId);
-
-        // Use Firestore value but fall back to local storage if not available
-        const isFavorite = isFavoriteInFirestore || isInLocalFavorites;
-
-        console.log(
-          `Image ${imageId}: Firestore=${isFavoriteInFirestore}, Local=${isInLocalFavorites}, Final=${isFavorite}`,
+      // Apply style filter if selected
+      if (selectedFilter) {
+        filtered = filtered.filter(
+          img => img.styles && img.styles.includes(selectedFilter),
         );
+      }
 
-        return {...img, isFavorite: isFavorite};
-      });
-
-      // Update local storage with favorites from combined sources
-      const favoriteIds = imagesWithFavorites
-        .filter(img => img.isFavorite)
-        .map(img => `${img.timestamp}_${img.seed}`);
-
-      console.log(
-        `Saving ${favoriteIds.length} favorites to local storage:`,
-        favoriteIds,
-      );
-      saveFavorites(favoriteIds);
-
-      setImages(imagesWithFavorites);
-      setFilteredImages(imagesWithFavorites);
-    } catch (error) {
-      console.error('Failed to load images:', error);
-      showToast(strings.home.imageLoadFailed, 'error');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setFilteredImages(filtered);
+    } else {
+      setFilteredImages([]);
     }
-  };
+  }, [images, searchQuery, activeTab, selectedFilter]);
 
-  const handleRefresh = () => {
+  const refreshImages = useCallback(async () => {
     setRefreshing(true);
-    fetchUserImages();
-  };
+    await fetchImages();
+    setRefreshing(false);
+  }, [fetchImages]);
 
-  const toggleFavorite = useCallback(
+  const handleRefresh = useCallback(() => {
+    refreshImages();
+  }, [refreshImages]);
+
+  const handleToggleFavorite = useCallback(
     async (image: GeneratedImage) => {
-      if (!user?.id) {
-        showToast(strings.gallery.loginToFavorite, 'error');
+      if (!user?.uid) {
+        showToast('Please log in to favorite images', 'error');
         return;
       }
 
       try {
-        const imageId = `${image.timestamp}_${image.seed}`;
-        const newFavoriteState = !image.isFavorite;
-
-        console.log(
-          `Toggling favorite for image ${imageId} to ${newFavoriteState}`,
-        );
-
-        // Update UI immediately for responsiveness
-        setImages(prevImages =>
-          prevImages.map(img =>
-            img.timestamp === image.timestamp && img.seed === image.seed
-              ? {...img, isFavorite: newFavoriteState}
-              : img,
-          ),
-        );
-
-        // Update filtered images as well to ensure UI consistency
-        setFilteredImages(prevImages =>
-          prevImages.map(img =>
-            img.timestamp === image.timestamp && img.seed === image.seed
-              ? {...img, isFavorite: newFavoriteState}
-              : img,
-          ),
-        );
-
-        // Update selected image if needed
-        if (
-          selectedImage &&
-          selectedImage.timestamp === image.timestamp &&
-          selectedImage.seed === image.seed
-        ) {
-          setSelectedImage({...selectedImage, isFavorite: newFavoriteState});
-        }
-
-        // Get existing local favorites
-        const favoriteIds = loadFavorites();
-        let newFavorites: string[];
-
-        // Update local favorites list
-        if (newFavoriteState) {
-          // Add to favorites if not already in the list
-          if (!favoriteIds.includes(imageId)) {
-            newFavorites = [...favoriteIds, imageId];
-            console.log(`Added ${imageId} to local favorites`);
-          } else {
-            newFavorites = favoriteIds;
-            console.log(`${imageId} already in local favorites`);
-          }
-        } else {
-          // Remove from favorites
-          newFavorites = favoriteIds.filter((id: string) => id !== imageId);
-          console.log(`Removed ${imageId} from local favorites`);
-        }
-
-        // Save to local storage
-        saveFavorites(newFavorites);
-
-        // Update in Firestore
-        console.log(
-          `Updating favorite status in Firestore to ${newFavoriteState}`,
-        );
-        const success = await imageService.toggleFavoriteStatus(
-          user.id,
-          imageId,
-          newFavoriteState,
-        );
+        const success = await storeToggleFavorite(image.id);
 
         if (success) {
+          // Update the selected image if it's the same one
+          if (selectedImage?.id === image.id) {
+            setSelectedImage({
+              ...selectedImage,
+              isFavorite: !selectedImage.isFavorite,
+            });
+          }
+
           showToast(
-            newFavoriteState
-              ? strings.imageViewer.addedFavourite
-              : strings.imageViewer.removedFavourite,
+            !image.isFavorite ? 'Added to favorites' : 'Removed from favorites',
             'success',
           );
         } else {
-          showToast(strings.gallery.failedToUpdateFavorite, 'error');
-          // Revert UI changes on failure
-          setImages(prevImages =>
-            prevImages.map(img =>
-              img.timestamp === image.timestamp && img.seed === image.seed
-                ? {...img, isFavorite: !newFavoriteState}
-                : img,
-            ),
-          );
-
-          // Update filtered images on failure too
-          setFilteredImages(prevImages =>
-            prevImages.map(img =>
-              img.timestamp === image.timestamp && img.seed === image.seed
-                ? {...img, isFavorite: !newFavoriteState}
-                : img,
-            ),
-          );
-
-          if (
-            selectedImage &&
-            selectedImage.timestamp === image.timestamp &&
-            selectedImage.seed === image.seed
-          ) {
-            setSelectedImage({...selectedImage, isFavorite: !newFavoriteState});
-          }
+          showToast('Failed to update favorite', 'error');
         }
       } catch (error) {
-        console.error('Failed to update favorite:', error);
-        showToast(strings.gallery.failedToUpdateFavorite, 'error');
+        console.error('Failed to toggle favorite:', error);
+        showToast('Failed to update favorite', 'error');
       }
     },
-    [
-      user?.id,
-      selectedImage,
-      showToast,
-      setImages,
-      setFilteredImages,
-      setSelectedImage,
-      loadFavorites,
-      saveFavorites,
-    ],
+    [user?.uid, storeToggleFavorite, selectedImage, showToast],
   );
 
   // Switch between All and Favorites tabs
@@ -355,7 +180,9 @@ const GalleryScreen = () => {
   const uniqueStyles = useCallback(() => {
     const styles = new Set<string>();
     images.forEach(img => {
-      img.styles.forEach(style => styles.add(style));
+      if (img.styles && Array.isArray(img.styles)) {
+        img.styles.forEach(style => styles.add(style));
+      }
     });
     return Array.from(styles);
   }, [images]);
@@ -363,21 +190,27 @@ const GalleryScreen = () => {
   // Calculate dimensions for each image based on aspect ratio
   const getItemDimensions = (item: GeneratedImage) => {
     try {
-      const [width, height] = item.aspectRatio.sizes[
-        item.aspectRatio.size || 'medium'
-      ]
-        .split('x')
-        .map(Number);
+      // Use width and height from the image data with fallbacks
+      const imageWidth = item.width || 512;
+      const imageHeight = item.height || 512;
+      const aspectRatio = imageHeight / imageWidth;
+      const calculatedHeight = COLUMN_WIDTH * aspectRatio;
 
-      const aspectRatio = height / width;
-      const imageHeight = COLUMN_WIDTH * aspectRatio;
+      // Limit extreme aspect ratios for better layout
+      const minHeight = COLUMN_WIDTH * 0.5;
+      const maxHeight = COLUMN_WIDTH * 2;
+      const finalHeight = Math.max(
+        minHeight,
+        Math.min(maxHeight, calculatedHeight),
+      );
 
       return {
         width: COLUMN_WIDTH,
-        height: imageHeight,
+        height: finalHeight,
         aspectRatio,
       };
     } catch (error) {
+      console.warn('Error calculating dimensions for image:', item.id, error);
       return {
         width: COLUMN_WIDTH,
         height: COLUMN_WIDTH,
@@ -410,64 +243,88 @@ const GalleryScreen = () => {
       item: GeneratedImage & {
         dimensions: {width: number; height: number; aspectRatio: number};
       };
-    }) => (
-      <View className="mb-3">
-        {/* Image Card */}
-        <TouchableOpacity
-          onPress={() => setSelectedImage(item)}
-          accessible={true}
-          accessibilityLabel={`Image of ${item.prompt}`}
-          accessibilityHint={strings.imageViewer.imageHint}>
-          <View
-            className="overflow-hidden rounded-2xl"
-            style={{
-              width: item.dimensions.width,
-              height: item.dimensions.height,
-              backgroundColor: colors.surface,
-            }}>
-            <FastImage
-              source={{uri: item.uri}}
-              style={{width: '100%', height: '100%'}}
-              resizeMode={FastImage.resizeMode.cover}
-            />
+    }) => {
+      // Get display prompt
+      const displayPrompt =
+        item.originalPrompt || item.prompt || 'Unknown prompt';
 
-            {/* Image Overlay for Style Tag */}
+      return (
+        <View className="mb-3">
+          {/* Image Card */}
+          <TouchableOpacity
+            onPress={() => setSelectedImage(item)}
+            accessible={true}
+            accessibilityLabel={`Image generated from prompt: ${displayPrompt}`}
+            accessibilityHint={strings.imageViewer.imageHint}>
             <View
-              className="absolute bottom-0 left-0 right-0 p-2 flex-row justify-between items-center"
-              style={{backgroundColor: 'rgba(0,0,0,0.3)'}}>
-              {/* Style Tag */}
-              {item.styles.length > 0 && (
-                <Text className="text-xs text-white">
-                  {item.styles[0]}
-                  {item.styles.length > 1 ? ` +${item.styles.length - 1}` : ''}
-                </Text>
+              className="overflow-hidden rounded-2xl"
+              style={{
+                width: item.dimensions.width,
+                height: item.dimensions.height,
+                backgroundColor: colors.surface,
+              }}>
+              {item.uri ? (
+                <FastImage
+                  source={{uri: item.uri}}
+                  style={{width: '100%', height: '100%'}}
+                  resizeMode={FastImage.resizeMode.cover}
+                  onError={() => {
+                    console.warn('Image loading error');
+                  }}
+                />
+              ) : (
+                <View
+                  className="flex-1 justify-center items-center"
+                  style={{backgroundColor: colors.surface}}>
+                  <PhotoLibraryIcon size={40} color={colors.secondaryText} />
+                  <Text
+                    className="text-xs mt-2 text-center px-2"
+                    style={{color: colors.secondaryText}}>
+                    Image not available
+                  </Text>
+                </View>
               )}
-            </View>
-          </View>
-        </TouchableOpacity>
 
-        {/* Favorite Button */}
-        <TouchableOpacity
-          onPress={() => toggleFavorite(item)}
-          className="absolute top-2 right-2 p-2.5 rounded-full"
-          style={{backgroundColor: 'rgba(0,0,0,0.4)'}}
-          hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
-          accessible={true}
-          accessibilityLabel={
-            item.isFavorite
-              ? strings.imageViewer.removeFavourite
-              : strings.imageViewer.addFavourite
-          }
-          accessibilityRole="button">
-          <HeartIcon
-            size={20}
-            color="white"
-            fill={item.isFavorite ? '#FF4B8C' : 'transparent'}
-          />
-        </TouchableOpacity>
-      </View>
-    ),
-    [colors, toggleFavorite],
+              {/* Image Overlay for Style Tag */}
+              <View
+                className="absolute bottom-0 left-0 right-0 p-2 flex-row justify-between items-center"
+                style={{backgroundColor: 'rgba(0,0,0,0.3)'}}>
+                {/* Style Tag */}
+                {item.styles && item.styles.length > 0 && (
+                  <Text className="text-xs text-white">
+                    {item.styles[0]}
+                    {item.styles.length > 1
+                      ? ` +${item.styles.length - 1}`
+                      : ''}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Favorite Button */}
+          <TouchableOpacity
+            onPress={() => handleToggleFavorite(item)}
+            className="absolute top-2 right-2 p-2.5 rounded-full"
+            style={{backgroundColor: 'rgba(0,0,0,0.4)'}}
+            hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+            accessible={true}
+            accessibilityLabel={
+              item.isFavorite
+                ? strings.imageViewer.removeFavourite
+                : strings.imageViewer.addFavourite
+            }
+            accessibilityRole="button">
+            <HeartIcon
+              size={20}
+              color="white"
+              fill={item.isFavorite ? '#FF4B8C' : 'transparent'}
+            />
+          </TouchableOpacity>
+        </View>
+      );
+    },
+    [colors, handleToggleFavorite, strings],
   );
 
   // Empty state component
@@ -535,7 +392,7 @@ const GalleryScreen = () => {
         )}
       </View>
     ),
-    [colors, searchQuery, selectedFilter, activeTab, switchTab],
+    [colors, searchQuery, selectedFilter, activeTab, switchTab, strings],
   );
 
   // Animation for tab indicator position
@@ -684,7 +541,7 @@ const GalleryScreen = () => {
       </View>
 
       {/* Gallery Content */}
-      {loading && !refreshing ? (
+      {isLoading && !refreshing ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={colors.primary} />
           <Text className="mt-3" style={{color: colors.text}}>
@@ -696,7 +553,7 @@ const GalleryScreen = () => {
       ) : (
         <MasonryFlashList
           data={preparedData}
-          keyExtractor={item => `${item.timestamp}_${item.seed}`}
+          keyExtractor={item => item.id}
           numColumns={NUM_COLUMNS}
           renderItem={renderItem}
           estimatedItemSize={250}
@@ -706,8 +563,14 @@ const GalleryScreen = () => {
             paddingHorizontal: SPACING,
           }}
           showsVerticalScrollIndicator={false}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
           extraData={[isDark, searchQuery, selectedFilter, activeTab]}
         />
       )}
@@ -717,8 +580,8 @@ const GalleryScreen = () => {
         <ImageViewer
           image={selectedImage}
           onClose={() => setSelectedImage(null)}
-          onImageDeleted={fetchUserImages}
-          onToggleFavorite={() => toggleFavorite(selectedImage)}
+          onImageDeleted={fetchImages}
+          onToggleFavorite={() => handleToggleFavorite(selectedImage)}
         />
       )}
     </View>

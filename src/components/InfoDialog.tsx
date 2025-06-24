@@ -7,6 +7,7 @@ import {
   Pressable,
   TouchableOpacity,
 } from 'react-native';
+
 import {theme} from '@src/theme/Theme';
 import {useThemeStore} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';

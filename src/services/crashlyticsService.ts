@@ -9,13 +9,14 @@ export const crashlyticsService = {
     try {
       if (user) {
         // Set user identifier
-        await crashlytics().setUserId(user.id);
+        await crashlytics().setUserId(user.uid); // Changed from user.id to user.uid
 
         // Set user attributes
         await crashlytics().setAttributes({
           email: user.email || '',
-          name: user.name || '',
-          createdAt: user.createdAt || '',
+          username: user.profile.username || '', // Updated to use new structure
+          createdAt: user.createdAt.toISOString() || '',
+          planType: user.planType || 'free',
         });
 
         console.log('Crashlytics user info set successfully');
@@ -24,8 +25,9 @@ export const crashlyticsService = {
         await crashlytics().setUserId('');
         await crashlytics().setAttributes({
           email: '',
-          name: '',
+          username: '',
           createdAt: '',
+          planType: '',
         });
         console.log('Crashlytics user info cleared');
       }

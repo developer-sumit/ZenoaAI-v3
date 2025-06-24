@@ -6,21 +6,25 @@ import {
   ActivityIndicator,
   StyleSheet,
   Animated,
+  Linking,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+import {useToast} from '@masumdev/rn-toast';
+
 import {theme} from '@src/theme/Theme';
 import {useThemeStore} from '@src/store/themeStore';
 import appConfig from '@src/config/app.config';
-import {useToast} from '@masumdev/rn-toast';
-import SparklesIcon from '@src/assets/icons/SparklesIcon';
-import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
-import LanguageIcon from '@src/assets/icons/LanguageIcon';
-import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
 import {useAuthStore} from '@src/store/authStore';
 import {useStrings} from '@src/hooks/useStrings';
 import LanguageSelector from '@src/components/LanguageSelector';
+import {authService} from '@src/services/authService';
+
+// Icons
+import LanguageIcon from '@src/assets/icons/LanguageIcon';
+import SparklesIcon from '@src/assets/icons/SparklesIcon';
+import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
+import urls from '@src/constants/urls';
 
 const LoginScreen = () => {
   const strings = useStrings();
@@ -53,31 +57,48 @@ const LoginScreen = () => {
       setSigningIn(true);
 
       // Check if Play Services is available
-      await GoogleSignin.hasPlayServices();
+      await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
 
-      // Get the user ID token
+      // Get the user ID token from Google
       const {data} = await GoogleSignin.signIn();
 
-      // Create a Google credential with the token
-      const googleCredential = auth.GoogleAuthProvider.credential(
-        data?.idToken || '',
-      );
-      // Sign in with the credential
-      const res = await auth().signInWithCredential(googleCredential);
-      const userData = {
-        id: res.user.uid || '',
-        email: res.user.email || '',
-        name: data?.user?.name || '',
-        photo: data?.user?.photo || '',
-        createdAt: res.user.metadata.creationTime || new Date().toISOString(),
-        lastLogin: res.user.metadata.lastSignInTime || new Date().toISOString(),
-      };
-      console.log({userData});
+      if (!data?.idToken) {
+        throw new Error('Failed to get ID token from Google Sign-In');
+      }
+
+      // Log token receipt for debugging
+      console.log('Google sign-in successful, proceeding with Firebase auth');
+
+      // Use authService to handle the complete sign-in flow
+      const userData = await authService.signInWithGoogle(data?.idToken);
+
+      // Store the user data in your app state
       await login(userData);
+
       showToast(strings.auth.signInSuccessful, 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign-in error:', error);
-      showToast(strings.auth.signInFailed, 'error');
+
+      // Check if this is a network error, which could be causing the 401
+      if (
+        error.message?.includes('Network Error') ||
+        error.message?.includes('network request failed')
+      ) {
+        showToast(
+          'Network connection issue. Please check your internet connection.',
+          'error',
+        );
+      } else {
+        showToast(error.message || strings.auth.signInFailed, 'error');
+      }
+
+      // If we're already authenticated with Firebase but server failed
+      const fallbackUser = await authService.handleFailedGoogleSignIn();
+      if (fallbackUser) {
+        console.log('Using fallback authentication method');
+        await login(fallbackUser);
+        showToast('Signed in with limited functionality', 'info');
+      }
     } finally {
       setSigningIn(false);
     }
@@ -85,6 +106,7 @@ const LoginScreen = () => {
 
   return (
     <View style={{backgroundColor: colors.background}} className="flex-1">
+      {/* Rest of your component remains unchanged */}
       <BlurView
         style={StyleSheet.absoluteFill}
         blurType={isDark ? 'dark' : 'light'}
@@ -92,7 +114,9 @@ const LoginScreen = () => {
       />
 
       {/* Language Selector Button */}
-      <View className="absolute self-center mt-6 z-10 rounded-full px-1.5 pl-3 bg-gray-100">
+      <View
+        className="absolute self-center mt-6 z-10 rounded-full px-1.5 pl-3"
+        style={{backgroundColor: colors.surface}}>
         <TouchableOpacity
           onPress={() => languageSelectorRef.current?.openModal()}
           className="flex-row rounded-full items-center justify-center"
@@ -165,17 +189,17 @@ const LoginScreen = () => {
         <Text
           className="text-center text-base px-8 mt-8"
           style={{color: colors.secondaryText}}>
-          {strings.auth.agreeToTerms}{' '}
+          {strings.auth.agreeToTerms}&nbsp;
           <Text
-            onPress={openTermsOfService}
+            onPress={() => Linking.openURL(urls.termsOfService)}
             accessible={true}
             accessibilityLabel={strings.settings.termsOfServiceHint}
             style={{color: colors.primary}}>
             {strings.settings.termsOfService}
-          </Text>{' '}
-          {strings.common.and}{' '}
+          </Text>
+          &nbsp;{strings.common.and}&nbsp;
           <Text
-            onPress={openPrivacyPolicy}
+            onPress={() => Linking.openURL(urls.privacyPolicy)}
             accessible={true}
             accessibilityLabel={strings.settings.privacyPolicyHint}
             style={{color: colors.primary}}>

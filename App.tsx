@@ -13,12 +13,16 @@
 
 import './global.css';
 import React, {useEffect} from 'react';
+import Config from 'react-native-config';
+import auth from '@react-native-firebase/auth';
 import {StatusBar, AppState, AppStateStatus} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import auth from '@react-native-firebase/auth';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import {Toaster} from '@masumdev/rn-toast';
+
 import CustomTabBar from '@src/components/CustomTabBar';
 import Routes from '@src/constants/routes';
 import {useThemeStore} from '@src/store/themeStore';
@@ -29,15 +33,14 @@ import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
 import ProfileScreen from '@src/screens/ProfileScreen';
 import GalleryScreen from '@src/screens/GalleryScreen';
+import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import Config from 'react-native-config';
-import {Toaster} from '@masumdev/rn-toast';
 import {analyticsService} from '@src/services/analyticsService';
 import {crashlyticsService} from '@src/services/crashlyticsService';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
 import {userService} from '@src/services/userService';
 import {useLanguageStore} from '@src/store/languageStore';
+import {User} from '@src/types';
 
 GoogleSignin.configure({
   webClientId: Config.GOOGLE_WEB_CLIENT_ID,
@@ -64,6 +67,7 @@ function HomeTabs() {
       screenOptions={{headerShown: false}}>
       <Tab.Screen name={Routes.HOME} component={HomeScreen} />
       <Tab.Screen name={Routes.GALLERY} component={GalleryScreen} />
+      <Tab.Screen name={Routes.COMMUNITY} component={CommunityScreen} />
       <Tab.Screen name={Routes.SETTINGS} component={ProfileStack} />
     </Tab.Navigator>
   );
@@ -77,7 +81,6 @@ function App() {
     isLoading,
     initialized,
     restoreSession,
-    firebaseUser,
     getIdToken,
     login,
     logout,
@@ -113,22 +116,37 @@ function App() {
       if (authUser) {
         // User just signed in or session was restored
         try {
-          // Get user data
+          // Get user data using the updated User interface
           let userData = await userService.getUser(authUser.uid);
 
           if (!userData) {
-            // Create a new user profile
-            userData = {
-              id: authUser.uid,
+            // Create a new user profile using the updated User interface
+            const newUser: User = {
+              uid: authUser.uid,
               email: authUser.email || '',
-              name: authUser.displayName || '',
-              photo: authUser.photoURL || '',
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
+              profile: {
+                username: authUser.displayName || '',
+                avatar: authUser.photoURL || '',
+                bio: '',
+                preferences: {
+                  theme: 'light',
+                  language: 'en',
+                  notifications: true,
+                },
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              lastLoginAt: new Date(),
+              planType: 'free',
+              quota: {
+                imagesRemaining: 10,
+                apiCallsRemaining: 100,
+                refreshAt: new Date(),
+              },
             };
 
             // Save the new user
-            await login(userData);
+            await login(newUser);
           } else {
             // Update existing user with fresh info
             await login(userData);
@@ -144,8 +162,6 @@ function App() {
           await logout();
         }
       }
-      // We DON'T need an else case to handle sign-out
-      // as that's handled by the logout() function when called explicitly
     });
 
     // Set up token change listener
@@ -161,21 +177,19 @@ function App() {
       unsubscribeAuthState();
       unsubscribeTokenChange();
     };
-  }, [initialized, restoreSession, firebaseUser, getIdToken, login, user]);
+  }, [initialized, restoreSession, getIdToken, login, user]);
 
   // Debug effect to log current auth state - helps identify auth issues
   useEffect(() => {
     console.log('Auth State Debug:', {
       userExists: !!user,
-      userId: user?.id,
-      firebaseUserExists: !!firebaseUser,
-      firebaseUid: firebaseUser?.uid,
+      userId: user?.uid, // Changed from user?.id to user?.uid
       isLoading,
       initialized,
       currentFirebaseUser: !!auth().currentUser,
       currentFirebaseUid: auth().currentUser?.uid,
     });
-  }, [user, firebaseUser, isLoading, initialized]);
+  }, [user, isLoading, initialized]);
 
   // Handle app state changes to ensure token freshness
   useEffect(() => {
@@ -226,7 +240,7 @@ function App() {
     if (user) {
       analyticsService.logEvent('language_changed', {
         language,
-        userId: user.id,
+        userId: user.uid, // Changed from user.id to user.uid
       });
     }
   }, [language, user]);

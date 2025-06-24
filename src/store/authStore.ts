@@ -1,12 +1,11 @@
 import {create} from 'zustand';
 import {User} from '@src/types';
-import {userService} from '@src/services/userService';
 import auth from '@react-native-firebase/auth';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import {userService} from '@src/services/userService';
+import {authService} from '@src/services/authService';
 
 interface AuthState {
   user: User | null;
-  firebaseUser: any | null;
   idToken: string | null;
   isLoading: boolean;
   initialized: boolean;
@@ -19,173 +18,217 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  firebaseUser: null,
   idToken: null,
   isLoading: true,
   initialized: false,
 
-  // Restore user session
+  // Restore user session using API-first approach
   restoreSession: async () => {
     try {
       set({isLoading: true});
 
-      // Check if we have a Firebase user
+      // Check if we have a Firebase user (for token generation)
       const firebaseUser = auth().currentUser;
 
       if (firebaseUser) {
         console.log('Firebase auth session found for user:', firebaseUser.uid);
 
         try {
-          // Get a fresh token - this doesn't force a sign-out if token is expired
-          // Firebase will refresh the token automatically
+          // Try to get a fresh token - Firebase will refresh automatically if needed
           const token = await firebaseUser.getIdToken(false);
           set({idToken: token});
 
-          // Get user data from the database
+          // Get user data from our API using the updated service
           const userData = await userService.getUser(firebaseUser.uid);
 
           if (userData) {
             console.log('User data found, restoring session');
-            // Update last login time
-            userService
-              .updateProfile(userData.id, {
-                lastLogin: new Date().toISOString(),
-              })
-              .catch(e => console.log('Failed to update last login:', e));
 
             set({
               user: userData,
-              firebaseUser: firebaseUser,
               isLoading: false,
               initialized: true,
             });
           } else {
-            console.log('Creating new user profile for Firebase user');
+            console.log('No user data found in API, creating new user profile');
+
             // Create new user profile if not found
-            const newUser = {
-              id: firebaseUser.uid,
+            const newUser: User = {
+              uid: firebaseUser.uid,
               email: firebaseUser.email || '',
-              name: firebaseUser.displayName || '',
-              photo: firebaseUser.photoURL || '',
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
+              profile: {
+                username: firebaseUser.displayName || '',
+                avatar: firebaseUser.photoURL || '',
+                bio: '',
+                preferences: {
+                  theme: 'light',
+                  language: 'en',
+                  notifications: true,
+                },
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              lastLoginAt: new Date(),
+              isDeleted: false,
+              planType: 'free',
+              quota: {
+                imagesRemaining: 40,
+                apiCallsRemaining: 100,
+                refreshAt: new Date(),
+              },
             };
+
             await userService.saveUser(newUser);
 
             set({
               user: newUser,
-              firebaseUser: firebaseUser,
               isLoading: false,
               initialized: true,
             });
           }
         } catch (error) {
-          console.error('Error refreshing token or getting user data:', error);
-          set({
-            user: {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: firebaseUser.displayName || '',
-              photo: firebaseUser.photoURL || '',
+          console.error('Error during session restoration:', error);
+
+          // Create a fallback user with basic info from Firebase
+          const fallbackUser: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            profile: {
+              username: firebaseUser.displayName || '',
+              avatar: firebaseUser.photoURL || '',
+              bio: '',
+              preferences: {
+                theme: 'light',
+                language: 'en',
+                notifications: true,
+              },
             },
-            firebaseUser: firebaseUser,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastLoginAt: new Date(),
+            isDeleted: false,
+            planType: 'free',
+            quota: {
+              imagesRemaining: 10, // Reduced quota for fallback
+              apiCallsRemaining: 50,
+              refreshAt: new Date(),
+            },
+          };
+
+          set({
+            user: fallbackUser,
             isLoading: false,
             initialized: true,
           });
         }
       } else {
-        console.log('No Firebase user, checking for saved credentials');
-        // No authenticated user
+        console.log('No Firebase user found');
         set({
           user: null,
-          firebaseUser: null,
+          idToken: null,
           isLoading: false,
           initialized: true,
         });
       }
     } catch (error) {
-      console.error('Session restore failed:', error);
+      console.error('Error restoring session:', error);
       set({
         user: null,
-        firebaseUser: null,
+        idToken: null,
         isLoading: false,
         initialized: true,
       });
     }
   },
 
-  // Get ID token (letting Firebase handle token refresh)
-  getIdToken: async (forceRefresh: boolean = false): Promise<string | null> => {
+  // Login function that uses the updated auth service
+  login: async (userData: User) => {
     try {
-      const {firebaseUser} = get();
+      set({isLoading: true});
 
-      if (firebaseUser) {
-        // If forceRefresh is true, force a network request to refresh the token
-        // If false, use the cached token if valid (Firebase handles refresh automatically)
-        const token = await firebaseUser.getIdToken(forceRefresh);
-        set({idToken: token});
-        return token;
+      // Get fresh token for the session
+      const token = await authService.getCurrentUserIdToken(true);
+
+      // Save user data using the service
+      await userService.saveUser(userData);
+
+      set({
+        user: userData,
+        idToken: token,
+        isLoading: false,
+      });
+
+      console.log('User logged in successfully');
+    } catch (error) {
+      console.error('Error during login:', error);
+      set({isLoading: false});
+      throw error;
+    }
+  },
+
+  // Logout function that uses the updated auth service
+  logout: async () => {
+    try {
+      set({isLoading: true});
+
+      // Use the auth service to handle logout
+      await authService.signOut();
+
+      // Clear user data from local storage
+      const {user} = get();
+      if (user) {
+        await userService.clearCurrentUserData();
       }
+
+      set({
+        user: null,
+        idToken: null,
+        isLoading: false,
+      });
+
+      console.log('User logged out successfully');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      set({isLoading: false});
+      throw error;
+    }
+  },
+
+  // Update user data in the store and local storage
+  updateUser: async (updatedUser: User) => {
+    try {
+      // Save updated user data
+      await userService.saveUser(updatedUser);
+
+      set({user: updatedUser});
+      console.log('User data updated in store');
+    } catch (error) {
+      console.error('Error updating user in store:', error);
+    }
+  },
+
+  // Get current ID token with optional refresh
+  getIdToken: async (forceRefresh = false) => {
+    try {
+      const {idToken} = get();
+
+      // If we have a token and don't need to force refresh, return it
+      if (idToken && !forceRefresh) {
+        return idToken;
+      }
+
+      // Otherwise get a fresh token from Firebase
+      const newToken = await authService.getCurrentUserIdToken(true);
+
+      if (newToken) {
+        set({idToken: newToken});
+        return newToken;
+      }
+
       return null;
     } catch (error) {
       console.error('Error getting ID token:', error);
       return null;
     }
   },
-
-  login: async userData => {
-    try {
-      set({isLoading: true});
-      await userService.saveUser(userData);
-
-      const firebaseUser = auth().currentUser;
-      if (firebaseUser) {
-        const token = await firebaseUser.getIdToken(false);
-        set({
-          user: userData,
-          firebaseUser: firebaseUser,
-          idToken: token,
-          isLoading: false,
-        });
-      } else {
-        set({user: userData, isLoading: false});
-      }
-    } catch (error) {
-      console.error('Login failed:', error);
-      set({isLoading: false});
-      throw error;
-    }
-  },
-
-  logout: async () => {
-    try {
-      set({isLoading: true});
-
-      // Full cleanup sequence
-      await auth().signOut();
-
-      // Sign out from Google
-      try {
-        await GoogleSignin.revokeAccess();
-        await GoogleSignin.signOut();
-      } catch (googleError) {
-        console.warn('Google sign out error:', googleError);
-      }
-
-      // Clear user data
-      await userService.clearCurrentUserData();
-
-      set({user: null, firebaseUser: null, idToken: null, isLoading: false});
-    } catch (error) {
-      console.error('Logout failed:', error);
-      set({isLoading: false});
-      throw error;
-    }
-  },
-
-  updateUser: (updatedUser: User) =>
-    set(state => ({
-      ...state,
-      user: updatedUser,
-    })),
 }));
