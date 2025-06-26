@@ -162,6 +162,10 @@ export const hi = {
     enterFeedback: 'अपना फीडबैक दर्ज करें',
     greetForFeedback: 'आपके फीडबैक के लिए धन्यवाद!',
     feedbackFailed: 'फीडबैक सबमिट करने में विफल',
+    quotaTitle: 'कोटा और उपयोग',
+    imagesRemaining: 'बचे हुए चित्र',
+    apiCallsRemaining: 'बचे हुए API कॉल',
+    planType: 'योजना प्रकार',
   },
 
   editProfile: {
@@ -171,7 +175,6 @@ export const hi = {
     fullNameHint: 'अपना पूरा नाम दर्ज करें',
     email: 'ईमेल',
     yourName: 'आपका नाम',
-    emailCannotChange: 'ईमेल बदला नहीं जा सकता',
     accountManagement: 'खाता प्रबंधन',
     saveChanges: 'परिवर्तन सहेजें',
     saving: 'सहेज रहा है...',
@@ -251,7 +254,8 @@ export const hi = {
     },
     privacy: 'गोपनीयता सेटिंग्स',
     privateByDefault: 'डिफ़ॉल्ट रूप से निजी चित्र',
-    privateByDefaultDescription: 'नए चित्र निजी होंगे और समुदाय में साझा नहीं किए जाएंगे',
+    privateByDefaultDescription:
+      'नए चित्र निजी होंगे और समुदाय में साझा नहीं किए जाएंगे',
     turnOnPrivateHint: 'डिफ़ॉल्ट रूप से निजी चित्र चालू करें',
     turnOffPrivateHint: 'डिफ़ॉल्ट रूप से निजी चित्र बंद करें',
   },
@@ -259,11 +263,13 @@ export const hi = {
   community: {
     title: 'समुदाय',
     noImages: 'अभी तक कोई समुदायिक चित्र नहीं',
-    noImagesDescription: 'समुदाय के साथ अपनी रचनाएं साझा करने वाले पहले व्यक्ति बनें!',
+    noImagesDescription:
+      'समुदाय के साथ अपनी रचनाएं साझा करने वाले पहले व्यक्ति बनें!',
     noMatchingImages: 'कोई मेल खाते चित्र नहीं मिले',
     searchPlaceholder: 'प्रॉम्प्ट, शैली, या निर्माता द्वारा खोजें...',
     searchImages: 'समुदायिक चित्र खोजें',
-    searchHint: 'प्रॉम्प्ट, शैली, या निर्माता द्वारा चित्र खोजने के लिए टाइप करें',
+    searchHint:
+      'प्रॉम्प्ट, शैली, या निर्माता द्वारा चित्र खोजने के लिए टाइप करें',
     loadingImages: 'समुदायिक चित्र लोड हो रहे हैं...',
     loadFailed: 'समुदायिक चित्र लोड करने में विफल',
     imageBy: 'चित्र द्वारा',

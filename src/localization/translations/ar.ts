@@ -154,6 +154,10 @@ export const ar = {
     enterFeedback: 'يرجى إدخال تعليقاتك',
     greetForFeedback: 'شكراً لتعليقاتك!',
     feedbackFailed: 'فشل في إرسال التعليقات',
+    quotaTitle: 'حصة الاستخدام',
+    imagesRemaining: 'الصور المتبقية',
+    apiCallsRemaining: 'استدعاءات API المتبقية',
+    planType: 'نوع الخطة',
   },
 
   editProfile: {
@@ -163,7 +167,6 @@ export const ar = {
     fullNameHint: 'أدخل اسمك الكامل',
     email: 'البريد الإلكتروني',
     yourName: 'اسمك',
-    emailCannotChange: 'لا يمكن تغيير البريد الإلكتروني',
     accountManagement: 'إدارة الحساب',
     saveChanges: 'حفظ التغييرات',
     saving: 'جاري الحفظ...',

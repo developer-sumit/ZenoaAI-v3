@@ -155,6 +155,10 @@ export const en = {
     enterFeedback: 'Please enter your feedback',
     greetForFeedback: 'Thank you for your feedback!',
     feedbackFailed: 'Failed to submit feedback',
+    quotaTitle: 'Usage & Limits',
+    imagesRemaining: 'Images Remaining',
+    apiCallsRemaining: 'API Calls Remaining',
+    planType: 'Plan Type',
   },
 
   editProfile: {
@@ -164,7 +168,6 @@ export const en = {
     fullNameHint: 'Enter your full name',
     email: 'Email',
     yourName: 'Your name',
-    emailCannotChange: 'Email cannot be changed',
     accountManagement: 'Account Management',
     saveChanges: 'Save Changes',
     saving: 'Saving...',
@@ -244,7 +247,8 @@ export const en = {
     },
     privacy: 'Privacy Settings',
     privateByDefault: 'Private Images by Default',
-    privateByDefaultDescription: 'New images will be private and not shared to community',
+    privateByDefaultDescription:
+      'New images will be private and not shared to community',
     turnOnPrivateHint: 'Turn on private images by default',
     turnOffPrivateHint: 'Turn off private images by default',
   },
@@ -252,7 +256,8 @@ export const en = {
   community: {
     title: 'Community',
     noImages: 'No community images yet',
-    noImagesDescription: 'Be the first to share your creations with the community!',
+    noImagesDescription:
+      'Be the first to share your creations with the community!',
     noMatchingImages: 'No matching images found',
     searchPlaceholder: 'Search by prompt, style, or creator...',
     searchImages: 'Search community images',
@@ -283,5 +288,9 @@ export const en = {
     medium: 'Medium',
     large: 'Large',
     more: 'more',
+    internalServerError: 'Internal Server Error',
+    somethingWentWrong: 'Something went wrong',
+    loading: 'Loading...',
+    noResults: 'No results found',
   },
 };

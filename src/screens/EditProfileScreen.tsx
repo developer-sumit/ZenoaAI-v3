@@ -319,11 +319,6 @@ const EditProfileScreen = () => {
                     style={{color: theme.secondaryText}}>
                     {user?.email || 'Not available'}
                   </Text>
-                  <Text
-                    className="text-xs mt-1"
-                    style={{color: theme.secondaryText + '80'}}>
-                    {strings.editProfile.emailCannotChange}
-                  </Text>
                 </View>
               </View>
             </View>
@@ -357,11 +352,6 @@ const EditProfileScreen = () => {
                 <View className="flex-1">
                   <Text className="text-base" style={{color: '#e11d48'}}>
                     {strings.editProfile.deleteMyAccount}
-                  </Text>
-                  <Text
-                    className="text-xs mt-1"
-                    style={{color: theme.secondaryText}}>
-                    {strings.editProfile.deleteAccountHint}
                   </Text>
                 </View>
               </TouchableOpacity>

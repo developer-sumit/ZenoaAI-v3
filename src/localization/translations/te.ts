@@ -162,6 +162,10 @@ export const te = {
     enterFeedback: 'దయచేసి మీ అభిప్రాయాన్ని నమోదు చేయండి',
     greetForFeedback: 'మీ అభిప్రాయానికి ధన్యవాదాలు!',
     feedbackFailed: 'అభిప్రాయాన్ని సమర్పించడంలో విఫలమైంది',
+    quotaTitle: 'మీ కోటా',
+    imagesRemaining: 'మీరు ఇంకా సృష్టించగలిగే చిత్రాలు',
+    apiCallsRemaining: 'మీరు ఇంకా API కాల్‌లు చేయగలిగే సంఖ్య',
+    planType: 'ప్రణాళిక రకం',
   },
 
   editProfile: {
@@ -171,7 +175,6 @@ export const te = {
     fullNameHint: 'మీ పూర్తి పేరును నమోదు చేయండి',
     email: 'ఇమెయిల్',
     yourName: 'మీ పేరు',
-    emailCannotChange: 'ఇమెయిల్‌ను మార్చలేము',
     accountManagement: 'ఖాతా నిర్వహణ',
     saveChanges: 'మార్పులను సేవ్ చేయండి',
     saving: 'సేవ్ చేస్తోంది...',

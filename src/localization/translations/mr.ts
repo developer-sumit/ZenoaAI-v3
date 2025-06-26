@@ -158,6 +158,10 @@ export const mr = {
     enterFeedback: 'कृपया तुमचा फीडबॅक टाका',
     greetForFeedback: 'तुमच्या फीडबॅकसाठी धन्यवाद!',
     feedbackFailed: 'फीडबॅक सादर करण्यात अयशस्वी',
+    quotaTitle: 'कोटा मर्यादा',
+    imagesRemaining: 'उर्वरित चित्रे',
+    apiCallsRemaining: 'उर्वरित API कॉल',
+    planType: 'योजना प्रकार',
   },
 
   editProfile: {
@@ -167,7 +171,6 @@ export const mr = {
     fullNameHint: 'तुमचे पूर्ण नाव प्रविष्ट करा',
     email: 'ईमेल',
     yourName: 'तुमचे नाव',
-    emailCannotChange: 'ईमेल बदलता येणार नाही',
     accountManagement: 'खाते व्यवस्थापन',
     saveChanges: 'बदल जतन करा',
     saving: 'जतन करत आहे...',

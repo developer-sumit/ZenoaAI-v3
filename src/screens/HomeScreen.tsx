@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
+import {useRoute} from '@react-navigation/native';
 
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
@@ -28,6 +29,8 @@ import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
+import {contentFilter} from '@src/utils/contentFilter';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Icons
 import TipIcon from '@src/assets/icons/TipIcon';
@@ -38,9 +41,6 @@ import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
-import {contentFilter} from '@src/utils/contentFilter';
-import {useStrings} from '@src/hooks/useStrings';
-import {useRoute} from '@react-navigation/native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;

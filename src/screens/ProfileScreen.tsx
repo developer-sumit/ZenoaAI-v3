@@ -65,9 +65,11 @@ const ProfileScreen = () => {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
   // Function to refresh user profile data
   const refreshUserProfile = useCallback(async () => {
     if (!user?.uid) {
+      showToast(strings.settings.somethingWentWrong, 'error');
       return;
     }
 
@@ -81,6 +83,7 @@ const ProfileScreen = () => {
         console.log('ProfileScreen: User profile refreshed successfully');
       }
     } catch (error) {
+      showToast(strings.settings.internalServerError, 'error');
       console.error('ProfileScreen: Failed to refresh user profile:', error);
     }
   }, [user?.uid]);
@@ -244,7 +247,7 @@ const ProfileScreen = () => {
 
       <View className="mt-10">
         {/* Quota Information Section */}
-        {user && quota && !quotaLoading && (
+        {user && (
           <View
             className="rounded-3xl mb-6 overflow-hidden shadow-lg mx-0"
             style={{backgroundColor: theme.surface}}>
@@ -254,7 +257,7 @@ const ProfileScreen = () => {
               <Text
                 className="text-lg font-semibold"
                 style={{color: theme.secondaryText}}>
-                Usage & Limits
+                {strings.settings.quotaTitle}
               </Text>
             </View>
 
@@ -265,12 +268,12 @@ const ProfileScreen = () => {
                   <Text
                     style={{color: theme.text}}
                     className="text-base font-medium">
-                    Images Remaining
+                    {strings.settings.imagesRemaining}
                   </Text>
                   <Text
                     style={{color: theme.primary}}
                     className="text-base font-bold">
-                    {quota.imagesRemaining}
+                    {quota && !quotaLoading ? quota.imagesRemaining : 0}
                   </Text>
                 </View>
                 <View
@@ -280,9 +283,15 @@ const ProfileScreen = () => {
                     className="h-full rounded-full"
                     style={{
                       backgroundColor:
-                        quota.imagesRemaining > 5 ? theme.primary : '#ef4444',
+                        quota && !quotaLoading
+                          ? quota.imagesRemaining > 5
+                            ? theme.primary
+                            : '#ef4444'
+                          : '#ef4444',
                       width: `${Math.min(
-                        (quota.imagesRemaining / 40) * 100,
+                        quota && !quotaLoading
+                          ? (quota.imagesRemaining / 40) * 100
+                          : 0,
                         100,
                       )}%`,
                     }}
@@ -296,12 +305,12 @@ const ProfileScreen = () => {
                   <Text
                     style={{color: theme.text}}
                     className="text-base font-medium">
-                    API Calls Remaining
+                    {strings.settings.apiCallsRemaining}
                   </Text>
                   <Text
                     style={{color: theme.primary}}
                     className="text-base font-bold">
-                    {quota.apiCallsRemaining}
+                    {quota && !quotaLoading ? quota.apiCallsRemaining : 0}
                   </Text>
                 </View>
                 <View
@@ -311,11 +320,15 @@ const ProfileScreen = () => {
                     className="h-full rounded-full"
                     style={{
                       backgroundColor:
-                        quota.apiCallsRemaining > 10
-                          ? theme.primary
+                        quota && !quotaLoading
+                          ? quota.apiCallsRemaining > 10
+                            ? theme.primary
+                            : '#ef4444'
                           : '#ef4444',
                       width: `${Math.min(
-                        (quota.apiCallsRemaining / 100) * 100,
+                        quota && !quotaLoading
+                          ? (quota.apiCallsRemaining / 100) * 100
+                          : 0,
                         100,
                       )}%`,
                     }}
@@ -328,7 +341,7 @@ const ProfileScreen = () => {
                 <Text
                   style={{color: theme.text}}
                   className="text-base font-medium">
-                  Plan Type
+                  {strings.settings.planType}
                 </Text>
                 <View
                   className="px-3 py-1 rounded-full"

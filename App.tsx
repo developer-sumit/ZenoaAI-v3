@@ -1,6 +1,6 @@
 /**
  * App Name: Zenoa AI
- * Version: 2.0.0
+ * Version: 3.0.0
  * Company Name: Zenoa
  * Owner & Developer: Sumit Singh Rathore
  * Released on Indus App Store: 30 April 2025
@@ -138,7 +138,7 @@ function App() {
               lastLoginAt: new Date(),
               planType: 'free',
               quota: {
-                imagesRemaining: 10,
+                imagesRemaining: 40,
                 apiCallsRemaining: 100,
                 refreshAt: new Date(),
               },
@@ -233,13 +233,12 @@ function App() {
     }
   }, [user]);
 
-  // Add this effect to track language changes
+  // Effect to track language changes
   useEffect(() => {
-    // Update analytics when language changes
     if (user) {
       analyticsService.logEvent('language_changed', {
         language,
-        userId: user.uid, // Changed from user.id to user.uid
+        userId: user.uid,
       });
     }
   }, [language, user]);

@@ -12,6 +12,7 @@ import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {useToast} from '@masumdev/rn-toast';
 
+import urls from '@src/constants/urls';
 import {useTheme} from '@src/store/themeStore';
 import appConfig from '@src/config/app.config';
 import {useAuthStore} from '@src/store/authStore';
@@ -23,7 +24,6 @@ import {authService} from '@src/services/authService';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
-import urls from '@src/constants/urls';
 
 const LoginScreen = () => {
   const strings = useStrings();
@@ -61,6 +61,7 @@ const LoginScreen = () => {
       const {data} = await GoogleSignin.signIn();
 
       if (!data?.idToken) {
+        showToast(strings.auth.signInFailed, 'error');
         throw new Error('Failed to get ID token from Google Sign-In');
       }
 
@@ -87,7 +88,7 @@ const LoginScreen = () => {
           'error',
         );
       } else {
-        showToast(error.message || strings.auth.signInFailed, 'error');
+        showToast(strings.auth.signInFailed, 'error');
       }
 
       // If we're already authenticated with Firebase but server failed

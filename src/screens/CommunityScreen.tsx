@@ -7,7 +7,6 @@ import {
   Dimensions,
   TextInput,
   RefreshControl,
-  StyleSheet,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
@@ -19,6 +18,7 @@ import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
 import EmptyState from '@src/components/EmptyState';
+import {useStrings} from '@src/hooks/useStrings';
 
 // Icons
 import SearchIcon from '@src/assets/icons/SearchIcon';
@@ -37,11 +37,10 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 const CommunityScreen = () => {
   const {theme} = useTheme();
   const {showToast} = useToast();
-  // Image store
+  const strings = useStrings();
   const {publicImages, isLoadingPublic, fetchPublicImages, toggleFavorite} =
     useImageStore();
-
-  // State
+  const [searchQuery, setSearchQuery] = useState('');
   const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
@@ -51,8 +50,6 @@ const CommunityScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Search and filtering
-  const [searchQuery, setSearchQuery] = useState(''); // Load community images when focused
   useFocusEffect(
     useCallback(() => {
       if (publicImages.length === 0) {
@@ -60,6 +57,7 @@ const CommunityScreen = () => {
       }
     }, [fetchPublicImages, publicImages.length]),
   );
+
   // Filter images based on search query
   useEffect(() => {
     if (publicImages.length > 0) {
@@ -101,6 +99,7 @@ const CommunityScreen = () => {
       setRefreshing(false);
     }
   }, [fetchPublicImages, showToast]);
+
   const handleLoadMore = useCallback(async () => {
     if (!isLoadingPublic && hasMore && publicImages.length > 0) {
       setLoadingMore(true);
@@ -133,6 +132,7 @@ const CommunityScreen = () => {
     fetchPublicImages,
     showToast,
   ]);
+
   const calculateImageHeight = (item: GeneratedImage) => {
     // Use actual aspect ratio if available
     if (item.width && item.height) {
@@ -169,11 +169,14 @@ const CommunityScreen = () => {
     console.log(`Image ${item.id}: using default height: ${defaultHeight}`);
     return defaultHeight;
   };
+
   const renderImageItem = ({item}: {item: GeneratedImage}) => {
     const imageHeight = calculateImageHeight(item);
 
     return (
-      <View style={styles.imageContainer}>
+      <View
+        className="rounded-xl overflow-hidden mb-3"
+        style={{width: COLUMN_WIDTH}}>
         <TouchableOpacity
           onPress={() => setSelectedImage(item)}
           activeOpacity={0.9}
@@ -182,27 +185,25 @@ const CommunityScreen = () => {
           accessibilityRole="button">
           <FastImage
             source={{uri: item.uri}}
-            style={[
-              styles.image,
-              {
-                width: COLUMN_WIDTH,
-                height: imageHeight,
-                backgroundColor: theme.surface,
-              },
-            ]}
+            className="rounded-xl"
+            style={{
+              width: COLUMN_WIDTH,
+              height: imageHeight,
+              backgroundColor: theme.surface,
+            }}
             resizeMode={FastImage.resizeMode.cover}
           />
 
           {/* Image overlay with basic info */}
           <View
-            style={[
-              styles.imageOverlay,
-              {backgroundColor: theme.surface + '90'},
-            ]}>
-            <View style={styles.imageInfo}>
-              <View style={styles.userInfo}>
-                <PersonIcon size={16} color={theme.text} />
-                <Text style={[styles.userName, {color: theme.text}]}>
+            className="absolute bottom-0 left-0 right-0 p-3"
+            style={{backgroundColor: theme.surface + '90'}}>
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row items-center">
+                <PersonIcon size={16} color={theme.text} />{' '}
+                <Text
+                  className="text-xs font-medium ml-1.5"
+                  style={{color: theme.text}}>
                   {item.userName || 'Anonymous'}
                 </Text>
               </View>
@@ -211,7 +212,7 @@ const CommunityScreen = () => {
 
           {/* Favorite indicator */}
           {item.isFavorite && (
-            <View style={styles.favoriteIndicator}>
+            <View className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl p-1">
               <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
             </View>
           )}
@@ -233,18 +234,26 @@ const CommunityScreen = () => {
   );
 
   return (
-    <View style={[styles.container, {backgroundColor: theme.background}]}>
+    <View className="flex-1" style={{backgroundColor: theme.background}}>
       {/* Header */}
-      <View style={[styles.header, {backgroundColor: theme.background}]}>
-        <Text style={[styles.title, {color: theme.text}]}>Community</Text>
-      </View>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, {backgroundColor: theme.surface}]}>
+      <View
+        className="mt-10 px-5 gap-4"
+        style={{backgroundColor: theme.background}}>
+        <Text
+          className="text-3xl font-bold text-center"
+          style={{color: theme.text}}>
+          {strings.community.title}
+        </Text>
+
+        {/* Search Bar */}
+        <View
+          className="flex-row items-center px-4 py-3 rounded-2xl"
+          style={{backgroundColor: theme.surface}}>
           <SearchIcon size={20} color={theme.secondaryText} />
           <TextInput
-            style={[styles.searchInput, {color: theme.text}]}
-            placeholder="Search images, prompts, or users..."
+            className="flex-1 ml-3 text-base"
+            style={{color: theme.text}}
+            placeholder={strings.gallery.searchAll}
             placeholderTextColor={theme.secondaryText}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -252,7 +261,7 @@ const CommunityScreen = () => {
           {searchQuery.length > 0 && (
             <TouchableOpacity
               onPress={() => setSearchQuery('')}
-              style={styles.clearButton}
+              className="p-1"
               accessible={true}
               accessibilityLabel="Clear search"
               accessibilityRole="button">
@@ -261,11 +270,12 @@ const CommunityScreen = () => {
           )}
         </View>
       </View>
+
       {/* Images Grid */}
       {isLoadingPublic && filteredImages.length === 0 ? (
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, {color: theme.secondaryText}]}>
+          <Text className="text-base mt-4" style={{color: theme.secondaryText}}>
             Loading community images...
           </Text>
         </View>
@@ -275,7 +285,12 @@ const CommunityScreen = () => {
           numColumns={NUM_COLUMNS}
           renderItem={renderImageItem}
           estimatedItemSize={200}
-          contentContainerStyle={styles.gridContent}
+          className="rounded-3xl"
+          contentContainerStyle={{
+            paddingHorizontal: SPACING,
+            paddingBottom: 100,
+            paddingTop: 15,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -288,7 +303,7 @@ const CommunityScreen = () => {
           onEndReachedThreshold={0.3}
           ListFooterComponent={
             loadingMore ? (
-              <View style={styles.loadMoreContainer}>
+              <View className="py-5 items-center">
                 <ActivityIndicator size="small" color={theme.primary} />
               </View>
             ) : null
@@ -297,6 +312,7 @@ const CommunityScreen = () => {
       ) : (
         renderEmptyState()
       )}
+
       {/* Image Viewer Modal */}
       {selectedImage && (
         <ImageViewer
@@ -325,95 +341,5 @@ const CommunityScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    marginTop: 16,
-  },
-  gridContent: {
-    paddingHorizontal: SPACING,
-    paddingBottom: 100,
-  },
-  imageContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: SPACING,
-    width: COLUMN_WIDTH,
-  },
-  image: {
-    borderRadius: 12,
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-  },
-  imageInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  userName: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-  favoriteIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 4,
-  },
-  loadMoreContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-});
 
 export default CommunityScreen;
