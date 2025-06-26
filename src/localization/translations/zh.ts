@@ -153,6 +153,10 @@ export const zh = {
     enterFeedback: '请输入您的反馈',
     greetForFeedback: '感谢您的反馈！',
     feedbackFailed: '提交反馈失败',
+    quotaTitle: '配额',
+    imagesRemaining: '剩余图像',
+    apiCallsRemaining: '剩余API调用',
+    planType: '计划类型',
   },
 
   editProfile: {
@@ -162,7 +166,6 @@ export const zh = {
     fullNameHint: '输入您的全名',
     email: '邮箱',
     yourName: '您的姓名',
-    emailCannotChange: '邮箱无法更改',
     accountManagement: '账户管理',
     saveChanges: '保存更改',
     saving: '正在保存...',

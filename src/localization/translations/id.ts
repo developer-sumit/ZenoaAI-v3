@@ -161,6 +161,10 @@ export const id = {
     enterFeedback: 'Silakan masukkan umpan balik Anda',
     greetForFeedback: 'Terima kasih atas umpan balik Anda!',
     feedbackFailed: 'Gagal mengirim umpan balik',
+    quotaTitle: 'Kuantitas Penggunaan',
+    imagesRemaining: 'Gambar Tersisa',
+    apiCallsRemaining: 'Panggilan API Tersisa',
+    planType: 'Jenis Rencana',
   },
 
   editProfile: {
@@ -170,7 +174,6 @@ export const id = {
     fullNameHint: 'Masukkan nama lengkap Anda',
     email: 'Email',
     yourName: 'Nama Anda',
-    emailCannotChange: 'Email tidak dapat diubah',
     accountManagement: 'Manajemen Akun',
     saveChanges: 'Simpan Perubahan',
     saving: 'Menyimpan...',

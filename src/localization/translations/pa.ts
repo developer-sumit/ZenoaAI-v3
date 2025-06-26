@@ -163,6 +163,10 @@ export const pa = {
     greetForFeedback:
       'ਤੁਹਾਡਾ ਫੀਡਬੈਕ ਸਾਡੇ ਲਈ ਮਹੱਤਵਪੂਰਨ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਕੀ ਸੋਚਦੇ ਹੋ!',
     feedbackFailed: 'ਫੀਡਬੈਕ ਸਬਮਿਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ',
+    quotaTitle: 'ਕੋਟਾ ਸੂਚਨਾ',
+    imagesRemaining: 'ਬਾਕੀ ਚਿੱਤਰ',
+    apiCallsRemaining: 'ਬਾਕੀ API ਕਾਲਾਂ',
+    planType: 'ਯੋਜਨਾ ਕਿਸਮ',
   },
 
   editProfile: {
@@ -172,7 +176,6 @@ export const pa = {
     fullNameHint: 'ਆਪਣਾ ਪੂਰਾ ਨਾਮ ਦਾਖਲ ਕਰੋ',
     email: 'ਈਮੇਲ',
     yourName: 'ਤੁਹਾਡਾ ਨਾਮ',
-    emailCannotChange: 'ਈਮੇਲ ਬਦਲਿਆ ਨਹੀਂ ਜਾ ਸਕਦਾ',
     accountManagement: 'ਖਾਤਾ ਪ੍ਰਬੰਧਨ',
     saveChanges: 'ਤਬਦੀਲੀਆਂ ਸੁਰੱਖਿਅਤ ਕਰੋ',
     saving: 'ਸੁਰੱਖਿਅਤ ਕਰ ਰਿਹਾ ਹੈ...',

@@ -68,7 +68,6 @@ interface AdvancedSettingsScreenProps {
       samplers: string[];
       imagesPrivateByDefault?: boolean;
       setImagesPrivateByDefault?: (value: boolean) => void;
-      // Add new parameters to match web
       engine?: 'quantum' | 'nebula';
       setEngine?: (engine: 'quantum' | 'nebula') => void;
       guidance?: number;
@@ -581,6 +580,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     localEngine === 'quantum'
                       ? theme.primary
                       : theme.background,
+                  shadowColor: theme.primary,
                   elevation: localEngine === 'quantum' ? 8 : 0,
                 }}
                 className="flex-1 p-4 rounded-xl">
@@ -620,6 +620,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 style={{
                   backgroundColor:
                     localEngine === 'nebula' ? theme.primary : theme.background,
+                  shadowColor: theme.primary,
                   elevation: localEngine === 'nebula' ? 8 : 0,
                 }}
                 className="flex-1 p-4 rounded-xl">

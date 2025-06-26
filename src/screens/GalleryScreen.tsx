@@ -41,8 +41,6 @@ const GalleryScreen = () => {
   const {isDark, theme} = useTheme();
   const {user} = useAuthStore();
   const {showToast} = useToast();
-
-  // Image store
   const {
     images,
     isLoading,
@@ -53,7 +51,6 @@ const GalleryScreen = () => {
   // Animation for tab indicator
   const tabIndicatorAnim = useState(new Animated.Value(0))[0];
 
-  // State
   const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +58,8 @@ const GalleryScreen = () => {
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null); // Load user's images when focused - but only if we don't have any cached images
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       if (user?.uid && images.length === 0) {

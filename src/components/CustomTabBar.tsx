@@ -56,7 +56,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
   return (
     <View
-      className="flex-row shadow-lg"
+      className="absolute bottom-0 flex-row shadow-lg"
       style={{
         backgroundColor: theme.surface,
         paddingVertical: Platform.OS === 'ios' ? insets.bottom : 7,

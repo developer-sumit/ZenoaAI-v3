@@ -162,6 +162,10 @@ export const de = {
     enterFeedback: 'Bitte geben Sie Ihr Feedback ein',
     greetForFeedback: 'Vielen Dank für Ihr Feedback!',
     feedbackFailed: 'Fehler beim Senden des Feedbacks',
+    quotaTitle: 'Kontingent und Nutzung',
+    imagesRemaining: 'Verbleibende Bilder',
+    apiCallsRemaining: 'Verbleibende API-Aufrufe',
+    planType: 'Aktueller Plan',
   },
 
   editProfile: {
@@ -171,7 +175,6 @@ export const de = {
     fullNameHint: 'Geben Sie Ihren vollständigen Namen ein',
     email: 'E-Mail',
     yourName: 'Ihr Name',
-    emailCannotChange: 'E-Mail kann nicht geändert werden',
     accountManagement: 'Kontoverwaltung',
     saveChanges: 'Änderungen speichern',
     saving: 'Wird gespeichert...',

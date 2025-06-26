@@ -80,7 +80,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const [expandedPrompt, setExpandedPrompt] = useState(false);
   const [fullscreenMode, setFullscreenMode] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  // Add state to track if image failed to load
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [expandedStyles, setExpandedStyles] = useState(false);
@@ -273,6 +272,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     // Default fallback
     return 1;
   };
+
   const handleRemix = () => {
     if (!image) {
       return;

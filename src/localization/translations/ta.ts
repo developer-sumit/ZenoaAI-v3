@@ -172,6 +172,10 @@ export const ta = {
     enterFeedback: 'தயவுசெய்து உங்கள் கருத்தை உள்ளிடவும்',
     greetForFeedback: 'உங்கள் கருத்துக்கு நன்றி!',
     feedbackFailed: 'கருத்தைச் சமர்ப்பிக்கத் தவறியது',
+    quotaTitle: 'கோட்டா',
+    imagesRemaining: 'மீதமுள்ள படங்கள்',
+    apiCallsRemaining: 'மீதமுள்ள API அழைப்புகள்',
+    planType: 'திட்ட வகை',
   },
 
   editProfile: {
@@ -181,7 +185,6 @@ export const ta = {
     fullNameHint: 'உங்கள் முழுப் பெயரை உள்ளிடவும்',
     email: 'மின்னஞ்சல்',
     yourName: 'உங்கள் பெயர்',
-    emailCannotChange: 'மின்னஞ்சலை மாற்ற முடியாது',
     accountManagement: 'கணக்கு நிர்வாகம்',
     saveChanges: 'மாற்றங்களைச் சேமி',
     saving: 'சேமிக்கிறது...',

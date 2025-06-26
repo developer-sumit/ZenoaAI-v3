@@ -12,9 +12,11 @@ import FastImage from 'react-native-fast-image';
 
 import {GeneratedImage} from '@src/types';
 import {useTheme} from '@src/store/themeStore';
+import {useStrings} from '@src/hooks/useStrings';
+
+// Icons
 import SyncIcon from '@src/assets/icons/SyncIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
-import {useStrings} from '@src/hooks/useStrings';
 
 interface ImageCardProps {
   image: GeneratedImage;

@@ -165,6 +165,10 @@ export const fr = {
     enterFeedback: 'Veuillez entrer vos commentaires',
     greetForFeedback: 'Merci pour vos commentaires !',
     feedbackFailed: "Échec de l'envoi des commentaires",
+    quotaTitle: "Quota d'utilisation",
+    imagesRemaining: 'Images restantes',
+    apiCallsRemaining: 'Appels API restants',
+    planType: 'Type de plan',
   },
 
   editProfile: {
@@ -174,7 +178,6 @@ export const fr = {
     fullNameHint: 'Entrez votre nom complet',
     email: 'Email',
     yourName: 'Votre nom',
-    emailCannotChange: "L'email ne peut pas être modifié",
     accountManagement: 'Gestion du compte',
     saveChanges: 'Sauvegarder les modifications',
     saving: 'Sauvegarde...',
