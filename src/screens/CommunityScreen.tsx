@@ -200,7 +200,7 @@ const CommunityScreen = () => {
             style={{backgroundColor: theme.surface + '90'}}>
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center">
-                <PersonIcon size={16} color={theme.text} />{' '}
+                <PersonIcon size={16} color={theme.text} />
                 <Text
                   className="text-xs font-medium ml-1.5"
                   style={{color: theme.text}}>

@@ -5,7 +5,7 @@ import {useTheme} from '@src/store/themeStore';
 import appConfig from '@src/config/app.config';
 
 const SplashScreen = () => {
-  const {theme} = useTheme();
+  const {isDark, theme} = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -51,10 +51,14 @@ const SplashScreen = () => {
         style={{opacity: fadeAnim, transform: [{scale: scaleAnim}]}}>
         {/* Logo/Brand Icon */}
         <View
-          className="w-20 h-20 rounded-3xl mb-8 items-center justify-center shadow-lg bg-[#121212]"
-          style={{shadowColor: theme.primary, elevation: 12}}>
+          className="w-28 h-28 rounded-[28px] mb-8 items-center justify-center shadow-lg"
+          style={{
+            backgroundColor: isDark ? '#121212' : 'white',
+            shadowColor: isDark ? 'white' : theme.primary,
+            elevation: 12,
+          }}>
           <Image
-            source={appConfig.icon}
+            source={isDark ? appConfig.darkFavicon : appConfig.lightFavicon}
             className="w-full h-full"
             resizeMode="contain"
           />

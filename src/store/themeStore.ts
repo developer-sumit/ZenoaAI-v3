@@ -55,19 +55,15 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      mode: 'dark',
-      currentTheme: darkTheme,
-      isDark: true,
+      mode: 'light',
+      currentTheme: lightTheme,
+      isDark: false,
 
       setMode: (mode: ThemeMode) => {
         const isDark = mode === 'dark';
         const currentTheme = isDark ? darkTheme : lightTheme;
 
-        set({
-          mode,
-          isDark,
-          currentTheme,
-        });
+        set({mode, isDark, currentTheme});
       },
 
       toggleTheme: () => {
@@ -75,11 +71,7 @@ export const useThemeStore = create<ThemeState>()(
         const newMode: ThemeMode = isDark ? 'light' : 'dark';
         const newTheme = isDark ? lightTheme : darkTheme;
 
-        set({
-          mode: newMode,
-          isDark: !isDark,
-          currentTheme: newTheme,
-        });
+        set({mode: newMode, isDark: !isDark, currentTheme: newTheme});
       },
 
       getThemeColors: () => {
