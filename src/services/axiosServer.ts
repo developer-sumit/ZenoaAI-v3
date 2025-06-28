@@ -5,7 +5,7 @@ import {Platform} from 'react-native';
 import appConfig from '@src/config/app.config';
 import auth from '@react-native-firebase/auth';
 
-const API_BASE_URL = Config.API_BASE_URL || 'http://192.168.206.173:4000';
+const API_BASE_URL = Config.API_BASE_URL;
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
