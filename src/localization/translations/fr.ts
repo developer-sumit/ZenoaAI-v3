@@ -164,11 +164,16 @@ export const fr = {
     selectRating: 'Veuillez sélectionner une note',
     enterFeedback: 'Veuillez entrer vos commentaires',
     greetForFeedback: 'Merci pour vos commentaires !',
-    feedbackFailed: "Échec de l'envoi des commentaires",
-    quotaTitle: "Quota d'utilisation",
+    feedbackFailed: "Échec de l'envoi des commentaires",    quotaTitle: "Quota d'utilisation",
     imagesRemaining: 'Images restantes',
     apiCallsRemaining: 'Appels API restants',
     planType: 'Type de plan',
+    notifications: 'Notifications',
+    notificationsDesc: 'Recevez des mises à jour sur vos images',
+    notificationsEnabled: 'Notifications activées',
+    notificationsDisabled: 'Notifications désactivées',
+    notificationsPermissionDenied: 'Permission de notification refusée. Veuillez activer dans les paramètres de l\'appareil.',
+    notificationsUpdateFailed: 'Échec de la mise à jour des paramètres de notification',
   },
 
   editProfile: {

@@ -24,13 +24,14 @@ import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useQuota} from '@src/hooks/useQuota';
-import {AspectRatioType, GeneratedImage} from '../types';
+import {AspectRatio, GeneratedImage} from '../types';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
 import {contentFilter} from '@src/utils/contentFilter';
 import {useStrings} from '@src/hooks/useStrings';
+import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
 
 // Icons
 import TipIcon from '@src/assets/icons/TipIcon';
@@ -66,7 +67,7 @@ const HomeScreen = () => {
     React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [selectedStyles, setSelectedStyles] = React.useState<string[]>([]);
-  const [aspectRatio, setAspectRatio] = React.useState<AspectRatioType>({
+  const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>({
     ratio: aspectRatios[0].ratio,
     sizes: aspectRatios[0].sizes,
     size: 'medium',
@@ -192,29 +193,19 @@ const HomeScreen = () => {
       showToast('Image generation quota exceeded', 'error');
       return;
     }
-
     try {
       console.log('Generating with:', {prompt, selectedStyles, aspectRatio});
 
-      // Find the aspect ratio data to get proper dimensions
-      const selectedAspectRatio = aspectRatios.find(
-        ratio => ratio.ratio === aspectRatio.ratio,
-      );
-
-      // Get dimensions from aspect ratio data, fallback to 1:1 if not found
-      const dimensions =
-        selectedAspectRatio?.sizes[aspectRatio.size || 'medium'] || '1024x1024';
-      const [width, height] = dimensions.split('x').map(Number); // Convert our settings to the API format (matching web)
+      // Convert our settings to the API format (matching web)
       const apiSettings = {
         engine, // Use current engine setting
         style: selectedStyles?.[0] || 'photorealistic',
         aspectRatio: aspectRatio.ratio,
+        imageSize: aspectRatio.size || 'medium',
         quality: 'standard' as const,
         guidance, // Use current guidance setting
         steps, // Use current steps setting
         seed: seed ? parseInt(seed, 10) : undefined,
-        width,
-        height,
         negativePrompt,
         sampler,
         isPrivate: false,
@@ -249,7 +240,7 @@ const HomeScreen = () => {
     parameters: {
       prompt: string;
       styles: string[];
-      aspectRatio: AspectRatioType;
+      aspectRatio: AspectRatio;
     };
   }) => {
     setPrompt(item.parameters.prompt);
@@ -269,23 +260,36 @@ const HomeScreen = () => {
       showToast(strings.home.promptApplied, 'success');
     }
   };
+
   const getCombinedImages = () => {
     // Show current generation batch at the top if there are any
     const combinedImages = [...currentGenerationBatch, ...generatedImages];
     return combinedImages;
   };
-
   const groupImagesByParameters = (images: GeneratedImage[]) => {
     const groups: {[key: string]: GeneratedImage[]} = {};
 
     images.forEach(image => {
       // Group by timestamp to keep generation batches separate
+      // For batch images, use createdAt if available, otherwise fallback to timestamp
+      let groupingTime;
+      if (image.createdAt) {
+        // Use createdAt from server if available
+        const createdTime = new Date(image.createdAt).getTime();
+        // Round to 10-second window to group batch images generated close together
+        groupingTime = Math.floor(createdTime / 10000) * 10000;
+      } else {
+        // Use timestamp with 5-second window for local images
+        const timestamp = image.timestamp || Date.now();
+        groupingTime = Math.floor(timestamp / 5000) * 5000;
+      }
+
       const groupKey = [
         image.originalPrompt || image.prompt || '',
         (image.styles || []).join(','),
         image.aspectRatio?.ratio || '1:1',
         image.quality || 25,
-        image.timestamp || Date.now(),
+        groupingTime,
       ].join('|');
 
       if (!groups[groupKey]) {
@@ -545,6 +549,12 @@ const HomeScreen = () => {
       )}
     </View>
   );
+  // Android Quick Actions
+  useAndroidQuickActions({
+    setPrompt,
+    setSelectedStyles,
+    setAspectRatio,
+  });
 
   return (
     <KeyboardAvoidingView
@@ -590,6 +600,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
+
         {/* Generated Images Grid with optional Getting Started for new users */}
         <View className="flex-1 pb-5">
           <FlashList
@@ -615,6 +626,7 @@ const HomeScreen = () => {
             onScrollBeginDrag={Keyboard.dismiss}
           />
         </View>
+
         <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
@@ -717,7 +729,7 @@ const HomeScreen = () => {
                       setSelectedStyles: (styles: string[]) =>
                         setSelectedStyles(styles),
                       aspectRatio,
-                      setAspectRatio: (ratio: AspectRatioType) =>
+                      setAspectRatio: (ratio: AspectRatio) =>
                         setAspectRatio(ratio),
                       numberOfImages,
                       setNumberOfImages: (count: number) =>

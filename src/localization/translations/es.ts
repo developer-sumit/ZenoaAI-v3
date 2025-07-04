@@ -162,11 +162,16 @@ export const es = {
     selectRating: 'Por favor selecciona una calificación',
     enterFeedback: 'Por favor ingresa tus comentarios',
     greetForFeedback: '¡Gracias por tus comentarios!',
-    feedbackFailed: 'Error al enviar comentarios',
-    quotaTitle: 'Límite de Uso',
+    feedbackFailed: 'Error al enviar comentarios',    quotaTitle: 'Límite de Uso',
     imagesRemaining: 'Imágenes Restantes',
     apiCallsRemaining: 'Llamadas a la API Restantes',
     planType: 'Tipo de Plan',
+    notifications: 'Notificaciones',
+    notificationsDesc: 'Recibe actualizaciones sobre tus imágenes',
+    notificationsEnabled: 'Notificaciones habilitadas',
+    notificationsDisabled: 'Notificaciones deshabilitadas',
+    notificationsPermissionDenied: 'Permiso de notificaciones denegado. Por favor habilita en la configuración del dispositivo.',
+    notificationsUpdateFailed: 'Error al actualizar la configuración de notificaciones',
   },
 
   editProfile: {

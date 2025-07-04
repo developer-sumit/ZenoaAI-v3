@@ -74,9 +74,18 @@ const LoginScreen = () => {
       // Store the user data in your app state
       await login(userData);
 
-      showToast(strings.auth.signInSuccessful, 'success');
-    } catch (error: any) {
+      showToast(strings.auth.signInSuccessful, 'success');    } catch (error: any) {
       console.error('Sign-in error:', error);
+
+      // Check for email restriction error first
+      if ((error as any).errorType === 'EMAIL_RESTRICTION') {
+        showToast(
+          error.message || 'This email cannot be used due to a recent account deletion.',
+          'error',
+          {duration: 8000} // Show longer for this important message
+        );
+        return; // Don't try fallback for email restrictions
+      }
 
       // Check if this is a network error, which could be causing the 401
       if (

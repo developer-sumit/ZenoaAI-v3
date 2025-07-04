@@ -161,11 +161,16 @@ export const de = {
     selectRating: 'Bitte wählen Sie eine Bewertung',
     enterFeedback: 'Bitte geben Sie Ihr Feedback ein',
     greetForFeedback: 'Vielen Dank für Ihr Feedback!',
-    feedbackFailed: 'Fehler beim Senden des Feedbacks',
-    quotaTitle: 'Kontingent und Nutzung',
+    feedbackFailed: 'Fehler beim Senden des Feedbacks',    quotaTitle: 'Kontingent und Nutzung',
     imagesRemaining: 'Verbleibende Bilder',
     apiCallsRemaining: 'Verbleibende API-Aufrufe',
     planType: 'Aktueller Plan',
+    notifications: 'Benachrichtigungen',
+    notificationsDesc: 'Erhalten Sie Updates zu Ihren Bildern',
+    notificationsEnabled: 'Benachrichtigungen aktiviert',
+    notificationsDisabled: 'Benachrichtigungen deaktiviert',
+    notificationsPermissionDenied: 'Benachrichtigungsberechtigung verweigert. Bitte in den Geräteeinstellungen aktivieren.',
+    notificationsUpdateFailed: 'Fehler beim Aktualisieren der Benachrichtigungseinstellungen',
   },
 
   editProfile: {

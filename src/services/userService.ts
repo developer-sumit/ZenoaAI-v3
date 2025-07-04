@@ -26,6 +26,11 @@ export const userService = {
             ...userData.quota,
             refreshAt: userData.quota.refreshAt.toISOString(),
           },
+          statistics: {
+            ...userData.statistics,
+            lastLoginAt: userData.statistics.lastLoginAt.toISOString(),
+          },
+          fcmTokenUpdatedAt: userData.fcmTokenUpdatedAt?.toISOString(),
         }),
       );
       await EncryptedStorage.setItem('currentUserId', userData.uid);
@@ -58,13 +63,34 @@ export const userService = {
             // Convert ISO strings back to Date objects
             createdAt: new Date(parsedData.createdAt),
             updatedAt: new Date(parsedData.updatedAt),
-            lastLoginAt: parsedData.lastLoginAt ? new Date(parsedData.lastLoginAt) : undefined,
-            deletedAt: parsedData.deletedAt ? new Date(parsedData.deletedAt) : undefined,
-            recoveryExpiresAt: parsedData.recoveryExpiresAt ? new Date(parsedData.recoveryExpiresAt) : undefined,
+            lastLoginAt: parsedData.lastLoginAt
+              ? new Date(parsedData.lastLoginAt)
+              : undefined,
+            deletedAt: parsedData.deletedAt
+              ? new Date(parsedData.deletedAt)
+              : undefined,
+            recoveryExpiresAt: parsedData.recoveryExpiresAt
+              ? new Date(parsedData.recoveryExpiresAt)
+              : undefined,
             quota: {
               ...parsedData.quota,
               refreshAt: new Date(parsedData.quota.refreshAt),
             },
+            statistics: parsedData.statistics
+              ? {
+                  ...parsedData.statistics,
+                  lastLoginAt: parsedData.statistics.lastLoginAt
+                    ? new Date(parsedData.statistics.lastLoginAt)
+                    : new Date(),
+                }
+              : {
+                  lastLoginAt: new Date(),
+                  totalLogins: 0,
+                  imagesGenerated: 0,
+                },
+            fcmTokenUpdatedAt: parsedData.fcmTokenUpdatedAt
+              ? new Date(parsedData.fcmTokenUpdatedAt)
+              : undefined,
           };
 
           // Check if locally stored user is marked as deleted
@@ -89,7 +115,8 @@ export const userService = {
           console.log('Attempting to fetch user data from API');
 
           // Call the API endpoint using userAPI (token automatically added)
-          const response = await userAPI.getProfile();          if (response.data.success) {
+          const response = await userAPI.getProfile();
+          if (response.data.success) {
             const apiUser = response.data.profile;
             const apiUserData: User = {
               uid: userId,
@@ -99,23 +126,63 @@ export const userService = {
                 avatar: apiUser.avatar || apiUser.profile?.avatar || '',
                 bio: apiUser.bio || apiUser.profile?.bio || '',
                 preferences: {
-                  theme: apiUser.theme || apiUser.profile?.preferences?.theme || 'system',
-                  language: apiUser.language || apiUser.profile?.preferences?.language || 'en',
-                  notifications: apiUser.notifications ?? apiUser.profile?.preferences?.notifications ?? true,
+                  theme:
+                    apiUser.theme ||
+                    apiUser.profile?.preferences?.theme ||
+                    'system',
+                  language:
+                    apiUser.language ||
+                    apiUser.profile?.preferences?.language ||
+                    'en',
+                  notifications:
+                    apiUser.notifications ??
+                    apiUser.profile?.preferences?.notifications ??
+                    true,
                 },
               },
-              createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
-              updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
-              lastLoginAt: apiUser.lastLoginAt ? new Date(apiUser.lastLoginAt) : new Date(),
+              createdAt: apiUser.createdAt
+                ? new Date(apiUser.createdAt)
+                : new Date(),
+              updatedAt: apiUser.updatedAt
+                ? new Date(apiUser.updatedAt)
+                : new Date(),
+              lastLoginAt: apiUser.lastLoginAt
+                ? new Date(apiUser.lastLoginAt)
+                : new Date(),
               isDeleted: apiUser.isDeleted || false,
-              deletedAt: apiUser.deletedAt ? new Date(apiUser.deletedAt) : undefined,
-              recoveryExpiresAt: apiUser.recoveryExpiresAt ? new Date(apiUser.recoveryExpiresAt) : undefined,
+              deletedAt: apiUser.deletedAt
+                ? new Date(apiUser.deletedAt)
+                : undefined,
+              recoveryExpiresAt: apiUser.recoveryExpiresAt
+                ? new Date(apiUser.recoveryExpiresAt)
+                : undefined,
               planType: apiUser.planType || 'free',
               quota: {
-                imagesRemaining: apiUser.quota?.imagesRemaining || 40,
-                apiCallsRemaining: apiUser.quota?.apiCallsRemaining || 100,
-                refreshAt: apiUser.quota?.refreshAt ? new Date(apiUser.quota.refreshAt) : new Date(),
+                imagesRemaining: apiUser.quota?.imagesRemaining || 40, // Default for free plan
+                refreshAt: apiUser.quota?.refreshAt
+                  ? new Date(apiUser.quota.refreshAt)
+                  : new Date(),
               },
+              statistics: apiUser.statistics
+                ? {
+                    lastLoginAt: apiUser.statistics.lastLoginAt
+                      ? new Date(apiUser.statistics.lastLoginAt)
+                      : new Date(),
+                    totalLogins: apiUser.statistics.totalLogins || 0,
+                    imagesGenerated:
+                      apiUser.statistics.imagesGenerated ||
+                      apiUser.statistics.totalImages ||
+                      0,
+                  }
+                : {
+                    lastLoginAt: new Date(),
+                    totalLogins: 0,
+                    imagesGenerated: 0,
+                  },
+              fcmToken: apiUser.fcmToken,
+              fcmTokenUpdatedAt: apiUser.fcmTokenUpdatedAt
+                ? new Date(apiUser.fcmTokenUpdatedAt)
+                : undefined,
             };
 
             // If account is marked as deleted in API, return null
@@ -184,11 +251,22 @@ export const userService = {
 
       // Format data for the API
       const apiData = {
-        username: profileData.profile?.username || existingUser.profile.username,
+        username:
+          profileData.profile?.username || existingUser.profile.username,
         avatar: profileData.profile?.avatar || existingUser.profile.avatar,
-        bio: profileData.profile?.bio || existingUser.profile.bio,        theme: profileData.profile?.preferences?.theme || existingUser.profile.preferences?.theme || 'system',
-        language: profileData.profile?.preferences?.language || existingUser.profile.preferences?.language || 'en',
-        notifications: profileData.profile?.preferences?.notifications ?? existingUser.profile.preferences?.notifications ?? true,
+        bio: profileData.profile?.bio || existingUser.profile.bio,
+        theme:
+          profileData.profile?.preferences?.theme ||
+          existingUser.profile.preferences?.theme ||
+          'system',
+        language:
+          profileData.profile?.preferences?.language ||
+          existingUser.profile.preferences?.language ||
+          'en',
+        notifications:
+          profileData.profile?.preferences?.notifications ??
+          existingUser.profile.preferences?.notifications ??
+          true,
       };
 
       // Call the API endpoint using userAPI (token automatically added)
@@ -269,55 +347,6 @@ export const userService = {
   },
 
   /**
-   * Recover a deleted account
-   */
-  async recoverAccount(userId: string): Promise<User | null> {
-    try {
-      console.log('Initiating account recovery process');
-
-      // Call the backend API endpoint using userAPI (token automatically added)
-      const response = await userAPI.recoverAccount();
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to recover account');
-      }      // Update local storage with recovered user data
-      const apiUser = response.data.profile;
-      const recoveredUser: User = {
-        uid: userId,
-        email: apiUser.email || '',
-        profile: {
-          username: apiUser.username || apiUser.profile?.username || '',
-          avatar: apiUser.avatar || apiUser.profile?.avatar || '',
-          bio: apiUser.bio || apiUser.profile?.bio || '',
-          preferences: {
-            theme: apiUser.theme || apiUser.profile?.preferences?.theme || 'system',
-            language: apiUser.language || apiUser.profile?.preferences?.language || 'en',
-            notifications: apiUser.notifications ?? apiUser.profile?.preferences?.notifications ?? true,
-          },
-        },
-        createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
-        updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
-        lastLoginAt: apiUser.lastLoginAt ? new Date(apiUser.lastLoginAt) : new Date(),
-        isDeleted: false, // Explicitly set to false since this is recovery
-        planType: apiUser.planType || 'free',
-        quota: {
-          imagesRemaining: apiUser.quota?.imagesRemaining || 40,
-          apiCallsRemaining: apiUser.quota?.apiCallsRemaining || 100,
-          refreshAt: apiUser.quota?.refreshAt ? new Date(apiUser.quota.refreshAt) : new Date(),
-        },
-      };
-
-      await this.saveUser(recoveredUser);
-
-      console.log('Account successfully recovered through API');
-      return recoveredUser;
-    } catch (error) {
-      console.error('Error recovering account:', error);
-      throw error;
-    }
-  },
-
-  /**
    * Check user quota information
    */
   async checkQuota(userId: string): Promise<IUserQuota | null> {
@@ -330,12 +359,12 @@ export const userService = {
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to check quota');
       }
-
       const apiQuota = response.data.quota;
       const quota: IUserQuota = {
-        imagesRemaining: apiQuota.imagesRemaining || 40,
-        apiCallsRemaining: apiQuota.apiCallsRemaining || 100,
-        refreshAt: apiQuota.refreshAt ? new Date(apiQuota.refreshAt) : new Date(),
+        imagesRemaining: apiQuota.imagesRemaining || 15, // Default for free plan
+        refreshAt: apiQuota.refreshAt
+          ? new Date(apiQuota.refreshAt)
+          : new Date(),
       };
 
       console.log('Quota information retrieved successfully');
@@ -376,9 +405,15 @@ export const userService = {
         // Convert ISO strings back to Date objects
         createdAt: new Date(parsedData.createdAt),
         updatedAt: new Date(parsedData.updatedAt),
-        lastLoginAt: parsedData.lastLoginAt ? new Date(parsedData.lastLoginAt) : undefined,
-        deletedAt: parsedData.deletedAt ? new Date(parsedData.deletedAt) : undefined,
-        recoveryExpiresAt: parsedData.recoveryExpiresAt ? new Date(parsedData.recoveryExpiresAt) : undefined,
+        lastLoginAt: parsedData.lastLoginAt
+          ? new Date(parsedData.lastLoginAt)
+          : undefined,
+        deletedAt: parsedData.deletedAt
+          ? new Date(parsedData.deletedAt)
+          : undefined,
+        recoveryExpiresAt: parsedData.recoveryExpiresAt
+          ? new Date(parsedData.recoveryExpiresAt)
+          : undefined,
         quota: {
           ...parsedData.quota,
           refreshAt: new Date(parsedData.quota.refreshAt),
@@ -406,6 +441,46 @@ export const userService = {
     } catch (error) {
       console.error('Error getting current user ID:', error);
       return null;
+    }
+  },
+
+  /**
+   * Check if an email is available for account creation
+   */
+  async checkEmailAvailability(email: string): Promise<{
+    isAvailable: boolean;
+    message?: string;
+    expiresAt?: Date;
+  }> {
+    try {
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected) {
+        throw new Error('No internet connection available');
+      }
+
+      const response = await userAPI.checkEmailAvailability(email);
+
+      return {
+        isAvailable: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      console.error('Error checking email availability:', error);
+
+      if (
+        error.response?.status === 403 &&
+        error.response?.data?.errorType === 'EMAIL_RESTRICTION'
+      ) {
+        return {
+          isAvailable: false,
+          message: error.response.data.message,
+          expiresAt: error.response.data.expiresAt
+            ? new Date(error.response.data.expiresAt)
+            : undefined,
+        };
+      }
+
+      throw error;
     }
   },
 };

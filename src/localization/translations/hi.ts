@@ -161,11 +161,16 @@ export const hi = {
     selectRating: 'रेटिंग चुनें',
     enterFeedback: 'अपना फीडबैक दर्ज करें',
     greetForFeedback: 'आपके फीडबैक के लिए धन्यवाद!',
-    feedbackFailed: 'फीडबैक सबमिट करने में विफल',
-    quotaTitle: 'कोटा और उपयोग',
+    feedbackFailed: 'फीडबैक सबमिट करने में विफल',    quotaTitle: 'कोटा और उपयोग',
     imagesRemaining: 'बचे हुए चित्र',
     apiCallsRemaining: 'बचे हुए API कॉल',
     planType: 'योजना प्रकार',
+    notifications: 'सूचनाएं',
+    notificationsDesc: 'अपनी तस्वीरों के बारे में अपडेट प्राप्त करें',
+    notificationsEnabled: 'सूचनाएं सक्षम',
+    notificationsDisabled: 'सूचनाएं निष्क्रिय',
+    notificationsPermissionDenied: 'सूचना अनुमति अस्वीकृत। कृपया डिवाइस सेटिंग्स में सक्षम करें।',
+    notificationsUpdateFailed: 'सूचना सेटिंग्स अपडेट करने में विफल',
   },
 
   editProfile: {

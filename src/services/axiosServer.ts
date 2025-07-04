@@ -6,6 +6,8 @@ import appConfig from '@src/config/app.config';
 import auth from '@react-native-firebase/auth';
 
 const API_BASE_URL = Config.API_BASE_URL;
+// const API_BASE_URL = 'https://zenoa-0maf.onrender.com';
+console.log('API_BASE_URL from config:', API_BASE_URL);
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -96,6 +98,44 @@ axiosServer.interceptors.request.use(
   },
 );
 
+// Response interceptor for better error handling
+axiosServer.interceptors.response.use(
+  response => {
+    // Log successful responses in development
+    if (__DEV__) {
+      console.log(`API Response: ${response.config.url}`, {
+        status: response.status,
+        success: response.data?.success,
+        message: response.data?.message,
+      });
+    }
+    return response;
+  },
+  error => {
+    // Enhanced error handling
+    console.error('Response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data,
+    });
+
+    // Handle specific error cases
+    if (error.response?.status === 401) {
+      // Token expired or invalid - could trigger re-authentication
+      console.warn('Authentication error - token may be expired');
+    } else if (error.response?.status === 429) {
+      // Rate limiting
+      console.warn('Rate limit exceeded');
+    } else if (error.response?.status >= 500) {
+      // Server errors
+      console.error('Server error occurred');
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 // Auth-specific APIs (these will use public routes)
 export const authAPI = {
   googleAuth: (idToken: string) => {
@@ -130,15 +170,15 @@ export const userAPI = {
   },
 
   deleteAccount: (reason?: string) => {
-    return axiosServer.post('/api/users/delete', {reason});
-  },
-
-  recoverAccount: () => {
-    return axiosServer.post('/api/users/recover');
+    return axiosServer.delete('/api/users/profile', {data: {reason}});
   },
 
   checkQuota: () => {
     return axiosServer.get('/api/users/quota');
+  },
+
+  checkEmailAvailability: (email: string) => {
+    return axiosServer.post('/api/users/check-email', {email});
   },
 };
 
@@ -146,6 +186,10 @@ export const userAPI = {
 export const imageAPI = {
   generateImage: (imageData: any) => {
     return axiosServer.post('/api/images/generate', imageData);
+  },
+
+  getOptions: () => {
+    return axiosServer.get('/api/images/options');
   },
 
   getImages: (params?: any) => {
@@ -158,6 +202,10 @@ export const imageAPI = {
 
   getImage: (imageId: string) => {
     return axiosServer.get(`/api/images/${imageId}`);
+  },
+
+  getImageStats: () => {
+    return axiosServer.get('/api/images/stats');
   },
 
   saveImage: (imageData: any) => {

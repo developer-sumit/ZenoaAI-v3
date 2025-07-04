@@ -11,6 +11,10 @@ export const en = {
     switchAccount:
       'You can tap the button above to sign in with a different Google account',
     agreeToTerms: 'By continuing, you agree to our',
+    emailRestricted: 'Email Temporarily Restricted',
+    accountDeleted: 'Account Recently Deleted',
+    emailUnavailable:
+      'This email cannot be used to create a new account due to a recent account deletion. Please try again later or use a different email.',
   },
 
   home: {
@@ -154,11 +158,16 @@ export const en = {
     selectRating: 'Please select a rating',
     enterFeedback: 'Please enter your feedback',
     greetForFeedback: 'Thank you for your feedback!',
-    feedbackFailed: 'Failed to submit feedback',
-    quotaTitle: 'Usage & Limits',
+    feedbackFailed: 'Failed to submit feedback',    quotaTitle: 'Usage & Limits',
     imagesRemaining: 'Images Remaining',
     apiCallsRemaining: 'API Calls Remaining',
     planType: 'Plan Type',
+    notifications: 'Notifications',
+    notificationsDesc: 'Receive updates about your images',
+    notificationsEnabled: 'Notifications enabled',
+    notificationsDisabled: 'Notifications disabled',
+    notificationsPermissionDenied: 'Notification permission denied. Please enable in device settings.',
+    notificationsUpdateFailed: 'Failed to update notification settings',
   },
 
   editProfile: {
