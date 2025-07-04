@@ -23,10 +23,22 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {Toaster} from '@masumdev/rn-toast';
 
-import CustomTabBar from '@src/components/CustomTabBar';
+import {User} from '@src/types';
 import Routes from '@src/constants/routes';
+import CustomTabBar from '@src/components/CustomTabBar';
+
+// Stores
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
+import {useLanguageStore} from '@src/store/languageStore';
+
+// Services
+import {userService} from '@src/services/userService';
+import {analyticsService} from '@src/services/analyticsService';
+import {crashlyticsService} from '@src/services/crashlyticsService';
+import {notificationService} from '@src/services/notificationService';
+
+// Screens
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
@@ -34,12 +46,7 @@ import ProfileScreen from '@src/screens/ProfileScreen';
 import GalleryScreen from '@src/screens/GalleryScreen';
 import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
-import {analyticsService} from '@src/services/analyticsService';
-import {crashlyticsService} from '@src/services/crashlyticsService';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
-import {userService} from '@src/services/userService';
-import {useLanguageStore} from '@src/store/languageStore';
-import {User} from '@src/types';
 
 GoogleSignin.configure({
   webClientId: Config.GOOGLE_WEB_CLIENT_ID,
@@ -93,17 +100,21 @@ function App() {
 
     console.log('Setting up auth state listeners...');
 
-    // Wait for Firebase auth to initialize first
-    const initializeAuth = async () => {
+    // Initialize notification service
+    const initializeServices = async () => {
       try {
-        // First restore any existing session
+        // Initialize Firebase Auth first
         await restoreSession();
+
+        // Then initialize notification service
+        await notificationService.initialize();
+        console.log('All services initialized successfully');
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error initializing services:', error);
       }
     };
 
-    initializeAuth();
+    initializeServices();
 
     // Listen for auth state changes
     const unsubscribeAuthState = auth().onAuthStateChanged(async authUser => {
@@ -127,19 +138,18 @@ function App() {
                 username: authUser.displayName || '',
                 avatar: authUser.photoURL || '',
                 bio: '',
-                preferences: {
-                  theme: 'light',
-                  language: 'en',
-                  notifications: true,
-                },
               },
               createdAt: new Date(),
               updatedAt: new Date(),
               lastLoginAt: new Date(),
               planType: 'free',
+              statistics: {
+                imagesGenerated: 0,
+                lastLoginAt: new Date(),
+                totalLogins: 1,
+              },
               quota: {
                 imagesRemaining: 40,
-                apiCallsRemaining: 100,
                 refreshAt: new Date(),
               },
             };
@@ -164,7 +174,7 @@ function App() {
     });
 
     // Set up token change listener
-    const unsubscribeTokenChange = auth().onIdTokenChanged(async user => {
+    const unsubscribeTokenChange = auth().onIdTokenChanged(async _authUser => {
       if (user) {
         console.log('ID token changed for user:', user.uid);
         // Get fresh token - this lets Firebase handle the refresh automatically

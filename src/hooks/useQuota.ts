@@ -6,6 +6,10 @@ interface QuotaData {
   imagesRemaining: number;
   apiCallsRemaining: number;
   refreshAt: string;
+  planLimits?: {
+    totalImages: number;
+    totalApiCalls: number;
+  };
 }
 
 export const useQuota = () => {

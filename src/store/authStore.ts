@@ -72,8 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               isDeleted: false,
               planType: 'free',
               quota: {
-                imagesRemaining: 40,
-                apiCallsRemaining: 100,
+                imagesRemaining: 15, // Default for free plan
                 refreshAt: new Date(),
               },
             };
@@ -110,8 +109,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             planType: 'free',
             quota: {
               imagesRemaining: 10, // Reduced quota for fallback
-              apiCallsRemaining: 50,
               refreshAt: new Date(),
+            },
+            statistics: {
+              lastLoginAt: new Date(),
+              totalLogins: 1,
+              imagesGenerated: 0,
             },
           };
 

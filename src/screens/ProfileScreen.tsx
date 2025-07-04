@@ -26,6 +26,8 @@ import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
 import {useQuota} from '@src/hooks/useQuota';
 import urls from '@src/constants/urls';
+import {notificationService} from '@src/services/notificationService';
+import {notificationAPI} from '@src/services/notificationAPI';
 
 // Icons
 import PersonIcon from '@src/assets/icons/PersonIcon';
@@ -40,6 +42,7 @@ import ShieldIcon from '@src/assets/icons/ShieldIcon';
 import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
+import NotificationIcon from '@src/assets/icons/NotificationIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -65,6 +68,55 @@ const ProfileScreen = () => {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+
+  // Check notification status on mount
+  useEffect(() => {
+    checkNotificationStatus();
+  }, []);
+
+  const checkNotificationStatus = async () => {
+    try {
+      const enabled = await notificationService.areNotificationsEnabled();
+      setNotificationsEnabled(enabled);
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+    }
+  };
+  const handleToggleNotifications = async (value: boolean) => {
+    setNotificationLoading(true);
+
+    try {
+      if (value) {
+        // User wants to enable notifications
+        const granted = await notificationService.requestPermissions();
+        if (granted) {
+          setNotificationsEnabled(true);
+          showToast(strings.settings.notificationsEnabled, 'success');
+
+          // Send token to server
+          try {
+            await notificationAPI.updateFCMToken();
+          } catch (error) {
+            console.warn('Failed to update token on server:', error);
+          }
+        } else {
+          setNotificationsEnabled(false);
+          showToast(strings.settings.notificationsPermissionDenied, 'error');
+        }
+      } else {
+        // User wants to disable notifications
+        setNotificationsEnabled(false);
+        showToast(strings.settings.notificationsDisabled, 'info');
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      showToast(strings.settings.notificationsUpdateFailed, 'error');
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
 
   // Function to refresh user profile data
   const refreshUserProfile = useCallback(async () => {
@@ -283,54 +335,19 @@ const ProfileScreen = () => {
                     className="h-full rounded-full"
                     style={{
                       backgroundColor:
-                        quota && !quotaLoading
-                          ? quota.imagesRemaining > 5
-                            ? theme.primary
-                            : '#ef4444'
+                        quota && quota.imagesRemaining > 5
+                          ? theme.primary
+                          : quota && quota.imagesRemaining > 0
+                          ? '#f59e0b'
                           : '#ef4444',
-                      width: `${Math.min(
-                        quota && !quotaLoading
-                          ? (quota.imagesRemaining / 40) * 100
-                          : 0,
-                        100,
-                      )}%`,
-                    }}
-                  />
-                </View>
-              </View>
-
-              {/* API Calls Remaining */}
-              <View className="mb-4">
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text
-                    style={{color: theme.text}}
-                    className="text-base font-medium">
-                    {strings.settings.apiCallsRemaining}
-                  </Text>
-                  <Text
-                    style={{color: theme.primary}}
-                    className="text-base font-bold">
-                    {quota && !quotaLoading ? quota.apiCallsRemaining : 0}
-                  </Text>
-                </View>
-                <View
-                  className="h-2 rounded-full"
-                  style={{backgroundColor: theme.background}}>
-                  <View
-                    className="h-full rounded-full"
-                    style={{
-                      backgroundColor:
-                        quota && !quotaLoading
-                          ? quota.apiCallsRemaining > 10
-                            ? theme.primary
-                            : '#ef4444'
-                          : '#ef4444',
-                      width: `${Math.min(
-                        quota && !quotaLoading
-                          ? (quota.apiCallsRemaining / 100) * 100
-                          : 0,
-                        100,
-                      )}%`,
+                      width: `${
+                        quota
+                          ? Math.min(
+                              (quota.imagesRemaining / quota.maxImages) * 100,
+                              100,
+                            )
+                          : 0
+                      }%`,
                     }}
                   />
                 </View>
@@ -344,12 +361,12 @@ const ProfileScreen = () => {
                   {strings.settings.planType}
                 </Text>
                 <View
-                  className="px-3 py-1 rounded-full"
+                  className="py-1 px-3 rounded-full"
                   style={{
                     backgroundColor:
                       user.planType === 'free'
                         ? theme.background
-                        : theme.primary + '20',
+                        : theme.primary + '15',
                   }}>
                   <Text
                     className="text-sm font-medium capitalize"
@@ -375,12 +392,11 @@ const ProfileScreen = () => {
             className="px-5 py-4 border-b"
             style={{borderColor: theme.secondaryText + '20'}}>
             <Text
-              className="text-lg font-semibold mb-4"
+              className="text-lg font-semibold"
               style={{color: theme.secondaryText}}>
               {strings.settings.account}
             </Text>
           </View>
-
           {/* Edit Profile Option */}
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
@@ -401,7 +417,6 @@ const ProfileScreen = () => {
             </View>
             <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
-
           {/* Language Settings */}
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
@@ -422,6 +437,52 @@ const ProfileScreen = () => {
             </View>
             <LanguageSelector ref={languageSelectorRef} />
           </TouchableOpacity>
+
+          {/* Notification Settings Toggle */}
+          <View
+            className="px-5 py-4 border-b flex-row justify-between items-center"
+            style={{borderColor: theme.secondaryText + '20'}}>
+            <View className="flex-row items-center">
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{backgroundColor: theme.primary + '15'}}>
+                <NotificationIcon size={20} color={theme.primary} />
+              </View>
+              <View>
+                <Text style={{color: theme.text}} className="text-base">
+                  {strings.settings.notifications}
+                </Text>
+                <Text style={{color: theme.secondaryText}} className="text-xs">
+                  {strings.settings.notificationsDesc}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              className="w-14 h-8 rounded-full p-1.5"
+              style={{
+                backgroundColor: notificationsEnabled
+                  ? theme.primary
+                  : '#cbd5e1',
+                opacity: notificationLoading ? 0.5 : 1,
+              }}
+              onPress={() => handleToggleNotifications(!notificationsEnabled)}
+              disabled={notificationLoading}
+              accessible={true}
+              accessibilityLabel={
+                notificationsEnabled
+                  ? strings.settings.notificationsDisabled
+                  : strings.settings.notificationsEnabled
+              }
+              accessibilityRole="switch"
+              accessibilityState={{checked: notificationsEnabled}}>
+              <View
+                className={`w-5 h-5 rounded-full bg-white ${
+                  notificationsEnabled ? 'ml-6' : 'ml-0'
+                }`}
+              />
+            </TouchableOpacity>
+          </View>
 
           {/* Dark Mode Option */}
           <View className="px-5 py-4 flex-row justify-between items-center">

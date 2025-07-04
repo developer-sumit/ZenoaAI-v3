@@ -49,9 +49,9 @@ export const authService = {
           uid: response.data.uid,
           email: response.data.email,
           profile: {
-            username: apiUser.username || '',
-            avatar: apiUser.avatar || '',
-            bio: apiUser.bio || '',
+            username: apiUser.profile?.username || apiUser.username || '',
+            avatar: apiUser.profile?.avatar || apiUser.avatar || '',
+            bio: apiUser.profile?.bio || apiUser.bio || '',
           },
           createdAt: apiUser.createdAt
             ? new Date(apiUser.createdAt)
@@ -59,21 +59,47 @@ export const authService = {
           updatedAt: apiUser.updatedAt
             ? new Date(apiUser.updatedAt)
             : new Date(),
-          lastLoginAt: apiUser.lastLoginAt
+          lastLoginAt: apiUser.statistics?.lastLoginAt
+            ? new Date(apiUser.statistics.lastLoginAt)
+            : apiUser.lastLoginAt
             ? new Date(apiUser.lastLoginAt)
             : new Date(),
           planType: apiUser.planType || 'free',
           quota: {
-            imagesRemaining: apiUser.quota?.imagesRemaining || 40,
-            apiCallsRemaining: apiUser.quota?.apiCallsRemaining || 100,
+            imagesRemaining: apiUser.quota?.imagesRemaining || 40, // Default for free plan
             refreshAt: apiUser.quota?.refreshAt
               ? new Date(apiUser.quota.refreshAt)
               : new Date(),
           },
+          statistics: {
+            lastLoginAt: apiUser.statistics?.lastLoginAt
+              ? new Date(apiUser.statistics.lastLoginAt)
+              : new Date(),
+            totalLogins: apiUser.statistics?.totalLogins || 0,
+            imagesGenerated:
+              apiUser.statistics?.imagesGenerated ||
+              apiUser.statistics?.totalImages ||
+              0,
+          },
+          fcmToken: apiUser.fcmToken,
+          fcmTokenUpdatedAt: apiUser.fcmTokenUpdatedAt
+            ? new Date(apiUser.fcmTokenUpdatedAt)
+            : undefined,
         };
 
         // Store authentication token locally
         await EncryptedStorage.setItem('authToken', firebaseIdToken);
+
+        // Handle notification service login
+        try {
+          const {notificationService} = require('./notificationService');
+          await notificationService.handleUserLogin();
+        } catch (notificationError) {
+          console.warn(
+            'Failed to handle notification login:',
+            notificationError,
+          );
+        }
 
         if (DEBUG) {
           console.log('Server authentication successful');
@@ -116,21 +142,28 @@ export const authService = {
               planType: 'free',
               quota: {
                 imagesRemaining: 10,
-                apiCallsRemaining: 100,
                 refreshAt: new Date(),
+              },
+              statistics: {
+                lastLoginAt: new Date(
+                  currentUser.metadata.lastSignInTime ||
+                    new Date().toISOString(),
+                ),
+                totalLogins: 1,
+                imagesGenerated: 0,
               },
             };
           }
         } catch (fbError) {
           console.error('Firebase fallback failed:', fbError);
         }
-      }
-
-      // Format the error message for better UX
+      }      // Format the error message for better UX
       let errorMessage = 'Authentication failed';
+      let errorType = 'GENERAL_ERROR';
 
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+        errorType = error.response.data.errorType || 'GENERAL_ERROR';
       } else if (error.message) {
         // Clean up common Firebase error messages
         errorMessage = error.message
@@ -138,7 +171,10 @@ export const authService = {
           .replace(/\(auth.*\)\.?/, '');
       }
 
-      throw new Error(errorMessage);
+      // Create a specialized error for email restrictions
+      const authError = new Error(errorMessage);
+      (authError as any).errorType = errorType;
+      throw authError;
     }
   },
 
@@ -212,8 +248,12 @@ export const authService = {
           planType: 'free',
           quota: {
             imagesRemaining: 10,
-            apiCallsRemaining: 100,
             refreshAt: new Date(),
+          },
+          statistics: {
+            lastLoginAt: new Date(),
+            totalLogins: 1,
+            imagesGenerated: 0,
           },
         };
       }
@@ -250,6 +290,17 @@ export const authService = {
 
       // Clear stored auth token
       await EncryptedStorage.removeItem('authToken');
+
+      // Handle notification service logout
+      try {
+        const {notificationService} = require('./notificationService');
+        await notificationService.handleUserLogout();
+      } catch (notificationError) {
+        console.warn(
+          'Failed to handle notification logout:',
+          notificationError,
+        );
+      }
 
       // Proceed with Firebase sign out
       await auth().signOut();

@@ -152,11 +152,16 @@ export const zh = {
     selectRating: '请选择评分',
     enterFeedback: '请输入您的反馈',
     greetForFeedback: '感谢您的反馈！',
-    feedbackFailed: '提交反馈失败',
-    quotaTitle: '配额',
+    feedbackFailed: '提交反馈失败',    quotaTitle: '配额',
     imagesRemaining: '剩余图像',
     apiCallsRemaining: '剩余API调用',
     planType: '计划类型',
+    notifications: '通知',
+    notificationsDesc: '接收关于您的图像的更新',
+    notificationsEnabled: '通知已启用',
+    notificationsDisabled: '通知已禁用',
+    notificationsPermissionDenied: '通知权限被拒绝。请在设备设置中启用。',
+    notificationsUpdateFailed: '更新通知设置失败',
   },
 
   editProfile: {

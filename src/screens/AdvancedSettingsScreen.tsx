@@ -30,7 +30,7 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useAuthStore} from '@src/store/authStore';
 import {userService} from '@src/services/userService';
 import {useTheme} from '@src/store/themeStore';
-import {ArtStyleType, AspectRatioSizeType, AspectRatioType} from '@src/types';
+import {ArtStyleType, AspectRatioSize, AspectRatio} from '@src/types';
 import InfoDialog from '@src/components/InfoDialog';
 
 // Icons
@@ -53,8 +53,8 @@ interface AdvancedSettingsScreenProps {
     params: {
       selectedStyles: string[];
       setSelectedStyles: (styles: string[]) => void;
-      aspectRatio: AspectRatioType;
-      setAspectRatio: (ratio: AspectRatioType) => void;
+      aspectRatio: AspectRatio;
+      setAspectRatio: (ratio: AspectRatio) => void;
       numberOfImages: number;
       setNumberOfImages: (count: number) => void;
       quality: number;
@@ -408,7 +408,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [localSelectedStyles, setLocalSelectedStyles] = useState<string[]>(
     params.selectedStyles,
   );
-  const [localAspectRatio, setLocalAspectRatio] = useState<AspectRatioType>(
+  const [localAspectRatio, setLocalAspectRatio] = useState<AspectRatio>(
     params.aspectRatio,
   );
   const [localNumberOfImages, setLocalNumberOfImages] = useState<number>(
@@ -886,7 +886,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                         LayoutAnimation.spring();
                         const newRatio = {
                           ...ratio,
-                          size: 'medium' as AspectRatioSizeType,
+                          size: 'medium' as AspectRatioSize,
                         };
                         setLocalAspectRatio(newRatio);
                         params.setAspectRatio(newRatio);
