@@ -180,12 +180,14 @@ export const fr = {
     somethingWentWrong: 'Quelque chose a mal tourné',
     internalServerError: 'Erreur interne du serveur',
   },
-
   editProfile: {
     title: 'Modifier le profil',
     personalInfo: 'Informations personnelles',
     fullName: 'Nom complet',
     fullNameHint: 'Entrez votre nom complet',
+    bio: 'Biographie',
+    bioHint: 'Parlez-nous de vous',
+    bioPlaceholder: 'Écrivez quelque chose sur vous...',
     email: 'Email',
     yourName: 'Votre nom',
     accountManagement: 'Gestion du compte',

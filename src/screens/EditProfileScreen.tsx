@@ -47,14 +47,15 @@ const EditProfileScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
   const [photoUri, setPhotoUri] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
   // Load user data on mount
   useEffect(() => {
     if (user) {
       setName(user.profile.username || '');
+      setBio(user.profile.bio || '');
       setPhotoUri(user.profile.avatar || '');
     }
 
@@ -81,14 +82,18 @@ const EditProfileScreen = () => {
     try {
       setIsSaving(true);
       console.log('Starting profile update with user ID:', user.uid);
-
-      if (name !== user.profile.username) {
+      if (name !== user.profile.username || bio !== user.profile.bio) {
         // Debug log for better troubleshooting
         console.log(
-          'Updating username from',
+          'Updating profile data:',
+          'username from',
           user.profile.username,
           'to',
           name,
+          'bio from',
+          user.profile.bio,
+          'to',
+          bio,
         );
 
         try {
@@ -97,6 +102,7 @@ const EditProfileScreen = () => {
             profile: {
               ...user.profile,
               username: name.trim(),
+              bio: bio.trim(),
             },
           };
 
@@ -297,6 +303,43 @@ const EditProfileScreen = () => {
                     accessible={true}
                     accessibilityLabel={strings.editProfile.yourName}
                     accessibilityHint={strings.editProfile.fullNameHint}
+                  />
+                </View>
+              </View>
+
+              {/* Bio field */}
+              <View
+                className="px-5 py-4 border-b flex-row items-start"
+                style={{borderColor: theme.secondaryText + '20'}}>
+                <View
+                  className="w-10 h-10 rounded-full items-center justify-center mr-4 mt-1"
+                  style={{backgroundColor: theme.primary + '15'}}>
+                  <PersonIcon size={20} color={theme.primary} />
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-xs mb-1"
+                    style={{color: theme.secondaryText}}>
+                    {strings.editProfile.bio}
+                  </Text>
+                  <TextInput
+                    value={bio}
+                    onChangeText={setBio}
+                    className="text-base py-1"
+                    style={{
+                      color: theme.text,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.secondaryText + '30',
+                      minHeight: 60,
+                    }}
+                    placeholder={strings.editProfile.bioPlaceholder}
+                    placeholderTextColor={theme.secondaryText}
+                    multiline={true}
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                    accessible={true}
+                    accessibilityLabel={strings.editProfile.bio}
+                    accessibilityHint={strings.editProfile.bioHint}
                   />
                 </View>
               </View>
