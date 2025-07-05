@@ -1,20 +1,62 @@
 import React from 'react';
-import Svg, {Path} from 'react-native-svg';
+import Svg, {Path, Circle, Ellipse} from 'react-native-svg';
+import {ViewStyle} from 'react-native';
 
-interface CommunityIconProps {
+interface IconProps {
   size?: number;
   color?: string;
+  style?: ViewStyle;
 }
 
-const CommunityIcon: React.FC<CommunityIconProps> = ({
+const CommunityIcon: React.FC<IconProps> = ({
   size = 24,
-  color = '#000',
+  color = '#000000',
+  style,
 }) => {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" style={style}>
+      {/* Background soft circles */}
+      <Circle cx="12" cy="12" r="10" fill={color} opacity="0.08" />
+
+      {/* Main person - smooth oval head */}
+      <Ellipse cx="12" cy="9" rx="3" ry="3.5" fill={color} />
+
+      {/* Main person body - curved shape */}
       <Path
-        d="M12 12.75c1.63 0 3.07.39 4.24.9c1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73c1.17-.52 2.61-.91 4.24-.91zM4 13c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm1.13 1.1c-.37-.06-.74-.1-1.13-.1c-.99 0-1.93.21-2.78.58C.48 14.9 0 15.62 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29zM20 13c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm2.78 1.58c-.85-.37-1.79-.58-2.78-.58c-.39 0-.76.04-1.13.1c.4.68.63 1.46.63 2.29V18H24v-1.57c0-.81-.48-1.53-1.22-1.85zM12 6c1.66 0 3 1.34 3 3s-1.34 3-3 3s-3-1.34-3-3s1.34-3 3-3z"
+        d="M6 18C6 15.5 8.5 13.5 12 13.5C15.5 13.5 18 15.5 18 18C18 18.83 17.33 19.5 16.5 19.5H7.5C6.67 19.5 6 18.83 6 18Z"
         fill={color}
+      />
+
+      {/* Left person - smaller with curves */}
+      <Ellipse cx="6" cy="10" rx="2" ry="2.5" fill={color} opacity="0.7" />
+
+      {/* Left person body */}
+      <Path
+        d="M2 17.5C2 15.8 3.5 14.5 5.5 14.5C6.2 14.5 6.8 14.7 7.3 15C6.5 15.8 6 16.8 6 18V18.5H3C2.45 18.5 2 18.05 2 17.5Z"
+        fill={color}
+        opacity="0.7"
+      />
+
+      {/* Right person - smaller with curves */}
+      <Ellipse cx="18" cy="10" rx="2" ry="2.5" fill={color} opacity="0.7" />
+
+      {/* Right person body */}
+      <Path
+        d="M22 17.5C22 15.8 20.5 14.5 18.5 14.5C17.8 14.5 17.2 14.7 16.7 15C17.5 15.8 18 16.8 18 18V18.5H21C21.55 18.5 22 18.05 22 17.5Z"
+        fill={color}
+        opacity="0.7"
+      />
+
+      {/* Connecting hearts/bonds - soft curves */}
+      <Path
+        d="M9 11C9.5 10.5 10.5 10.5 11 11C10.5 11.5 9.5 11.5 9 11Z"
+        fill={color}
+        opacity="0.3"
+      />
+      <Path
+        d="M13 11C13.5 10.5 14.5 10.5 15 11C14.5 11.5 13.5 11.5 13 11Z"
+        fill={color}
+        opacity="0.3"
       />
     </Svg>
   );

@@ -43,6 +43,7 @@ import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
@@ -613,11 +614,14 @@ const HomeScreen = () => {
             contentContainerStyle={{paddingBottom: 200}}
             renderItem={renderGroup}
             ListEmptyComponent={
-              <EmptyState
-                icon={<MagicWand size={48} color={theme.primary} />}
-                title="No images yet"
-                description="Start creating your first AI-generated image"
-              />
+              <View style={{minHeight: SCREEN_HEIGHT - 150}}>
+                {showOnboarding && renderGettingStarted()}
+                <EmptyState
+                  icon={<MagicWand size={48} color={theme.primary} />}
+                  title="No images yet"
+                  description="Start creating your first AI-generated image"
+                />
+              </View>
             }
             ListHeaderComponent={
               getCombinedImages().length > 0 && showOnboarding
