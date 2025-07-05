@@ -6,7 +6,6 @@ import appConfig from '@src/config/app.config';
 import auth from '@react-native-firebase/auth';
 
 const API_BASE_URL = Config.API_BASE_URL;
-// const API_BASE_URL = 'https://zenoa-0maf.onrender.com';
 console.log('API_BASE_URL from config:', API_BASE_URL);
 
 // Routes that don't require authentication
