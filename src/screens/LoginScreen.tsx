@@ -18,7 +18,7 @@ import appConfig from '@src/config/app.config';
 import {useAuthStore} from '@src/store/authStore';
 import {useStrings} from '@src/hooks/useStrings';
 import LanguageSelector from '@src/components/LanguageSelector';
-import {authService} from '@src/services/authService';
+import authService from '@src/services/authService';
 
 // Icons
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
@@ -74,15 +74,17 @@ const LoginScreen = () => {
       // Store the user data in your app state
       await login(userData);
 
-      showToast(strings.auth.signInSuccessful, 'success');    } catch (error: any) {
+      showToast(strings.auth.signInSuccessful, 'success');
+    } catch (error: any) {
       console.error('Sign-in error:', error);
 
       // Check for email restriction error first
       if ((error as any).errorType === 'EMAIL_RESTRICTION') {
         showToast(
-          error.message || 'This email cannot be used due to a recent account deletion.',
+          error.message ||
+            'This email cannot be used due to a recent account deletion.',
           'error',
-          {duration: 8000} // Show longer for this important message
+          {duration: 8000}, // Show longer for this important message
         );
         return; // Don't try fallback for email restrictions
       }

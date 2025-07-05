@@ -141,7 +141,6 @@ function App() {
               },
               createdAt: new Date(),
               updatedAt: new Date(),
-              lastLoginAt: new Date(),
               planType: 'free',
               statistics: {
                 imagesGenerated: 0,
@@ -150,7 +149,7 @@ function App() {
               },
               quota: {
                 imagesRemaining: 40,
-                refreshAt: new Date(),
+                lastRefreshedAt: new Date(),
               },
             };
 

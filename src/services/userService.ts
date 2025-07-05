@@ -546,7 +546,7 @@ const checkEmailAvailability = async (
   }
 };
 
-export const userService = {
+const userService = {
   saveUser,
   getUser,
   updateProfile,
