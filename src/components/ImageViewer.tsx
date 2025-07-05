@@ -158,8 +158,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     setExpandedPrompt(!expandedPrompt);
   };
 
-  const deleteImage = async (img: GeneratedImage) => {
-    if (!user?.uid || !img.id) {
+  const deleteImage = async () => {
+    if (!user?.uid || !image?.id) {
       return;
     }
 
@@ -167,7 +167,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       setDeleting(true);
 
       // Use the image store to delete the image
-      const success = await storeDeleteImage(img.id);
+      const success = await storeDeleteImage(image.id);
 
       if (success) {
         showToast(strings.imageViewer.imageDeleted, 'success');
@@ -286,7 +286,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           prompt: image.prompt,
           negativePrompt: image.negativePrompt,
           engine: image.engineType,
-          seed: image.seed,
           styles: image.styles,
           width: image.width,
           height: image.height,
@@ -785,7 +784,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1"
                     style={{backgroundColor: '#ef4444'}}
-                    onPress={() => deleteImage(image!)}
+                    onPress={deleteImage}
                     accessible={true}
                     accessibilityLabel={strings.imageViewer.confirmDelete}
                     accessibilityHint={strings.imageViewer.confirmDeleteHint}>

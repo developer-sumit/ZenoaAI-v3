@@ -272,6 +272,25 @@ export const fr = {
     },
   },
 
+  community: {
+    title: 'Communauté',
+    noImages: 'Aucune image de la communauté pour le moment',
+    noImagesDescription:
+      'Soyez le premier à partager vos créations avec la communauté !',
+    noMatchingImages: 'Aucune image correspondante trouvée',
+    searchPlaceholder: 'Rechercher par prompt, style ou créateur...',
+    searchImages: 'Rechercher des images de la communauté',
+    searchHint:
+      'Tapez pour rechercher des images par prompt, style ou créateur',
+    loadingImages: 'Chargement des images de la communauté...',
+    loadFailed: 'Échec du chargement des images de la communauté',
+    imageBy: 'Image par',
+    by: 'par',
+    filterBy: 'Filtrer par',
+    tryAdjusting: "Essayez d'ajuster votre recherche ou vos filtres",
+    clearFilters: 'Effacer les filtres',
+  },
+
   common: {
     and: 'et',
     gotIt: 'Compris',

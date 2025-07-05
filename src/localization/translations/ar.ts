@@ -276,4 +276,21 @@ export const ar = {
     large: 'كبير',
     more: 'المزيد',
   },
+
+  community: {
+    title: 'المجتمع',
+    noImages: 'لا توجد صور مجتمعية حتى الآن',
+    noImagesDescription: 'كن أول من يشارك إبداعاته مع المجتمع!',
+    noMatchingImages: 'لم يتم العثور على صور مطابقة',
+    searchPlaceholder: 'البحث بالموجه أو النمط أو المنشئ...',
+    searchImages: 'البحث في صور المجتمع',
+    searchHint: 'اكتب للبحث في الصور بالموجه أو النمط أو المنشئ',
+    loadingImages: 'جاري تحميل صور المجتمع...',
+    loadFailed: 'فشل في تحميل صور المجتمع',
+    imageBy: 'صورة بواسطة',
+    by: 'بواسطة',
+    filterBy: 'تصفية حسب',
+    tryAdjusting: 'حاول تعديل البحث أو المرشحات',
+    clearFilters: 'مسح المرشحات',
+  },
 };

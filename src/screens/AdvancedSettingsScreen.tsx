@@ -38,6 +38,7 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
+import clsx from 'clsx';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -98,8 +99,6 @@ const StyleItem = memo(
           style={{
             borderWidth: isSelected ? 3 : 0,
             borderColor: theme.primary,
-            shadowColor: theme.primary,
-            elevation: isSelected ? 8 : 0,
           }}>
           <FastImage
             style={{
@@ -369,13 +368,13 @@ const ArtStylesDialog = memo(
           {selectedStyles.length > 0 && (
             <View className="px-4 py-2.5 bg-orange-500 border border-white flex-row justify-between items-center absolute bottom-5 self-center w-[90%] rounded-2xl">
               <Text className="text-white font-medium">
-                {selectedStyles.length}
+                {selectedStyles.length}&nbsp;
                 {selectedStyles.length === 1 ? 'style' : 'styles'} selected
               </Text>
               <TouchableOpacity
                 onPress={onClose}
                 className="bg-white py-2.5 px-4 rounded-full">
-                <Text style={{color: '#f97316', fontWeight: 'bold'}}>
+                <Text className="font-bold text-[#f97316]">
                   {strings.common.done}
                 </Text>
               </TouchableOpacity>
@@ -418,10 +417,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [localEngine, setLocalEngine] = useState<'quantum' | 'nebula'>(
     params.engine || 'quantum',
   );
-  const [localGuidance, setLocalGuidance] = useState<number>(
-    params.guidance || 7.5,
-  );
-  const [localSteps, setLocalSteps] = useState<number>(params.steps || 30);
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -429,7 +424,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [artStylesDialogVisible, setArtStylesDialogVisible] = useState(false);
 
   // State to track if keyboard is showing
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [_, setKeyboardVisible] = useState(false);
 
   // Keyboard event listeners
   useEffect(() => {
@@ -473,8 +468,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     setLocalSeed(params.seed);
     setLocalNegativePrompt(params.negativePrompt); // Sync new parameters
     setLocalEngine(params.engine || 'quantum');
-    setLocalGuidance(params.guidance || 7.5);
-    setLocalSteps(params.steps || 30);
   }, [params]);
 
   // Split art styles into initial and selected that aren't in initial
@@ -550,7 +543,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title="AI Engine"
-              showInfoDialog={showInfoDialog}
+              showInfoDialog={() => showInfoDialog('AI Engine')}
               theme={theme}
             />
 
@@ -567,10 +560,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     localEngine === 'quantum'
                       ? theme.primary
                       : theme.background,
-                  shadowColor: theme.primary,
-                  elevation: localEngine === 'quantum' ? 8 : 0,
                 }}
-                className="flex-1 p-4 rounded-xl">
+                className={clsx(
+                  'flex-1 p-4',
+                  localEngine === 'quantum' ? 'rounded-2xl' : 'rounded-xl',
+                )}>
                 <Text
                   style={{
                     color:
@@ -607,10 +601,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 style={{
                   backgroundColor:
                     localEngine === 'nebula' ? theme.primary : theme.background,
-                  shadowColor: theme.primary,
-                  elevation: localEngine === 'nebula' ? 8 : 0,
                 }}
-                className="flex-1 p-4 rounded-xl">
+                className={clsx(
+                  'flex-1 p-4',
+                  localEngine === 'nebula' ? 'rounded-2xl' : 'rounded-xl',
+                )}>
                 <Text
                   style={{
                     color:
@@ -732,12 +727,15 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       localNumberOfImages === count
                         ? theme.primary
                         : theme.background,
-                    shadowColor: theme.primary,
-                    elevation: localNumberOfImages === count ? 8 : 0,
                     minWidth: 55,
                     width: '15%',
                   }}
-                  className="px-5 py-2.5 items-center justify-center rounded-xl">
+                  className={clsx(
+                    'px-5 py-2.5 items-center justify-center',
+                    localNumberOfImages === count
+                      ? 'rounded-2xl'
+                      : 'rounded-xl',
+                  )}>
                   <Text
                     style={{
                       color:
@@ -811,27 +809,28 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           localAspectRatio.ratio === ratio.ratio
                             ? theme.primary
                             : theme.background,
-                        shadowColor: theme.primary,
-                        elevation:
-                          localAspectRatio.ratio === ratio.ratio ? 8 : 0,
                       }}
-                      className="px-4 py-3 rounded-xl">
+                      className={clsx(
+                        'px-4 py-3',
+                        localAspectRatio.ratio === ratio.ratio
+                          ? 'rounded-2xl'
+                          : 'rounded-xl',
+                      )}>
                       {/* Aspect ratio visual icon */}
                       <View
                         className="mb-2 items-center justify-center"
                         style={{width: 40, height: 30}}>
                         <View
+                          className="border-2 rounded-sm"
                           style={{
                             width: displayWidth,
                             height: displayHeight,
-                            borderWidth: 2,
                             borderColor:
                               localAspectRatio.ratio === ratio.ratio
                                 ? isDark
                                   ? theme.text
                                   : 'white'
                                 : theme.secondaryText,
-                            borderRadius: 3,
                           }}
                         />
                       </View>
@@ -881,10 +880,13 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           localAspectRatio.size === size
                             ? theme.primary
                             : theme.background,
-                        shadowColor: theme.primary,
-                        elevation: localAspectRatio.size === size ? 8 : 0,
                       }}
-                      className="flex-1 p-3 rounded-xl">
+                      className={clsx(
+                        'flex-1 p-3',
+                        localAspectRatio.size === size
+                          ? 'rounded-2xl'
+                          : 'rounded-xl',
+                      )}>
                       <Text
                         style={{
                           color:
@@ -916,6 +918,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               </View>
             </View>
           </View>
+
           {/* Seed and Negative Prompt */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
@@ -993,134 +996,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             </View>
           </View>
 
-          {/* Advanced Controls - Only show for Nebula engine */}
-          {localEngine === 'nebula' && (
-            <View
-              className="py-4 px-3 mt-4 rounded-2xl"
-              style={{backgroundColor: theme.surface}}>
-              <SectionHeader
-                title="Advanced Controls"
-                showInfoDialog={showInfoDialog}
-                theme={theme}
-              />
-              {/* Guidance Scale */}
-              <View className="mb-4">
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text
-                    style={{color: theme.text}}
-                    className="text-base font-medium">
-                    Guidance Scale
-                  </Text>
-                  <Text
-                    style={{color: theme.primary}}
-                    className="text-base font-medium">
-                    {localGuidance}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={event => {
-                    // Simple touch-based slider
-                    const touchX = event.nativeEvent.locationX;
-                    const sliderWidth = 300; // Approximate width
-                    const percentage = Math.max(
-                      0,
-                      Math.min(1, touchX / sliderWidth),
-                    );
-                    const newGuidance =
-                      Math.round((1 + percentage * 19) * 10) / 10;
-                    setLocalGuidance(newGuidance);
-                    if (params.setGuidance) {
-                      params.setGuidance(newGuidance);
-                    }
-                  }}>
-                  <View
-                    className="h-1.5 rounded-full"
-                    style={{backgroundColor: theme.background}}>
-                    <View
-                      className="h-full rounded-full"
-                      style={{
-                        backgroundColor: theme.primary,
-                        width: `${((localGuidance - 1) / 19) * 100}%`,
-                      }}
-                    />
-                  </View>
-                </TouchableOpacity>
-                <View className="flex-row justify-between mt-1">
-                  <Text
-                    style={{color: theme.secondaryText}}
-                    className="text-xs">
-                    1
-                  </Text>
-                  <Text
-                    style={{color: theme.secondaryText}}
-                    className="text-xs">
-                    20
-                  </Text>
-                </View>
-              </View>
-              {/* Steps */}
-              <View>
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text
-                    style={{color: theme.text}}
-                    className="text-base font-medium">
-                    Steps
-                  </Text>
-                  <Text
-                    style={{color: theme.primary}}
-                    className="text-base font-medium">
-                    {localSteps}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={event => {
-                    // Simple touch-based slider
-                    const touchX = event.nativeEvent.locationX;
-                    const sliderWidth = 300; // Approximate width
-                    const percentage = Math.max(
-                      0,
-                      Math.min(1, touchX / sliderWidth),
-                    );
-                    const newSteps = Math.round(10 + percentage * 90);
-                    setLocalSteps(newSteps);
-                    if (params.setSteps) {
-                      params.setSteps(newSteps);
-                    }
-                  }}>
-                  <View
-                    className="h-1.5 rounded-full"
-                    style={{backgroundColor: theme.background}}>
-                    <View
-                      className="h-full rounded-full"
-                      style={{
-                        backgroundColor: theme.primary,
-                        width: `${((localSteps - 10) / 90) * 100}%`,
-                      }}
-                    />
-                  </View>
-                </TouchableOpacity>
-                <View className="flex-row justify-between mt-1">
-                  <Text
-                    style={{color: theme.secondaryText}}
-                    className="text-xs">
-                    10
-                  </Text>
-                  <Text
-                    style={{color: theme.secondaryText}}
-                    className="text-xs">
-                    100
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
           {/* Add extra space at the bottom when keyboard is visible */}
-          <View className={keyboardVisible ? 'mb-20' : 'mb-4'} />
+          <View className="mb-16" />
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <View className="mb-12" />
 
       {/* Info Dialog */}
       <InfoDialog

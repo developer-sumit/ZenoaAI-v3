@@ -109,8 +109,6 @@ const HomeScreen = () => {
       setNegativePrompt(remix.negativePrompt || '');
       setEngine(remix.engine || 'quantum');
       setGuidance(remix.guidance || 7.5);
-      setSteps(remix.steps || 30);
-      setSeed(remix.seed?.toString() || '');
       setSelectedStyles(remix.styles || []);
 
       // Set aspect ratio based on dimensions

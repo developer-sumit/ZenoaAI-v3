@@ -14,6 +14,7 @@ export interface ImageGenerationRequest {
 }
 
 export interface ImageResponse {
+  id: string; // Unique identifier for the image
   userId: string;
   prompt: string; // User's original input
   imageUrl: string; // Primary image URL (Cloudinary)
