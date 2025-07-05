@@ -161,7 +161,8 @@ export const de = {
     selectRating: 'Bitte wählen Sie eine Bewertung',
     enterFeedback: 'Bitte geben Sie Ihr Feedback ein',
     greetForFeedback: 'Vielen Dank für Ihr Feedback!',
-    feedbackFailed: 'Fehler beim Senden des Feedbacks',    quotaTitle: 'Kontingent und Nutzung',
+    feedbackFailed: 'Fehler beim Senden des Feedbacks',
+    quotaTitle: 'Kontingent und Nutzung',
     imagesRemaining: 'Verbleibende Bilder',
     apiCallsRemaining: 'Verbleibende API-Aufrufe',
     planType: 'Aktueller Plan',
@@ -169,8 +170,12 @@ export const de = {
     notificationsDesc: 'Erhalten Sie Updates zu Ihren Bildern',
     notificationsEnabled: 'Benachrichtigungen aktiviert',
     notificationsDisabled: 'Benachrichtigungen deaktiviert',
-    notificationsPermissionDenied: 'Benachrichtigungsberechtigung verweigert. Bitte in den Geräteeinstellungen aktivieren.',
-    notificationsUpdateFailed: 'Fehler beim Aktualisieren der Benachrichtigungseinstellungen',
+    notificationsPermissionDenied:
+      'Benachrichtigungsberechtigung verweigert. Bitte in den Geräteeinstellungen aktivieren.',
+    notificationsUpdateFailed:
+      'Fehler beim Aktualisieren der Benachrichtigungseinstellungen',
+    somethingWentWrong: 'Etwas ist schiefgelaufen',
+    internalServerError: 'Interner Serverfehler',
   },
 
   editProfile: {
@@ -218,6 +223,11 @@ export const de = {
       'Geben Sie eine Zahl ein, um reproduzierbare Bilder zu erstellen, oder lassen Sie es leer für zufällige Ergebnisse',
     seedPlaceholder: 'Zufällig',
     featureInfo: {
+      'AI Engine': {
+        title: 'KI-Engine',
+        message:
+          'Wählen Sie zwischen Quantum- und Nebula-KI-Engines. Quantum bietet schnelle, hochwertige Generierung mit ausgezeichneter Detailbewahrung. Nebula bietet erweiterte Kreativität und künstlerische Interpretation mit etwas längeren Verarbeitungszeiten. Beide Engines liefern professionelle Ergebnisse.',
+      },
       artStyles: {
         title: 'Kunststile',
         message:
@@ -226,7 +236,7 @@ export const de = {
       quality: {
         title: 'Bildqualität',
         message:
-          'Premium-Qualität verwendet 50 Inferenzschritte anstelle von 25, was zu detaillierteren und qualitativ hochwertigeren Bildern führt.',
+          'Premium-Qualität verwendet 50 Inferenzschritte anstelle von 25, was zu detaillierteren und qualitativ hochwertigeren Bildern führt. Standard-Qualität ist schneller und verbraucht weniger Ressourcen, während Premium-Qualität länger dauert, aber überlegene Ergebnisse mit verbesserter Detail und Klarheit erzeugt.',
       },
       batchCount: {
         title: 'Stapelanzahl',
@@ -242,11 +252,6 @@ export const de = {
         title: 'Bildgröße',
         message:
           'Bestimmt die Auflösung Ihres generierten Bildes. Größere Größen zeigen mehr Details, brauchen aber länger zum Generieren.',
-      },
-      sampler: {
-        title: 'Sampler',
-        message:
-          'Der Sampler-Algorithmus bestimmt, wie die KI Ihr Bild aufbaut. Verschiedene Sampler haben unterschiedliche Stärken - einige sind besser für fotorealistische Bilder, während andere bei künstlerischen Stilen hervorragend sind.',
       },
       seed: {
         title: 'Seed-Wert',

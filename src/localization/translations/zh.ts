@@ -152,7 +152,8 @@ export const zh = {
     selectRating: '请选择评分',
     enterFeedback: '请输入您的反馈',
     greetForFeedback: '感谢您的反馈！',
-    feedbackFailed: '提交反馈失败',    quotaTitle: '配额',
+    feedbackFailed: '提交反馈失败',
+    quotaTitle: '配额',
     imagesRemaining: '剩余图像',
     apiCallsRemaining: '剩余API调用',
     planType: '计划类型',
@@ -162,6 +163,8 @@ export const zh = {
     notificationsDisabled: '通知已禁用',
     notificationsPermissionDenied: '通知权限被拒绝。请在设备设置中启用。',
     notificationsUpdateFailed: '更新通知设置失败',
+    somethingWentWrong: '出了些问题',
+    internalServerError: '内部服务器错误',
   },
 
   editProfile: {
@@ -205,6 +208,11 @@ export const zh = {
     seedHint: '输入数字以创建可重现的图像，或留空以获得随机结果',
     seedPlaceholder: '随机',
     featureInfo: {
+      'AI Engine': {
+        title: 'AI引擎',
+        message:
+          '在Quantum和Nebula AI引擎之间选择。Quantum提供快速、高质量的生成和优秀的细节保留。Nebula提供增强的创造力和艺术解释，处理时间稍长。两个引擎都提供专业级结果。',
+      },
       artStyles: {
         title: '艺术风格',
         message:
@@ -213,7 +221,7 @@ export const zh = {
       quality: {
         title: '图像质量',
         message:
-          '高级质量使用50个推理步骤而不是25个，产生更详细和更高质量的图像。',
+          '高级质量使用50个推理步骤而不是25个，产生更详细和更高质量的图像。标准质量更快且使用更少资源，而高级质量需要更长时间但产生具有增强细节和清晰度的卓越结果。',
       },
       batchCount: {
         title: '批次数量',
@@ -229,11 +237,6 @@ export const zh = {
         title: '图像尺寸',
         message:
           '确定生成图像的分辨率。更大的尺寸显示更多细节，但生成时间更长。',
-      },
-      sampler: {
-        title: '采样器',
-        message:
-          '采样器算法决定AI如何构建您的图像。不同采样器有不同优势 - 一些更适合写实图像，而另一些在艺术风格方面表现出色。',
       },
       seed: {
         title: '种子值',

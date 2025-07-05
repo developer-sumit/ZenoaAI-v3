@@ -27,10 +27,8 @@ import FastImage from 'react-native-fast-image';
 import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
 import {useStrings} from '@src/hooks/useStrings';
-import {useAuthStore} from '@src/store/authStore';
-import {userService} from '@src/services/userService';
 import {useTheme} from '@src/store/themeStore';
-import {ArtStyleType, AspectRatioSize, AspectRatio} from '@src/types';
+import {ArtStyleType, ImageSize, AspectRatio} from '@src/types/image';
 import InfoDialog from '@src/components/InfoDialog';
 
 // Icons
@@ -61,11 +59,8 @@ interface AdvancedSettingsScreenProps {
       setQuality: (value: number) => void;
       seed: string;
       setSeed: (value: string) => void;
-      sampler: string;
-      setSampler: (value: string) => void;
       negativePrompt: string;
       setNegativePrompt: (value: string) => void;
-      samplers: string[];
       imagesPrivateByDefault?: boolean;
       setImagesPrivateByDefault?: (value: boolean) => void;
       engine?: 'quantum' | 'nebula';
@@ -112,7 +107,7 @@ const StyleItem = memo(
               height: '100%',
               borderRadius: isSelected ? 14 : 16,
             }}
-            source={item.image}
+            source={{uri: item.image, cache: FastImage.cacheControl.immutable}}
             className="w-full h-full"
             resizeMode="cover"
           />
@@ -214,7 +209,7 @@ const StylesGrid = memo(
           isDark={isDark}
         />
       ),
-      [data, selectedStyles, toggleStyle, theme, isDark],
+      [selectedStyles, toggleStyle, theme, isDark],
     );
 
     const keyExtractor = useCallback((item: ArtStyleType) => item.id, []);
@@ -292,7 +287,7 @@ const ArtStylesDialog = memo(
       return artStyles.filter(style =>
         style.name.toLowerCase().includes(query),
       );
-    }, [searchQuery, artStyles]);
+    }, [searchQuery]);
 
     return (
       <Modal
@@ -399,7 +394,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const strings = useStrings();
   const navigation = useNavigation();
   const {isDark, theme} = useTheme();
-  const {user, updateUser} = useAuthStore();
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
@@ -416,7 +410,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   );
   const [localQuality, setLocalQuality] = useState<number>(params.quality);
   const [localSeed, setLocalSeed] = useState<string>(params.seed);
-  const [localSampler, setLocalSampler] = useState<string>(params.sampler);
   const [localNegativePrompt, setLocalNegativePrompt] = useState<string>(
     params.negativePrompt,
   );
@@ -429,12 +422,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     params.guidance || 7.5,
   );
   const [localSteps, setLocalSteps] = useState<number>(params.steps || 30);
-
-  // Add privacy state
-  const [localImagesPrivateByDefault, setLocalImagesPrivateByDefault] =
-    useState<boolean>(params.imagesPrivateByDefault || false);
-
-  const [showSamplerPicker, setShowSamplerPicker] = useState(false);
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -466,13 +453,16 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   }, []);
 
   // Memoize expensive functions
-  const showInfoDialog = useCallback((title: string) => {
-    const featureInfo = strings.advancedSettings.featureInfo;
-    if (title in featureInfo) {
-      setDialogContent(featureInfo[title as keyof typeof featureInfo]);
-      setDialogVisible(true);
-    }
-  }, []);
+  const showInfoDialog = useCallback(
+    (title: string) => {
+      const featureInfo = strings.advancedSettings.featureInfo;
+      if (title in featureInfo) {
+        setDialogContent(featureInfo[title as keyof typeof featureInfo]);
+        setDialogVisible(true);
+      }
+    },
+    [strings.advancedSettings.featureInfo],
+  );
 
   // Effect to sync parent state changes to local state (if needed)
   useEffect(() => {
@@ -481,10 +471,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     setLocalNumberOfImages(params.numberOfImages);
     setLocalQuality(params.quality);
     setLocalSeed(params.seed);
-    setLocalSampler(params.sampler);
-    setLocalNegativePrompt(params.negativePrompt);
-    setLocalImagesPrivateByDefault(params.imagesPrivateByDefault || false);
-    // Sync new parameters
+    setLocalNegativePrompt(params.negativePrompt); // Sync new parameters
     setLocalEngine(params.engine || 'quantum');
     setLocalGuidance(params.guidance || 7.5);
     setLocalSteps(params.steps || 30);
@@ -658,12 +645,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title={strings.advancedSettings.featureInfo.artStyles.title}
-              feature="artStyles"
               subtitle={strings.advancedSettings.artStylesSubtitle}
-              showInfoDialog={showInfoDialog}
+              showInfoDialog={() => showInfoDialog('artStyles')}
               theme={theme}
             />
-
             <StylesGrid
               data={stylesToShow}
               selectedStyles={localSelectedStyles}
@@ -675,84 +660,13 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             />
           </View>
 
-          {/* Privacy Settings */}
-          <View
-            className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: theme.surface}}>
-            <SectionHeader
-              title={strings.advancedSettings.privacy}
-              feature="defaultPrivacy"
-              showInfoDialog={showInfoDialog}
-              theme={theme}
-            />
-
-            <View className="flex-row justify-between items-center py-2">
-              <View className="flex-1 mr-4">
-                <Text style={{color: theme.text}} className="text-lg">
-                  {strings.advancedSettings.privateByDefault}
-                </Text>
-                <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {strings.advancedSettings.privateByDefaultDescription}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                className="w-14 h-8 rounded-full p-1.5"
-                style={{
-                  backgroundColor: localImagesPrivateByDefault
-                    ? theme.primary
-                    : '#cbd5e1',
-                }}
-                onPress={async () => {
-                  LayoutAnimation.spring();
-                  const newValue = !localImagesPrivateByDefault;
-                  setLocalImagesPrivateByDefault(newValue);
-
-                  // Update parent component if callback exists
-                  if (params.setImagesPrivateByDefault) {
-                    params.setImagesPrivateByDefault(newValue);
-                  }
-
-                  // Update user profile
-                  if (user) {
-                    try {
-                      const updatedUser = await userService.updateProfile(
-                        user.id,
-                        {imagesPrivateByDefault: newValue},
-                      );
-                      if (updatedUser) {
-                        updateUser(updatedUser);
-                      }
-                    } catch (error) {
-                      console.error('Failed to update privacy setting:', error);
-                    }
-                  }
-                }}
-                accessible={true}
-                accessibilityLabel={
-                  localImagesPrivateByDefault
-                    ? strings.advancedSettings.turnOffPrivateHint
-                    : strings.advancedSettings.turnOnPrivateHint
-                }
-                accessibilityRole="switch"
-                accessibilityState={{checked: localImagesPrivateByDefault}}>
-                <View
-                  className={`w-5 h-5 rounded-full bg-white ${
-                    localImagesPrivateByDefault ? 'ml-6' : 'ml-0'
-                  }`}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Quality Toggle */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
               title={strings.advancedSettings.featureInfo.quality.title}
-              feature="quality"
-              showInfoDialog={showInfoDialog}
+              showInfoDialog={() => showInfoDialog('quality')}
               theme={theme}
             />
 
@@ -804,11 +718,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               showInfoDialog={() => showInfoDialog('batchCount')}
               theme={theme}
             />
-
             <View className="flex-row flex-wrap gap-2">
-              {[1, 2, 4, 6, 8, 10].map((count, index) => (
+              {[1, 2, 4, 6, 8, 10].map(count => (
                 <TouchableOpacity
-                  key={index}
+                  key={count}
                   onPress={() => {
                     LayoutAnimation.spring();
                     setLocalNumberOfImages(count);
@@ -853,9 +766,8 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 showInfoDialog={() => showInfoDialog('aspectRatio')}
                 theme={theme}
               />
-
               <View className="flex-row flex-wrap gap-2">
-                {aspectRatios.map((ratio, index) => {
+                {aspectRatios.map(ratio => {
                   // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
                   const [width, height] = ratio.ratio.split(':').map(Number);
 
@@ -876,17 +788,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
 
                   // Scale up smaller dimension for better visibility
                   const SCALE_FACTOR = 1.5;
-                  if (displayWidth < 12) displayWidth *= SCALE_FACTOR;
-                  if (displayHeight < 12) displayHeight *= SCALE_FACTOR;
-
+                  if (displayWidth < 12) {
+                    displayWidth *= SCALE_FACTOR;
+                  }
+                  if (displayHeight < 12) {
+                    displayHeight *= SCALE_FACTOR;
+                  }
                   return (
                     <TouchableOpacity
-                      key={index}
+                      key={ratio.ratio}
                       onPress={() => {
                         LayoutAnimation.spring();
                         const newRatio = {
                           ...ratio,
-                          size: 'medium' as AspectRatioSize,
+                          size: 'medium' as ImageSize,
                         };
                         setLocalAspectRatio(newRatio);
                         params.setAspectRatio(newRatio);
@@ -1001,66 +916,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               </View>
             </View>
           </View>
-
-          {/* Sampler, Seed, and Negative Prompt */}
+          {/* Seed and Negative Prompt */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
-            {/* Sampler Picker */}
-            <View className="mb-5">
-              <SectionHeader
-                title={strings.advancedSettings.featureInfo.sampler.title}
-                showInfoDialog={() => showInfoDialog('sampler')}
-                theme={theme}
-              />
-
-              <TouchableOpacity
-                onPress={() => {
-                  LayoutAnimation.configureNext(
-                    LayoutAnimation.Presets.easeInEaseOut,
-                  );
-                  setShowSamplerPicker(!showSamplerPicker);
-                }}
-                style={{backgroundColor: theme.background}}
-                className="p-4 rounded-xl flex-row justify-between items-center">
-                <Text style={{color: theme.text}} className="text-lg">
-                  {localSampler}
-                </Text>
-                <ChevronDownIcon
-                  size={16}
-                  color={theme.secondaryText}
-                  style={{
-                    transform: [
-                      {rotate: showSamplerPicker ? '180deg' : '0deg'},
-                    ],
-                  }}
-                />
-              </TouchableOpacity>
-
-              {showSamplerPicker && (
-                <View
-                  style={{backgroundColor: theme.background}}
-                  className="mt-2 rounded-xl overflow-hidden">
-                  {params.samplers.map((s, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => {
-                        LayoutAnimation.spring();
-                        setLocalSampler(s);
-                        params.setSampler(s);
-                        setShowSamplerPicker(false);
-                      }}
-                      className="p-4 border-b"
-                      style={{borderColor: theme.surface}}>
-                      <Text style={{color: theme.text}} className="text-base">
-                        {s}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-
             {/* Seed Input */}
             <View className="mb-5">
               <SectionHeader

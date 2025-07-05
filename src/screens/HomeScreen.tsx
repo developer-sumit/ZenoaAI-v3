@@ -18,13 +18,14 @@ import {useRoute} from '@react-navigation/native';
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
-import ImageViewer from '@src/components/ImageViewer';
 import ImageSkeleton from '@src/components/ImageSkeleton';
+import ImageViewer from '@src/components/ImageViewer';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useQuota} from '@src/hooks/useQuota';
-import {AspectRatio, GeneratedImage} from '../types';
+import {GeneratedImage} from '../types';
+import {AspectRatio} from '../types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
 import useAppNavigation from '@src/hooks/useAppNavigation';
@@ -40,7 +41,6 @@ import TuneIcon from '@src/assets/icons/TuneIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
-import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -75,7 +75,6 @@ const HomeScreen = () => {
   const [numberOfImages, setNumberOfImages] = React.useState(1);
   const [quality, setQuality] = React.useState(25);
   const [seed, setSeed] = React.useState('');
-  const [sampler, setSampler] = React.useState('k_euler_ancestral');
   const [negativePrompt, setNegativePrompt] = React.useState('');
   const [selectedImage, setSelectedImage] =
     React.useState<GeneratedImage | null>(null);
@@ -84,10 +83,7 @@ const HomeScreen = () => {
   const [engine, setEngine] = React.useState<'quantum' | 'nebula'>('quantum');
   const [guidance, setGuidance] = React.useState<number>(7.5);
   const [steps, setSteps] = React.useState<number>(30);
-
   const flashListRef = useRef<FlashList<any>>(null);
-
-  const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
 
   const [showOnboarding, setShowOnboarding] = React.useState(false);
 
@@ -99,7 +95,7 @@ const HomeScreen = () => {
   // Load user's images when component mounts
   useEffect(() => {
     if (user?.uid) {
-      fetchImages();
+      fetchImages(1, 20, true); // Load first page
     }
   }, [user?.uid, fetchImages]);
 
@@ -107,16 +103,13 @@ const HomeScreen = () => {
   useEffect(() => {
     const params = route.params as any;
     if (params?.remixData) {
-      const remix = params.remixData;
-
-      // Apply the remix settings
+      const remix = params.remixData; // Apply the remix settings
       setPrompt(remix.prompt || '');
       setNegativePrompt(remix.negativePrompt || '');
       setEngine(remix.engine || 'quantum');
       setGuidance(remix.guidance || 7.5);
       setSteps(remix.steps || 30);
       setSeed(remix.seed?.toString() || '');
-      setSampler(remix.sampler || 'k_euler_ancestral');
       setSelectedStyles(remix.styles || []);
 
       // Set aspect ratio based on dimensions
@@ -131,7 +124,6 @@ const HomeScreen = () => {
           });
         }
       }
-
       showToast('Settings applied from remixed image!', 'success');
     }
   }, [route.params]);
@@ -140,11 +132,9 @@ const HomeScreen = () => {
     // Use actual image dimensions if available
     if (image.width && image.height) {
       return image.width / image.height;
-    }
-
-    // Fall back to aspectRatio if dimensions not available
-    if (image?.aspectRatio?.ratio) {
-      const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
+    } // Fall back to aspectRatio if dimensions not available
+    if (image?.aspectRatio) {
+      const [width, height] = image.aspectRatio.split(':').map(Number);
       return width / height;
     }
 
@@ -207,7 +197,6 @@ const HomeScreen = () => {
         steps, // Use current steps setting
         seed: seed ? parseInt(seed, 10) : undefined,
         negativePrompt,
-        sampler,
         isPrivate: false,
       };
 
@@ -240,12 +229,17 @@ const HomeScreen = () => {
     parameters: {
       prompt: string;
       styles: string[];
-      aspectRatio: AspectRatio;
+      aspectRatio: string;
     };
   }) => {
     setPrompt(item.parameters.prompt);
     setSelectedStyles(item.parameters.styles);
-    setAspectRatio(item.parameters.aspectRatio);
+
+    // Find the matching AspectRatio object from aspectRatios
+    const aspectRatioObj =
+      aspectRatios.find(ar => ar.ratio === item.parameters.aspectRatio) ||
+      aspectRatios[0];
+    setAspectRatio(aspectRatioObj);
 
     // Auto scroll to input
     setTimeout(() => {
@@ -266,30 +260,37 @@ const HomeScreen = () => {
     const combinedImages = [...currentGenerationBatch, ...generatedImages];
     return combinedImages;
   };
+
   const groupImagesByParameters = (images: GeneratedImage[]) => {
     const groups: {[key: string]: GeneratedImage[]} = {};
 
     images.forEach(image => {
-      // Group by timestamp to keep generation batches separate
-      // For batch images, use createdAt if available, otherwise fallback to timestamp
-      let groupingTime;
-      if (image.createdAt) {
-        // Use createdAt from server if available
+      // Group batch images by their exact batchTimestamp (for images generated together)
+      // or by a time window for images from different sessions
+      let groupingIdentifier;
+
+      if (image.batchTimestamp) {
+        // For batch images, use the exact batchTimestamp (they should all have the same timestamp)
+        // But also include prompt to separate different batches with same timestamp
+        groupingIdentifier = `${image.batchTimestamp.getTime()}-${
+          image.prompt || ''
+        }`;
+      } else if (image.createdAt) {
+        // For server images, use a 30-second window
         const createdTime = new Date(image.createdAt).getTime();
-        // Round to 10-second window to group batch images generated close together
-        groupingTime = Math.floor(createdTime / 10000) * 10000;
+        const timeWindow = Math.floor(createdTime / 30000) * 30000;
+        groupingIdentifier = `${timeWindow}-${image.prompt || ''}`;
       } else {
-        // Use timestamp with 5-second window for local images
-        const timestamp = image.timestamp || Date.now();
-        groupingTime = Math.floor(timestamp / 5000) * 5000;
+        // Fallback
+        groupingIdentifier = `${Date.now()}-${image.prompt || ''}`;
       }
 
+      // Create grouping key based on prompt and basic generation settings
       const groupKey = [
-        image.originalPrompt || image.prompt || '',
-        (image.styles || []).join(','),
-        image.aspectRatio?.ratio || '1:1',
-        image.quality || 25,
-        groupingTime,
+        image.prompt || '',
+        (image.styles || []).sort().join(','),
+        image.engineType || 'quantum',
+        groupingIdentifier,
       ].join('|');
 
       if (!groups[groupKey]) {
@@ -298,61 +299,60 @@ const HomeScreen = () => {
       groups[groupKey].push(image);
     });
 
-    return Object.entries(groups).map(([key, items]) => ({
-      key,
-      items,
-      parameters: {
-        prompt: items[0].originalPrompt || items[0].prompt || '',
-        styles: items[0].styles || [],
-        aspectRatio: items[0].aspectRatio || {
-          ratio: '1:1',
-          sizes: {small: '512x512', medium: '1024x1024', large: '2048x2048'},
-          size: 'medium' as const,
+    return Object.entries(groups)
+      .map(([key, items]) => ({
+        key,
+        items: items.sort((a, b) => {
+          // Sort by batchTimestamp or createdAt, newest first
+          const timeA = a.batchTimestamp
+            ? a.batchTimestamp.getTime()
+            : new Date(a.createdAt).getTime() || 0;
+          const timeB = b.batchTimestamp
+            ? b.batchTimestamp.getTime()
+            : new Date(b.createdAt).getTime() || 0;
+          return timeB - timeA;
+        }),
+        parameters: {
+          prompt: items[0].prompt || '',
+          styles: items[0].styles || [],
+          aspectRatio: items[0].aspectRatio || '1:1',
+          timestamp: items[0].batchTimestamp
+            ? items[0].batchTimestamp.getTime()
+            : new Date(items[0].createdAt).getTime(),
         },
-        quality: items[0].quality || 25,
-        timestamp: items[0].timestamp || Date.now(),
-      },
-    }));
+      }))
+      .sort((a, b) => b.parameters.timestamp - a.parameters.timestamp); // Sort groups by timestamp, newest first
   };
 
   // Render a placeholder or loading image
   const renderImageContent = (image: GeneratedImage) => {
     const imageHeight = getImageHeight(image);
+    const imageWidth = COLUMN_WIDTH - 12; // Account for padding (p-1.5 = 6px on each side)
 
-    if (image.loading) {
+    // Show skeleton for loading images (images without imageUrl or with temp IDs)
+    if (
+      !image.imageUrl ||
+      image.id?.startsWith('temp-') ||
+      image.id?.startsWith('loading-')
+    ) {
       return (
         <ImageSkeleton
-          width={COLUMN_WIDTH - 12} // Account for padding
+          width={imageWidth}
           height={imageHeight}
           borderRadius={16}
-        />
-      );
-    } else if (image.error) {
-      return (
-        <View
-          className="rounded-2xl overflow-hidden items-center justify-center"
-          style={{
-            backgroundColor: theme.surface,
-            width: '100%',
-            height: imageHeight,
-          }}
-          accessible={true}
-          accessibilityLabel={strings.home.generationFailed}>
-          <ErrorOutlineIcon size={40} color="#ef4444" />
-          <Text style={{color: theme.secondaryText}} className="text-xs mt-2">
-            {strings.home.generationFailed}
-          </Text>
-        </View>
-      );
-    } else {
-      return (
-        <ImageCard
-          image={image}
-          onPress={() => setSelectedImage(image)}
-          style={{width: '100%', height: imageHeight}}
+          showTimer={true}
         />
       );
     }
+
+    // For loaded images, show the ImageCard
+    return (
+      <ImageCard
+        image={image}
+        onPress={() => setSelectedImage(image)}
+        style={{width: imageWidth, height: imageHeight}}
+      />
+    );
   };
 
   const renderGroup = ({
@@ -364,13 +364,20 @@ const HomeScreen = () => {
       {/* Header with Prompt Info and Action Buttons */}
       <View className="px-4">
         <View className="flex-row items-center justify-between gap-3">
-          <Text
-            style={{color: theme.text}}
-            className="text-lg font-semibold mb-2 flex-1"
-            numberOfLines={1}
-            ellipsizeMode="tail">
-            {item.parameters.prompt}
-          </Text>
+          <View className="flex-1">
+            <Text
+              style={{color: theme.text}}
+              className="text-lg font-semibold mb-1"
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {item.parameters.prompt}
+            </Text>
+            {item.items.length > 1 && (
+              <Text style={{color: theme.secondaryText}} className="text-xs">
+                {item.items.length} images generated
+              </Text>
+            )}
+          </View>
 
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
@@ -413,13 +420,12 @@ const HomeScreen = () => {
           </View>
         )}
       </View>
-
       {/* Grid Layout with proper aspect ratio */}
       <View className="px-4">
         <View className="flex-row flex-wrap">
-          {item.items.map(image => (
+          {item.items.map((image, index) => (
             <View
-              key={`${image.uri}_${image.index}_${image.timestamp}`}
+              key={`${image.id || 'temp'}-${index}-${item.key}`}
               className="w-1/2 p-1.5">
               {renderImageContent(image)}
             </View>
@@ -548,13 +554,8 @@ const HomeScreen = () => {
         </View>
       )}
     </View>
-  );
-  // Android Quick Actions
-  useAndroidQuickActions({
-    setPrompt,
-    setSelectedStyles,
-    setAspectRatio,
-  });
+  ); // Android Quick Actions
+  useAndroidQuickActions();
 
   return (
     <KeyboardAvoidingView
@@ -606,6 +607,7 @@ const HomeScreen = () => {
           <FlashList
             ref={flashListRef}
             data={groupImagesByParameters(getCombinedImages())}
+            keyExtractor={(item, index) => `home-group-${item.key}-${index}`}
             estimatedItemSize={300}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 200}}
@@ -738,12 +740,9 @@ const HomeScreen = () => {
                       setQuality: (value: number) => setQuality(value),
                       seed,
                       setSeed: (value: string) => setSeed(value),
-                      sampler,
-                      setSampler: (value: string) => setSampler(value),
                       negativePrompt,
                       setNegativePrompt: (value: string) =>
                         setNegativePrompt(value),
-                      samplers,
                       // Add new parameters
                       engine,
                       setEngine: (eng: 'quantum' | 'nebula') => setEngine(eng),

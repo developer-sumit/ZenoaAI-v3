@@ -21,7 +21,7 @@ import appConfig from '@src/config/app.config';
 import {useTheme} from '@src/store/themeStore';
 import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
-import {feedbackService} from '@src/services/feedbackService';
+import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
 import {useQuota} from '@src/hooks/useQuota';
@@ -43,6 +43,7 @@ import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import NotificationIcon from '@src/assets/icons/NotificationIcon';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -57,7 +58,7 @@ const ProfileScreen = () => {
   const {user, logout} = useAuthStore();
   const {isDark, theme, toggleTheme} = useTheme();
   const {showToast} = useToast();
-  const {quota, isLoading: quotaLoading} = useQuota();
+  const {quota, refetch, isLoading: quotaLoading} = useQuota();
   const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
 
@@ -304,15 +305,33 @@ const ProfileScreen = () => {
             className="rounded-3xl mb-6 overflow-hidden shadow-lg mx-0"
             style={{backgroundColor: theme.surface}}>
             <View
-              className="px-5 py-4 border-b"
+              className="px-5 py-4 border-b flex-row justify-between items-center"
               style={{borderColor: theme.secondaryText + '20'}}>
               <Text
                 className="text-lg font-semibold"
                 style={{color: theme.secondaryText}}>
                 {strings.settings.quotaTitle}
               </Text>
+              <TouchableOpacity
+                onPress={refetch}
+                disabled={quotaLoading}
+                className="p-2 rounded-full"
+                style={{
+                  backgroundColor: theme.background,
+                  opacity: quotaLoading ? 0.5 : 1,
+                }}
+                accessible={true}
+                accessibilityLabel="Refresh quota information"
+                accessibilityRole="button">
+                <RefreshIcon
+                  size={20}
+                  color={theme.primary}
+                  style={{
+                    transform: [{rotate: quotaLoading ? '45deg' : '0deg'}],
+                  }}
+                />
+              </TouchableOpacity>
             </View>
-
             <View className="px-5 py-4">
               {/* Images Remaining */}
               <View className="mb-4">
@@ -325,7 +344,13 @@ const ProfileScreen = () => {
                   <Text
                     style={{color: theme.primary}}
                     className="text-base font-bold">
-                    {quota && !quotaLoading ? quota.imagesRemaining : 0}
+                    {quota && !quotaLoading
+                      ? `${quota.imagesRemaining}${
+                          quota.planLimits?.totalImages
+                            ? ` / ${quota.planLimits.totalImages}`
+                            : ''
+                        }`
+                      : '0'}
                   </Text>
                 </View>
                 <View
@@ -341,18 +366,21 @@ const ProfileScreen = () => {
                           ? '#f59e0b'
                           : '#ef4444',
                       width: `${
-                        quota
+                        quota && quota.planLimits?.totalImages
                           ? Math.min(
-                              (quota.imagesRemaining / quota.maxImages) * 100,
+                              (quota.imagesRemaining /
+                                quota.planLimits.totalImages) *
+                                100,
                               100,
                             )
+                          : quota?.imagesRemaining
+                          ? 100 // Show full bar if no limit is specified
                           : 0
                       }%`,
                     }}
                   />
                 </View>
               </View>
-
               {/* Plan Type */}
               <View className="flex-row justify-between items-center">
                 <Text

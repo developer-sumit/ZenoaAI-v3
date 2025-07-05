@@ -1,4 +1,4 @@
-import {AspectRatio} from '@src/types';
+import {AspectRatio} from '@src/types/image';
 
 export const aspectRatios: AspectRatio[] = [
   {

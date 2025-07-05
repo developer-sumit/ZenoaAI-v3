@@ -1,6 +1,7 @@
 export type PlanType = 'free' | 'pro' | 'enterprise';
 
 export interface IUserProfile {
+  name?: string;
   username: string;
   avatar?: string;
   bio?: string;
@@ -8,7 +9,7 @@ export interface IUserProfile {
 
 export interface IUserQuota {
   imagesRemaining: number;
-  refreshAt: Date;
+  lastRefreshedAt?: Date;
 }
 
 export interface UserStatistics {
@@ -22,9 +23,6 @@ export interface User {
   email: string;
   createdAt: Date;
   updatedAt: Date;
-  lastLoginAt?: Date; // For backward compatibility
-  isDeleted?: boolean;
-  deletedAt?: Date;
   profile: IUserProfile;
   planType: PlanType;
   quota: IUserQuota;
@@ -33,94 +31,14 @@ export interface User {
   fcmTokenUpdatedAt?: Date; // When the FCM token was last updated
 }
 
-export type EngineType = 'quantum' | 'nebula';
-export type AspectRatioSize = 'small' | 'medium' | 'large';
-
-export interface AspectRatio {
-  ratio: string;
-  sizes: {
-    small: string;
-    medium: string;
-    large: string;
-  };
-  size?: AspectRatioSize;
-}
-
-export interface ArtStyleType {
-  id: string;
-  name: string;
-  image: string;
-}
-
-export interface QualityPresetType {
-  label: string;
-  value: number;
-}
-
-export interface GeneratedImage {
-  id: string;
-  userId: string;
-  engineType: EngineType;
-  originalPrompt: string; // User's original input
-  finalPrompt: string; // Enhanced prompt with style details
-  negativePrompt?: string;
-  imageUrl: string; // Primary image URL (Cloudinary)
-  thumbnailUrl?: string; // Optimized thumbnail URL
-  width: number;
-  height: number;
-  styles?: string[]; // Array of style names applied
-  seed: number;
-  sampler?: string;
-  steps?: number;
-  createdAt: Date | string;
-  isFavorite?: boolean;
-  isPrivate: boolean;
-
-  // Additional fields for UI
-  userName?: string;
-  userAvatar?: string;
-
-  // Legacy/compatibility fields
-  uri?: string; // Alias for imageUrl
-  prompt?: string; // For backward compatibility
-  aspectRatio?: AspectRatio;
-  quality?: number;
-  timestamp?: number;
-  loading?: boolean;
-  error?: boolean;
-  index?: number;
-  isDeleted?: boolean;
-  deletedAt?: string;
-  updatedAt?: string;
-
-  // Server-specific fields
-  favorite?: boolean; // Server uses 'favorite' instead of 'isFavorite'
-}
-
-// Server response structures
-export interface ImageGenerationResponse {
+// API Response types
+export interface ApiResponse<T = any> {
   success: boolean;
-  imageUrl: string;
-  originalUrl?: string;
-  optimizedUrls?: {
-    thumbnail: string;
-    medium: string;
-    webp: string;
-    progressive: string;
-  };
-  metadata?: GeneratedImage;
-  engineUsed?: EngineType;
-  prompts?: {
-    original: string;
-    final: string;
-  };
-  cloudinary?: {
-    publicId: string;
-    format: string;
-    size: number;
-  };
-  fallback?: boolean;
-  message?: string;
+  message: string;
+  data?: T;
+  error?: string;
+  errors?: string[];
+  requestId?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -138,74 +56,106 @@ export interface PaginatedResponse<T> {
   requestId?: string;
 }
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-  error?: string;
-  errors?: string[];
-  requestId?: string;
+// Authentication types
+export interface AuthUser {
+  uid: string;
+  email: string;
+  profile: IUserProfile;
+  planType: PlanType;
+  quota: IUserQuota;
+  statistics?: UserStatistics;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export interface ImageStats {
-  totalImages: number;
-  favoriteImages: number;
-  privateImages: number;
-  totalBytes: number;
-  engineStats: string[];
+// Form types
+export interface LoginForm {
+  email: string;
+  password: string;
 }
 
-export interface AvailableOptions {
-  styles: ArtStyleType[];
-  engines: {
-    key: EngineType;
-    name: string;
-    description: string;
-    isPremium: boolean;
-    available: boolean;
-  }[];
-  aspectRatios: AspectRatio[];
-  userPlan: string;
-  planLimits: {
+export interface RegisterForm {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  username: string;
+}
+
+export interface ProfileUpdateForm {
+  username: string;
+  bio?: string;
+  avatar?: string;
+}
+
+// Store types
+export interface AuthState {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface ImageStore {
+  images: any[];
+  isLoading: boolean;
+  error: string | null;
+  hasMore: boolean;
+  page: number;
+}
+
+// Engine and generation types
+export type EngineType = 'quantum' | 'nebula';
+export type ImageSize = 'small' | 'medium' | 'large';
+
+export interface GenerationSettings {
+  engineType: EngineType;
+  aspectRatio: string;
+  imageSize: ImageSize;
+  styles: string[];
+  seed: number;
+  negativePrompt: string;
+  isPrivate: boolean;
+  batchCount: number;
+}
+
+// Image response types
+export interface GeneratedImage {
+  id: string;
+  userId: string;
+  prompt: string;
+  imageUrl: string;
+  thumbnailUrl: string;
+  engineType: EngineType;
+  styles?: string[];
+  width: number;
+  height: number;
+  seed: number;
+  imageSize: ImageSize;
+  aspectRatio: string;
+  negativePrompt?: string;
+  isFavorite?: boolean;
+  isPrivate: boolean;
+  createdAt: Date;
+  userName: string;
+  userAvatar: string;
+  batchId?: string;
+  batchTimestamp?: Date;
+}
+
+// Quota types for frontend
+export interface QuotaInfo {
+  imagesRemaining: number;
+  lastRefreshedAt?: string;
+  nextRefreshAt?: string; // For display purposes
+  planLimits?: {
     totalImages: number;
-    totalApiCalls: number;
   };
 }
 
-// Image generation request interface to match server
-export interface ImageGenerationRequest {
-  userId?: string;
-  engineType: EngineType;
-  prompt: string;
-  width: number;
-  height: number;
-  aspectRatio: string; // e.g., "1:1", "16:9", etc.
-  styles?: string[];
-  sampler?: string;
-  steps?: number;
-  seed?: number;
-  negativePrompt?: string;
-  imageSize: AspectRatioSize;
-  batchCount?: number;
-  isPrivate?: boolean;
-}
-
-export interface ImageGeneration {
-  id: string;
-  prompt: string;
-  fullPrompt: string;
-  negativePrompt?: string;
-  styles: string[];
-  engine: EngineType;
-  aspectRatio: AspectRatio;
-  quality: 'high' | 'standard';
-  sampler?: string;
-  images: GeneratedImage[];
-  synced?: boolean;
-  isPrivate?: boolean;
-  userId?: string;
-  userName?: string;
-  userAvatar?: string;
-  createdAt: string;
-  updatedAt: string;
+// Error types
+export interface AppError {
+  message: string;
+  code?: string;
+  statusCode?: number;
+  timestamp?: Date;
 }

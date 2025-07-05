@@ -14,6 +14,7 @@ const PUBLIC_ROUTES = [
   '/api/auth/google',
   '/api/auth/verify',
   '/api/auth/refresh',
+  '/health',
 ];
 
 // Helper function to check if a route is public

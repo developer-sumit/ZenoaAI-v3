@@ -70,7 +70,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const {user} = useAuthStore();
   const {deleteImage: storeDeleteImage} = useImageStore();
   const navigation = useNavigation();
-  const imageUri = image?.uri || '';
+  const imageUri = image?.imageUrl || '';
 
   // Track if component is mounted to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -136,14 +136,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDownloadPress = () => {
-    if (!image || !image?.uri) {
+    if (!image || !imageUri) {
       console.log('No image to download');
       return;
     }
 
     try {
       setDownloading(true);
-      downloadImage(image);
+      downloadImage();
     } catch (error) {
       showToast(strings.imageViewer.failedToDownload, 'error');
       setDownloading(false);
@@ -201,11 +201,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     });
   };
 
-  const downloadImage = async (img: GeneratedImage) => {
-    console.log('Downloading image:', img.uri);
+  const downloadImage = async () => {
+    console.log('Downloading image:', imageUri);
     try {
       // Only fetch base64 when downloading
-      const response = await fetch(img.uri);
+      const response = await fetch(imageUri);
       const blob = await response.blob();
       const base64 = await blobToBase64(blob);
 
@@ -249,13 +249,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       showToast(strings.imageViewer.copied);
     }
   };
-
   // Calculate aspect ratio safely
   const getAspectRatio = () => {
     // Fallback to ratio from metadata
-    if (image?.aspectRatio?.ratio) {
+    if (image?.aspectRatio && typeof image.aspectRatio === 'string') {
       try {
-        const parts = image.aspectRatio.ratio.split(':');
+        const parts = image.aspectRatio.split(':');
         if (parts.length === 2) {
           const width = parseFloat(parts[0]);
           const height = parseFloat(parts[1]);
@@ -278,22 +277,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       return;
     }
 
-    // Close the image viewer first
-    onClose?.();
+    // Close the image viewer first    onClose?.();
 
     // Navigate to home screen with a slight delay to ensure modal is closed
     setTimeout(() => {
       (navigation as any).navigate(Routes.HOME, {
         remixData: {
-          prompt: image.originalPrompt || image.prompt,
+          prompt: image.prompt,
           negativePrompt: image.negativePrompt,
           engine: image.engineType,
           seed: image.seed,
-          steps: image.steps,
-          sampler: image.sampler,
           styles: image.styles,
           width: image.width,
           height: image.height,
+          aspectRatio: image.aspectRatio,
         },
       });
     }, 100);
@@ -539,21 +536,18 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   label="Engine"
                   value={image?.engineType ? `${image.engineType}` : 'Quantum'}
                 />
-
                 {/* Image Dimensions - Top priority */}
                 <MetadataItem
                   icon="dimensions"
                   label="Dimensions"
                   value={`${image?.width || 0} x ${image?.height || 0}`}
                 />
-
                 {/* Privacy Status */}
                 <MetadataItem
                   icon="privacy"
                   label="Visibility"
                   value={image?.isPrivate ? 'Private' : 'Public'}
                 />
-
                 {/* Seed */}
                 <MetadataItem
                   icon="seed"
@@ -561,20 +555,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   value={image?.seed.toString() || ''}
                   onCopy={() => copyToClipboard(image?.seed.toString() || '')}
                 />
-
-                {/* Image Quality */}
+                {/* Aspect Ratio */}
                 <MetadataItem
-                  icon="chart-donut"
-                  label="Quality"
-                  value={image?.quality ? `${image.quality}` : 'Standard'}
+                  icon="aspect-ratio"
+                  label="Aspect Ratio"
+                  value={image?.aspectRatio || '1:1'}
                 />
-
-                {/* Sampler - Last item as requested */}
-                <MetadataItem
-                  icon="tune"
-                  label={strings.advancedSettings.featureInfo.sampler.title}
-                  value={image?.sampler || '-'}
-                />
+                {/* Created At */}
+                {image?.createdAt && (
+                  <MetadataItem
+                    icon="privacy"
+                    label="Created"
+                    value={new Date(image.createdAt).toLocaleDateString()}
+                  />
+                )}
               </View>
 
               {/* Negative Prompt Section */}
@@ -635,9 +629,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   <View className="flex-row flex-wrap gap-2">
                     {image.styles
                       .slice(0, expandedStyles ? image.styles.length : 3)
-                      .map((style, index) => (
+                      .map(style => (
                         <View
-                          key={index}
+                          key={style}
                           className="flex-row items-center rounded-full px-3 py-1.5"
                           style={{backgroundColor: theme.primary + '20'}}>
                           <PaletteIcon size={14} color={theme.primary} />
@@ -648,7 +642,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                           </Text>
                         </View>
                       ))}
-
                     {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
                     {!expandedStyles && image.styles.length > 3 && (
                       <TouchableOpacity
@@ -668,27 +661,29 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
               {/* Action Buttons */}
               <View className="flex-row justify-between mt-5 gap-1.5">
-                {/* Delete Button */}
-                <TouchableOpacity
-                  onPress={handleDeletePress}
-                  disabled={deleting}
-                  className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: theme.surface}}
-                  accessible={true}
-                  accessibilityLabel={strings.imageViewer.deleteImage}
-                  accessibilityState={{disabled: deleting}}
-                  accessibilityHint={strings.imageViewer.deleteImageHint}>
-                  {deleting ? (
-                    <ActivityIndicator color="#ef4444" size="small" />
-                  ) : (
-                    <>
-                      <DeleteOutlineIcon size={22} color="#ef4444" />
-                      <Text className="font-bold" style={{color: '#ef4444'}}>
-                        {strings.imageViewer.delete}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                {/* Delete Button - Only show if image belongs to current user */}
+                {user?.uid && image?.userId === user.uid && (
+                  <TouchableOpacity
+                    onPress={handleDeletePress}
+                    disabled={deleting}
+                    className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                    style={{backgroundColor: theme.surface}}
+                    accessible={true}
+                    accessibilityLabel={strings.imageViewer.deleteImage}
+                    accessibilityState={{disabled: deleting}}
+                    accessibilityHint={strings.imageViewer.deleteImageHint}>
+                    {deleting ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
+                    ) : (
+                      <>
+                        <DeleteOutlineIcon size={22} color="#ef4444" />
+                        <Text className="font-bold" style={{color: '#ef4444'}}>
+                          {strings.imageViewer.delete}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
 
                 {/* Remix Button */}
                 <TouchableOpacity

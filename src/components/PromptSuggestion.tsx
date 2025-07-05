@@ -219,7 +219,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
           contentContainerStyle={{paddingBottom: 30}}>
           {samplePrompts.map((category, index) => (
             <View
-              key={index}
+              key={category.category}
               className={`mb-4 ${
                 index === samplePrompts.length - 1 ? 'mb-8' : ''
               }`}>
@@ -274,7 +274,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                 <View className="mt-2 space-y-2">
                   {category.prompts.map((prompt, promptIndex) => (
                     <TouchableOpacity
-                      key={promptIndex}
+                      key={`${category.category}-${promptIndex}`}
                       onPress={() => handleSelectPrompt(prompt)}
                       className="p-4 rounded-xl flex-row items-center border-l-4 mb-1"
                       style={{

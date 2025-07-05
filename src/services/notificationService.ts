@@ -33,7 +33,7 @@ class NotificationService {
 
   /**
    * Initialize the notification service
-   */  async initialize(): Promise<void> {
+   */ async initialize(): Promise<void> {
     if (this.initialized) {
       return;
     }
@@ -41,13 +41,13 @@ class NotificationService {
     try {
       // Request permissions
       await this.requestPermissions();
-      
+
       // Create default notification channels
       await this.createDefaultChannels();
-      
+
       // Initialize FCM
       await this.initializeFCM();
-      
+
       // Set up notification handlers
       this.setupNotificationHandlers();
 
@@ -85,7 +85,7 @@ class NotificationService {
 
   /**
    * Create default notification channels for Android
-   */  async createDefaultChannels(): Promise<void> {
+   */ async createDefaultChannels(): Promise<void> {
     if (Platform.OS !== 'android') {
       return;
     }
@@ -128,7 +128,7 @@ class NotificationService {
 
   /**
    * Create a notification channel (Android only)
-   */  async createChannel(channel: NotificationChannel): Promise<void> {
+   */ async createChannel(channel: NotificationChannel): Promise<void> {
     if (Platform.OS !== 'android') {
       return;
     }
@@ -149,7 +149,7 @@ class NotificationService {
 
   /**
    * Initialize Firebase Cloud Messaging
-   */  async initializeFCM(): Promise<void> {
+   */ async initializeFCM(): Promise<void> {
     try {
       // Register device for remote messages
       if (!messaging().isDeviceRegisteredForRemoteMessages) {
@@ -159,18 +159,18 @@ class NotificationService {
       // Get FCM token
       const token = await messaging().getToken();
       this.fcmToken = token;
-      
+
       // Store token locally
       await EncryptedStorage.setItem('fcm_token', token);
-      
+
       console.log('FCM Token:', token);
 
       // Listen for token refresh
-      messaging().onTokenRefresh(async (newToken) => {
+      messaging().onTokenRefresh(async newToken => {
         this.fcmToken = newToken;
         await EncryptedStorage.setItem('fcm_token', newToken);
         console.log('FCM Token refreshed:', newToken);
-        
+
         // TODO: Send new token to server
         this.sendTokenToServer(newToken);
       });
@@ -180,15 +180,35 @@ class NotificationService {
     } catch (error) {
       console.error('Error initializing FCM:', error);
     }
-  }  /**
+  }
+  /**
    * Send FCM token to server
    */
   private async sendTokenToServer(_token: string): Promise<void> {
     try {
+      // Import auth to check authentication status
+      const auth = require('@react-native-firebase/auth').default;
+
+      // Wait a bit for auth to be ready, then check if user is authenticated
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        console.log('User not authenticated, skipping FCM token update');
+        return;
+      }
+
+      console.log('Attempting to send FCM token to server...');
+
       // Import notificationAPI dynamically to avoid circular dependency
       const notificationAPI = require('./notificationAPI').notificationAPI;
-      await notificationAPI.updateFCMToken();
-      console.log('FCM token sent to server successfully');
+      const success = await notificationAPI.updateFCMToken();
+
+      if (success) {
+        console.log('FCM token sent to server successfully');
+      } else {
+        console.log('Failed to send FCM token to server');
+      }
     } catch (error) {
       console.error('Error sending token to server:', error);
     }
@@ -199,9 +219,9 @@ class NotificationService {
    */
   private setupNotificationHandlers(): void {
     // Handle foreground messages
-    messaging().onMessage(async (remoteMessage) => {
+    messaging().onMessage(async remoteMessage => {
       console.log('Received foreground message:', remoteMessage);
-        if (remoteMessage.notification) {
+      if (remoteMessage.notification) {
         await this.displayNotification({
           title: remoteMessage.notification.title || 'Zenoa AI',
           body: remoteMessage.notification.body || '',
@@ -213,7 +233,7 @@ class NotificationService {
     });
 
     // Handle notification opening app
-    messaging().onNotificationOpenedApp((remoteMessage) => {
+    messaging().onNotificationOpenedApp(remoteMessage => {
       console.log('Notification opened app:', remoteMessage);
       this.handleNotificationPress(remoteMessage.data);
     });
@@ -221,7 +241,7 @@ class NotificationService {
     // Handle notification when app is opened from quit state
     messaging()
       .getInitialNotification()
-      .then((remoteMessage) => {
+      .then(remoteMessage => {
         if (remoteMessage) {
           console.log('App opened from notification:', remoteMessage);
           this.handleNotificationPress(remoteMessage.data);
@@ -238,7 +258,10 @@ class NotificationService {
 
     notifee.onBackgroundEvent(async ({type, detail}) => {
       if (type === EventType.PRESS) {
-        console.log('User pressed notification in background:', detail.notification);
+        console.log(
+          'User pressed notification in background:',
+          detail.notification,
+        );
         this.handleNotificationPress(detail.notification?.data);
       }
     });
@@ -246,13 +269,13 @@ class NotificationService {
 
   /**
    * Handle notification press
-   */  private handleNotificationPress(data?: Record<string, any>): void {
+   */ private handleNotificationPress(data?: Record<string, any>): void {
     if (!data) {
       return;
     }
 
     console.log('Handling notification press with data:', data);
-    
+
     // TODO: Implement navigation logic based on notification data
     // Example: Navigate to specific screen based on data.screen
     switch (data.type) {
@@ -274,7 +297,10 @@ class NotificationService {
   /**
    * Display a local notification
    */
-  async displayNotification(notification: NotificationData): Promise<string | null> {
+
+  async displayNotification(
+    notification: NotificationData,
+  ): Promise<string | null> {
     try {
       const notificationId = await notifee.displayNotification({
         title: notification.title,
@@ -283,19 +309,29 @@ class NotificationService {
         android: {
           channelId: notification.channelId || 'default',
           importance: AndroidImportance.DEFAULT,
+          smallIcon: 'ic_notification', // App icon for notifications
+          color: '#121212', // Dark background color
+          showTimestamp: true,
           pressAction: {
             id: 'default',
           },
           largeIcon: notification.imageUrl,
-          style: notification.imageUrl ? {
-            type: AndroidStyle.BIGPICTURE,
-            picture: notification.imageUrl,
-          } : undefined,
-        },        ios: {
-          attachments: notification.imageUrl ? [{
-            url: notification.imageUrl,
-            typeHint: 'public.jpeg',
-          }] : undefined,
+          style: notification.imageUrl
+            ? {
+                type: AndroidStyle.BIGPICTURE,
+                picture: notification.imageUrl,
+              }
+            : undefined,
+        },
+        ios: {
+          attachments: notification.imageUrl
+            ? [
+                {
+                  url: notification.imageUrl,
+                  typeHint: 'public.jpeg',
+                },
+              ]
+            : undefined,
         },
       });
 
@@ -323,19 +359,24 @@ class NotificationService {
         type: TriggerType.TIMESTAMP,
         timestamp: (notification.scheduledTime || scheduledTime).getTime(),
       };
-
-      const notificationId = await notifee.createTriggerNotification({
-        title: notification.title,
-        body: notification.body,
-        data: notification.data,
-        android: {
-          channelId: notification.channelId || 'default',
-          importance: AndroidImportance.DEFAULT,
-          pressAction: {
-            id: 'default',
+      const notificationId = await notifee.createTriggerNotification(
+        {
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+          android: {
+            channelId: notification.channelId || 'default',
+            importance: AndroidImportance.DEFAULT,
+            smallIcon: 'ic_notification', // App icon for notifications
+            color: '#121212', // Dark background color
+            showTimestamp: true,
+            pressAction: {
+              id: 'default',
+            },
           },
         },
-      }, trigger);
+        trigger,
+      );
 
       console.log('Notification scheduled with ID:', notificationId);
       return notificationId;
@@ -444,11 +485,11 @@ class NotificationService {
       // Remove token from server
       const notificationAPI = require('./notificationAPI').notificationAPI;
       await notificationAPI.removeFCMToken();
-      
+
       // Clear local token
       this.fcmToken = null;
       await EncryptedStorage.removeItem('fcm_token');
-      
+
       console.log('User logout handled - FCM token cleaned up');
     } catch (error) {
       console.error('Error handling user logout:', error);
@@ -472,6 +513,18 @@ class NotificationService {
     } catch (error) {
       console.error('Error handling user login:', error);
     }
+  }
+
+  /**
+   * Manually update FCM token to server (called after authentication)
+   */
+  async updateTokenToServer(): Promise<void> {
+    if (!this.fcmToken) {
+      console.log('No FCM token available');
+      return;
+    }
+
+    await this.sendTokenToServer(this.fcmToken);
   }
 }
 

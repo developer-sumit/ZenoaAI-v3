@@ -165,6 +165,15 @@ export const id = {
     imagesRemaining: 'Gambar Tersisa',
     apiCallsRemaining: 'Panggilan API Tersisa',
     planType: 'Jenis Rencana',
+    notifications: 'Notifikasi',
+    notificationsDesc: 'Terima pembaruan tentang gambar Anda',
+    notificationsEnabled: 'Notifikasi diaktifkan',
+    notificationsDisabled: 'Notifikasi dinonaktifkan',
+    notificationsPermissionDenied:
+      'Izin notifikasi ditolak. Harap aktifkan di pengaturan perangkat.',
+    notificationsUpdateFailed: 'Gagal memperbarui pengaturan notifikasi',
+    somethingWentWrong: 'Terjadi kesalahan',
+    internalServerError: 'Kesalahan server internal',
   },
 
   editProfile: {
@@ -212,6 +221,11 @@ export const id = {
       'Masukkan angka untuk membuat gambar yang dapat direproduksi atau biarkan kosong untuk hasil acak',
     seedPlaceholder: 'Acak',
     featureInfo: {
+      'AI Engine': {
+        title: 'Mesin AI',
+        message:
+          'Pilih antara mesin AI Quantum dan Nebula. Quantum memberikan generasi cepat dan berkualitas tinggi dengan preservasi detail yang sangat baik. Nebula menawarkan kreativitas yang ditingkatkan dan interpretasi artistik dengan waktu pemrosesan yang sedikit lebih lama. Kedua mesin menghasilkan hasil bermutu profesional.',
+      },
       artStyles: {
         title: 'Gaya Seni',
         message:
@@ -220,7 +234,7 @@ export const id = {
       quality: {
         title: 'Kualitas Gambar',
         message:
-          'Kualitas premium menggunakan 50 langkah inferensi daripada 25, menghasilkan gambar yang lebih detail dan berkualitas tinggi.',
+          'Kualitas premium menggunakan 50 langkah inferensi daripada 25, menghasilkan gambar yang lebih detail dan berkualitas tinggi. Kualitas standar lebih cepat dan menggunakan sumber daya lebih sedikit, sementara kualitas premium membutuhkan waktu lebih lama tetapi menghasilkan hasil yang superior dengan detail dan kejernihan yang ditingkatkan.',
       },
       batchCount: {
         title: 'Jumlah Batch',
@@ -236,11 +250,6 @@ export const id = {
         title: 'Ukuran Gambar',
         message:
           'Menentukan resolusi gambar yang dibuat. Ukuran yang lebih besar menunjukkan detail lebih banyak tetapi membutuhkan waktu lebih lama untuk dibuat.',
-      },
-      sampler: {
-        title: 'Sampler',
-        message:
-          'Algoritma sampler menentukan bagaimana AI membangun gambar Anda. Sampler yang berbeda memiliki kekuatan yang bervariasi - beberapa lebih baik untuk gambar fotorealistis sementara yang lain unggul dalam gaya artistik.',
       },
       seed: {
         title: 'Nilai Seed',
