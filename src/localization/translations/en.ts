@@ -158,7 +158,8 @@ export const en = {
     selectRating: 'Please select a rating',
     enterFeedback: 'Please enter your feedback',
     greetForFeedback: 'Thank you for your feedback!',
-    feedbackFailed: 'Failed to submit feedback',    quotaTitle: 'Usage & Limits',
+    feedbackFailed: 'Failed to submit feedback',
+    quotaTitle: 'Usage & Limits',
     imagesRemaining: 'Images Remaining',
     apiCallsRemaining: 'API Calls Remaining',
     planType: 'Plan Type',
@@ -166,8 +167,11 @@ export const en = {
     notificationsDesc: 'Receive updates about your images',
     notificationsEnabled: 'Notifications enabled',
     notificationsDisabled: 'Notifications disabled',
-    notificationsPermissionDenied: 'Notification permission denied. Please enable in device settings.',
+    notificationsPermissionDenied:
+      'Notification permission denied. Please enable in device settings.',
     notificationsUpdateFailed: 'Failed to update notification settings',
+    somethingWentWrong: 'Something went wrong',
+    internalServerError: 'Internal server error',
   },
 
   editProfile: {
@@ -213,6 +217,11 @@ export const en = {
       'Enter a number to create reproducible images or leave empty for random results',
     seedPlaceholder: 'Random',
     featureInfo: {
+      'AI Engine': {
+        title: 'AI Engine',
+        message:
+          'Choose between Quantum and Nebula AI engines. Quantum provides fast, high-quality generation with excellent detail preservation. Nebula offers enhanced creativity and artistic interpretation with slightly longer processing times. Both engines deliver professional-grade results.',
+      },
       artStyles: {
         title: 'Art Styles',
         message:
@@ -221,7 +230,7 @@ export const en = {
       quality: {
         title: 'Image Quality',
         message:
-          'Premium quality uses 50 inference steps instead of 25, resulting in more detailed and higher quality images.',
+          'Premium quality uses 50 inference steps instead of 25, resulting in more detailed and higher quality images. Standard quality is faster and uses fewer resources, while Premium quality takes longer but produces superior results with enhanced detail and clarity.',
       },
       batchCount: {
         title: 'Batch Count',
@@ -237,11 +246,6 @@ export const en = {
         title: 'Image Size',
         message:
           'Determines the resolution of your generated image. Larger sizes show more detail but take longer to generate.',
-      },
-      sampler: {
-        title: 'Sampler',
-        message:
-          'The sampler algorithm determines how the AI builds up your image. Different samplers have varying strengths - some are better for photorealistic images while others excel at artistic styles.',
       },
       seed: {
         title: 'Seed Value',

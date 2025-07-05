@@ -2,7 +2,7 @@ import {create} from 'zustand';
 import {User} from '@src/types';
 import auth from '@react-native-firebase/auth';
 import {userService} from '@src/services/userService';
-import {authService} from '@src/services/authService';
+import authService from '@src/services/authService';
 
 interface AuthState {
   user: User | null;
@@ -60,20 +60,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 username: firebaseUser.displayName || '',
                 avatar: firebaseUser.photoURL || '',
                 bio: '',
-                preferences: {
-                  theme: 'light',
-                  language: 'en',
-                  notifications: true,
-                },
               },
               createdAt: new Date(),
               updatedAt: new Date(),
-              lastLoginAt: new Date(),
-              isDeleted: false,
               planType: 'free',
               quota: {
                 imagesRemaining: 15, // Default for free plan
-                refreshAt: new Date(),
+              },
+              statistics: {
+                lastLoginAt: new Date(),
+                totalLogins: 1,
+                imagesGenerated: 0,
               },
             };
 
@@ -96,20 +93,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               username: firebaseUser.displayName || '',
               avatar: firebaseUser.photoURL || '',
               bio: '',
-              preferences: {
-                theme: 'light',
-                language: 'en',
-                notifications: true,
-              },
             },
             createdAt: new Date(),
             updatedAt: new Date(),
-            lastLoginAt: new Date(),
-            isDeleted: false,
             planType: 'free',
             quota: {
               imagesRemaining: 10, // Reduced quota for fallback
-              refreshAt: new Date(),
             },
             statistics: {
               lastLoginAt: new Date(),
@@ -143,7 +132,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     }
   },
-
   // Login function that uses the updated auth service
   login: async (userData: User) => {
     try {
@@ -160,6 +148,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         idToken: token,
         isLoading: false,
       });
+
+      // Update FCM token to server after successful login
+      try {
+        const {
+          notificationService,
+        } = require('@src/services/notificationService');
+        await notificationService.updateTokenToServer();
+      } catch (fcmError) {
+        console.warn('Failed to update FCM token after login:', fcmError);
+      }
 
       console.log('User logged in successfully');
     } catch (error) {

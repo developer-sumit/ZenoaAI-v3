@@ -44,7 +44,10 @@ const GalleryScreen = () => {
   const {
     images,
     isLoading,
+    isLoadingMore,
+    hasMoreImages,
     fetchImages,
+    loadMoreImages,
     toggleFavorite: storeToggleFavorite,
   } = useImageStore();
 
@@ -64,7 +67,7 @@ const GalleryScreen = () => {
     useCallback(() => {
       if (user?.uid && images.length === 0) {
         console.log('Gallery: Loading images for the first time');
-        fetchImages();
+        fetchImages(1, 20, true); // Load first page
       } else if (user?.uid) {
         console.log('Gallery: Using cached images, count:', images.length);
       }
@@ -85,11 +88,11 @@ const GalleryScreen = () => {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(img => {
-          const searchablePrompt = img.originalPrompt || img.prompt || '';
+          const searchablePrompt = img.prompt || '';
           return (
             img.id.toLowerCase().includes(query) ||
             searchablePrompt.toLowerCase().includes(query) ||
-            (img.finalPrompt && img.finalPrompt.toLowerCase().includes(query))
+            searchablePrompt.toLowerCase().includes(query)
           );
         });
       }
@@ -107,9 +110,30 @@ const GalleryScreen = () => {
     }
   }, [images, searchQuery, activeTab, selectedFilter]);
 
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMoreImages) {
+      loadMoreImages();
+    }
+  }, [isLoadingMore, hasMoreImages, loadMoreImages]);
+  // Footer component for loading more
+  const LoadingFooter = useMemo(() => {
+    if (!isLoadingMore) {
+      return null;
+    }
+
+    return (
+      <View className="py-4 items-center">
+        <ActivityIndicator size="small" color={theme.primary} />
+        <Text style={{color: theme.secondaryText}} className="text-sm mt-2">
+          Loading more images...
+        </Text>
+      </View>
+    );
+  }, [isLoadingMore, theme.primary, theme.secondaryText]);
+
   const refreshImages = useCallback(async () => {
     setRefreshing(true);
-    await fetchImages();
+    await fetchImages(1, 20, true); // Reset to first page
     setRefreshing(false);
   }, [fetchImages]);
 
@@ -241,8 +265,7 @@ const GalleryScreen = () => {
       };
     }) => {
       // Get display prompt
-      const displayPrompt =
-        item.originalPrompt || item.prompt || 'Unknown prompt';
+      const displayPrompt = item.prompt || 'Unknown prompt';
 
       return (
         <View className="mb-3">
@@ -259,9 +282,9 @@ const GalleryScreen = () => {
                 height: item.dimensions.height,
                 backgroundColor: theme.surface,
               }}>
-              {item.uri ? (
+              {item.imageUrl ? (
                 <FastImage
-                  source={{uri: item.uri}}
+                  source={{uri: item.imageUrl}}
                   style={{width: '100%', height: '100%'}}
                   resizeMode={FastImage.resizeMode.cover}
                   onError={() => {
@@ -280,7 +303,6 @@ const GalleryScreen = () => {
                   </Text>
                 </View>
               )}
-
               {/* Image Overlay for Style Tag */}
               <View
                 className="absolute bottom-0 left-0 right-0 p-2 flex-row justify-between items-center"
@@ -549,10 +571,14 @@ const GalleryScreen = () => {
       ) : (
         <MasonryFlashList
           data={preparedData}
-          keyExtractor={item => item.id}
+          keyExtractor={(item, index) =>
+            `gallery-${item.id || 'temp'}-${index}`
+          }
           numColumns={NUM_COLUMNS}
           renderItem={renderItem}
           estimatedItemSize={250}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
           contentContainerStyle={{
             paddingBottom: 100,
             paddingTop: SPACING,
@@ -568,6 +594,7 @@ const GalleryScreen = () => {
             />
           }
           extraData={[isDark, searchQuery, selectedFilter, activeTab]}
+          ListFooterComponent={LoadingFooter}
         />
       )}
 

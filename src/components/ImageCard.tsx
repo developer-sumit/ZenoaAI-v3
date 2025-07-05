@@ -61,12 +61,12 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
 
   const getAspectRatio = (): number => {
     // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) {
+    if (!image?.aspectRatio) {
       return 1;
     }
 
     try {
-      const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
+      const [width, height] = image.aspectRatio.split(':').map(Number);
       return width / height;
     } catch (e) {
       console.warn('Error parsing aspect ratio:', e);
@@ -75,7 +75,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   };
 
   const contentStyle = React.useMemo(() => {
-    if (image.uri === 'placeholder') {
+    if (image.imageUrl === 'placeholder') {
       // For placeholder, we use flexible height based on aspect ratio
       const aspectRatio = getAspectRatio();
 
@@ -84,7 +84,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
 
     // For loaded images, we just fill the container (which is sized by the parent)
     return {width: '100%', height: '100%', flex: 1} as any;
-  }, [image.uri, image.aspectRatio]);
+  }, [image.imageUrl, image.aspectRatio]);
 
   return (
     <TouchableOpacity
@@ -99,7 +99,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
           : strings.home.generationSuccess
       }
       accessibilityHint={strings.imageViewer.imageHint}>
-      {isLoading && !loadError && image.uri !== 'placeholder' && (
+      {isLoading && !loadError && image.imageUrl !== 'placeholder' && (
         <View
           className="absolute inset-0 justify-center items-center z-10"
           style={{backgroundColor: theme.surface}}
@@ -122,9 +122,9 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
         </View>
       )}
 
-      {image.uri !== 'placeholder' ? (
+      {image.imageUrl !== 'placeholder' ? (
         <FastImage
-          source={{uri: image.uri}}
+          source={{uri: image.imageUrl}}
           style={contentStyle}
           resizeMode={FastImage.resizeMode.cover}
           onLoadStart={() => setIsLoading(true)}

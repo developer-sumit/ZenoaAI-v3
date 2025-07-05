@@ -67,8 +67,8 @@ const CommunityScreen = () => {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(img => {
-          const searchablePrompt = img.originalPrompt || img.prompt || '';
-          const finalPrompt = img.finalPrompt || '';
+          const searchablePrompt = img.prompt || '';
+          const finalPrompt = img.prompt || '';
           const userName = img.userName || 'Anonymous';
 
           return (
@@ -144,16 +144,16 @@ const CommunityScreen = () => {
     }
 
     // Use aspectRatio field if available
-    if (item.aspectRatio?.ratio) {
+    if (item.aspectRatio) {
       try {
-        const parts = item.aspectRatio.ratio.split(':');
+        const parts = item.aspectRatio.split(':');
         if (parts.length === 2) {
           const width = parseFloat(parts[0]);
           const height = parseFloat(parts[1]);
           if (!isNaN(width) && !isNaN(height) && height > 0) {
             const calculatedHeight = COLUMN_WIDTH / (width / height);
             console.log(
-              `Image ${item.id}: ratio ${item.aspectRatio.ratio} -> height: ${calculatedHeight}`,
+              `Image ${item.id}: ratio ${item.aspectRatio} -> height: ${calculatedHeight}`,
             );
             return calculatedHeight;
           }
@@ -184,7 +184,7 @@ const CommunityScreen = () => {
           accessibilityLabel={`Community image ${item.id}`}
           accessibilityRole="button">
           <FastImage
-            source={{uri: item.uri}}
+            source={{uri: item.imageUrl}}
             className="rounded-xl"
             style={{
               width: COLUMN_WIDTH,
@@ -242,7 +242,7 @@ const CommunityScreen = () => {
         <Text
           className="text-3xl font-bold text-center"
           style={{color: theme.text}}>
-          {strings.community.title}
+          Community
         </Text>
 
         {/* Search Bar */}
@@ -282,6 +282,9 @@ const CommunityScreen = () => {
       ) : filteredImages.length > 0 ? (
         <MasonryFlashList
           data={filteredImages}
+          keyExtractor={(item, index) =>
+            `community-${item.id || 'temp'}-${index}`
+          }
           numColumns={NUM_COLUMNS}
           renderItem={renderImageItem}
           estimatedItemSize={200}

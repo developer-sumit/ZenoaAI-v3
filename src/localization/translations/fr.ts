@@ -164,7 +164,8 @@ export const fr = {
     selectRating: 'Veuillez sélectionner une note',
     enterFeedback: 'Veuillez entrer vos commentaires',
     greetForFeedback: 'Merci pour vos commentaires !',
-    feedbackFailed: "Échec de l'envoi des commentaires",    quotaTitle: "Quota d'utilisation",
+    feedbackFailed: "Échec de l'envoi des commentaires",
+    quotaTitle: "Quota d'utilisation",
     imagesRemaining: 'Images restantes',
     apiCallsRemaining: 'Appels API restants',
     planType: 'Type de plan',
@@ -172,8 +173,12 @@ export const fr = {
     notificationsDesc: 'Recevez des mises à jour sur vos images',
     notificationsEnabled: 'Notifications activées',
     notificationsDisabled: 'Notifications désactivées',
-    notificationsPermissionDenied: 'Permission de notification refusée. Veuillez activer dans les paramètres de l\'appareil.',
-    notificationsUpdateFailed: 'Échec de la mise à jour des paramètres de notification',
+    notificationsPermissionDenied:
+      "Permission de notification refusée. Veuillez activer dans les paramètres de l'appareil.",
+    notificationsUpdateFailed:
+      'Échec de la mise à jour des paramètres de notification',
+    somethingWentWrong: 'Quelque chose a mal tourné',
+    internalServerError: 'Erreur interne du serveur',
   },
 
   editProfile: {
@@ -222,6 +227,11 @@ export const fr = {
       'Entrez un nombre pour créer des images reproductibles ou laissez vide pour des résultats aléatoires',
     seedPlaceholder: 'Aléatoire',
     featureInfo: {
+      'AI Engine': {
+        title: "Moteur d'IA",
+        message:
+          "Choisissez entre les moteurs d'IA Quantum et Nebula. Quantum fournit une génération rapide et de haute qualité avec une excellente préservation des détails. Nebula offre une créativité améliorée et une interprétation artistique avec des temps de traitement légèrement plus longs. Les deux moteurs livrent des résultats de qualité professionnelle.",
+      },
       artStyles: {
         title: "Styles d'art",
         message:
@@ -230,7 +240,7 @@ export const fr = {
       quality: {
         title: "Qualité de l'image",
         message:
-          "La qualité premium utilise 50 étapes d'inférence au lieu de 25, résultant en des images plus détaillées et de qualité supérieure.",
+          "La qualité premium utilise 50 étapes d'inférence au lieu de 25, résultant en des images plus détaillées et de qualité supérieure. La qualité standard est plus rapide et utilise moins de ressources, tandis que la qualité premium prend plus de temps mais produit des résultats supérieurs avec des détails et une clarté améliorés.",
       },
       batchCount: {
         title: 'Nombre de lots',
@@ -246,11 +256,6 @@ export const fr = {
         title: "Taille de l'image",
         message:
           'Détermine la résolution de votre image générée. Les tailles plus grandes montrent plus de détails mais prennent plus de temps à générer.',
-      },
-      sampler: {
-        title: 'Échantillonneur',
-        message:
-          "L'algorithme d'échantillonnage détermine comment l'IA construit votre image. Différents échantillonneurs ont des forces variées - certains sont meilleurs pour les images photoréalistes tandis que d'autres excellent dans les styles artistiques.",
       },
       seed: {
         title: 'Valeur de graine',

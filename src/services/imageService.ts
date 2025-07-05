@@ -1,5 +1,5 @@
 import {imageAPI} from '@src/services/axiosServer';
-import {GeneratedImage, ImageGenerationResponse} from '@src/types';
+import {GeneratedImage} from '@src/types';
 import {ImageGenerationSettings} from '@src/store/imageStore';
 
 export const imageService = {
@@ -22,7 +22,6 @@ export const imageService = {
         aspectRatio: settings.aspectRatio || '1:1',
         imageSize: settings.imageSize || 'medium',
         styles: settings.style ? [settings.style] : [],
-        sampler: settings.sampler,
         steps: settings.steps,
         seed: settings.seed,
         engineType: settings.engine || 'quantum',
@@ -38,17 +37,13 @@ export const imageService = {
       });
 
       if (response.data.success) {
-        const data = response.data as ImageGenerationResponse;
-        const metadata = data.metadata;
-
-        // Create the image object, preferring server metadata when available
+        const data = response.data as any;
+        const metadata = data.metadata; // Create the image object, preferring server metadata when available
         const generatedImage: GeneratedImage = {
           id: metadata?.id || `temp-${Date.now()}`,
           userId: metadata?.userId || '',
           engineType: metadata?.engineType || settings.engine || 'quantum',
-          originalPrompt:
-            data.prompts?.original || metadata?.originalPrompt || prompt,
-          finalPrompt: data.prompts?.final || metadata?.finalPrompt || prompt,
+          prompt: data.prompts?.final || metadata?.finalPrompt || prompt,
           negativePrompt:
             metadata?.negativePrompt || settings.negativePrompt || '',
           imageUrl: data.imageUrl || metadata?.imageUrl || '', // Prefer response imageUrl over metadata
@@ -58,22 +53,18 @@ export const imageService = {
             data.imageUrl,
           width: metadata?.width || settings.width || 512,
           height: metadata?.height || settings.height || 512,
+          imageSize: settings.imageSize || 'medium',
+          aspectRatio: settings.aspectRatio || '1:1',
           styles: metadata?.styles || (settings.style ? [settings.style] : []),
           seed:
             metadata?.seed ||
             settings.seed ||
             Math.floor(Math.random() * 1000000),
-          sampler: metadata?.sampler || settings.sampler || '',
-          steps: metadata?.steps || settings.steps || 30,
           createdAt: metadata?.createdAt || new Date(),
           isFavorite: metadata?.isFavorite || false,
-          isPrivate: metadata?.isPrivate || settings.isPrivate || false, // Legacy fields for compatibility
-          uri: data.imageUrl || metadata?.imageUrl || '', // Prefer response imageUrl
-          prompt: data.prompts?.original || metadata?.originalPrompt || prompt,
-          timestamp: Date.now(),
-          loading: false,
-          error: false,
-          isDeleted: false,
+          isPrivate: metadata?.isPrivate || settings.isPrivate || false,
+          userName: metadata?.userName || '',
+          userAvatar: metadata?.userAvatar || '',
         };
 
         console.log('🎨 Generated image object:', {
@@ -124,12 +115,10 @@ export const imageService = {
 
     for (let i = 0; i < batchCount; i++) {
       try {
-        const image = await imageService.generateImage(prompt, settings);
-
-        // Ensure all batch images have the same timestamp
+        const image = await imageService.generateImage(prompt, settings); // Ensure all batch images have the same timestamp
         const batchImage: GeneratedImage = {
           ...image,
-          timestamp: batchTimestamp,
+          batchTimestamp: new Date(batchTimestamp),
         };
 
         batchImages.push(batchImage);
@@ -140,6 +129,7 @@ export const imageService = {
 
     return batchImages;
   },
+
   // Get user's images with improved error handling
   getUserImages: async (params?: {
     page?: number;
@@ -161,7 +151,7 @@ export const imageService = {
 
       if (response.data.success) {
         // Handle both paginated and simple array responses
-        const images = response.data.data || response.data.images || [];
+        const images = response.data.data || [];
 
         console.log('📱 Processing', images.length, 'images from server');
         console.log(
@@ -176,26 +166,16 @@ export const imageService = {
         );
 
         const processedImages = images.map(
-          (serverImage: any, index: number): GeneratedImage => {
+          (serverImage: any): GeneratedImage => {
             const styles = Array.isArray(serverImage.styles)
               ? serverImage.styles
               : [];
-
-            console.log(`📱 Processing image ${index + 1}:`, {
-              id: serverImage.id,
-              imageUrl: serverImage.imageUrl,
-              originalPrompt:
-                serverImage.originalPrompt?.substring(0, 30) + '...',
-            });
 
             return {
               id: String(serverImage.id || ''),
               userId: String(serverImage.userId || ''),
               engineType: serverImage.engineType || 'quantum',
-              originalPrompt: String(serverImage.originalPrompt || ''),
-              finalPrompt: String(
-                serverImage.finalPrompt || serverImage.originalPrompt || '',
-              ),
+              prompt: String(serverImage.prompt || ''),
               negativePrompt: String(serverImage.negativePrompt || ''),
               imageUrl: String(serverImage.imageUrl || ''),
               thumbnailUrl: String(
@@ -206,26 +186,15 @@ export const imageService = {
               styles: styles as string[],
               seed:
                 Number(serverImage.seed) || Math.floor(Math.random() * 1000000),
-              sampler: String(serverImage.sampler || ''),
-              steps: Number(serverImage.steps) || 30,
               createdAt: serverImage.createdAt || new Date(),
               isFavorite: Boolean(
                 serverImage.favorite || serverImage.isFavorite,
               ),
               isPrivate: Boolean(serverImage.isPrivate),
-
-              // Legacy fields for compatibility
-              uri: String(serverImage.imageUrl || ''),
-              prompt: String(serverImage.originalPrompt || ''),
-              timestamp: new Date(
-                serverImage.createdAt || new Date(),
-              ).getTime(),
-              loading: false,
-              error: false,
-              isDeleted: Boolean(serverImage.isDeleted),
-              deletedAt: serverImage.deletedAt
-                ? String(serverImage.deletedAt)
-                : undefined,
+              imageSize: serverImage.imageSize || 'medium',
+              aspectRatio: serverImage.aspectRatio || '1:1',
+              userName: String(serverImage.userName || ''),
+              userAvatar: String(serverImage.userAvatar || ''),
             };
           },
         );
@@ -266,16 +235,15 @@ export const imageService = {
           const styles = Array.isArray(serverImage.styles)
             ? serverImage.styles
             : [];
-
           return {
             id: String(serverImage.id || ''),
             userId: String(serverImage.userId || ''),
             engineType: serverImage.engineType || 'quantum',
-            originalPrompt: String(
-              serverImage.originalPrompt || serverImage.prompt || '',
-            ),
-            finalPrompt: String(
-              serverImage.finalPrompt || serverImage.prompt || '',
+            prompt: String(
+              serverImage.finalPrompt ||
+                serverImage.originalPrompt ||
+                serverImage.prompt ||
+                '',
             ),
             negativePrompt: String(serverImage.negativePrompt || ''),
             imageUrl: String(serverImage.imageUrl || ''),
@@ -287,27 +255,17 @@ export const imageService = {
             styles: styles as string[],
             seed:
               Number(serverImage.seed) || Math.floor(Math.random() * 1000000),
-            sampler: String(serverImage.sampler || ''),
-            steps: Number(serverImage.steps) || 30,
             createdAt: serverImage.createdAt || new Date(),
             isFavorite: Boolean(serverImage.isFavorite),
             isPrivate: Boolean(serverImage.isPrivate),
+            imageSize: serverImage.imageSize || 'medium',
+            aspectRatio: serverImage.aspectRatio || '1:1',
             userName: String(
               serverImage.userName || serverImage.username || 'Anonymous',
             ),
             userAvatar: String(
               serverImage.userAvatar || serverImage.avatar || '',
             ),
-
-            // Legacy fields for compatibility
-            uri: String(serverImage.imageUrl || ''),
-            prompt: String(
-              serverImage.originalPrompt || serverImage.prompt || '',
-            ),
-            timestamp: new Date(serverImage.createdAt || new Date()).getTime(),
-            loading: false,
-            error: false,
-            isDeleted: Boolean(serverImage.isDeleted),
           };
         });
       } else {

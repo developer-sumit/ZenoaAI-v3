@@ -165,6 +165,16 @@ export const pt = {
     imagesRemaining: 'Imagens Restantes',
     apiCallsRemaining: 'Chamadas de API Restantes',
     planType: 'Tipo de Plano',
+    notifications: 'Notificações',
+    notificationsDesc: 'Receba atualizações sobre suas imagens',
+    notificationsEnabled: 'Notificações ativadas',
+    notificationsDisabled: 'Notificações desativadas',
+    notificationsPermissionDenied:
+      'Permissão de notificação negada. Por favor, ative nas configurações do dispositivo.',
+    notificationsUpdateFailed:
+      'Falha ao atualizar configurações de notificação',
+    somethingWentWrong: 'Algo deu errado',
+    internalServerError: 'Erro interno do servidor',
   },
 
   editProfile: {
@@ -210,6 +220,11 @@ export const pt = {
       'Digite um número para criar imagens reproduzíveis ou deixe vazio para resultados aleatórios',
     seedPlaceholder: 'Aleatório',
     featureInfo: {
+      'AI Engine': {
+        title: 'Motor de IA',
+        message:
+          'Escolha entre os motores de IA Quantum e Nebula. Quantum fornece geração rápida e de alta qualidade com excelente preservação de detalhes. Nebula oferece criatividade aprimorada e interpretação artística com tempos de processamento ligeiramente maiores. Ambos os motores entregam resultados de qualidade profissional.',
+      },
       artStyles: {
         title: 'Estilos de Arte',
         message:
@@ -218,7 +233,7 @@ export const pt = {
       quality: {
         title: 'Qualidade da Imagem',
         message:
-          'Qualidade premium usa 50 passos de inferência em vez de 25, resultando em imagens mais detalhadas e de maior qualidade.',
+          'Qualidade premium usa 50 passos de inferência em vez de 25, resultando em imagens mais detalhadas e de maior qualidade. Qualidade padrão é mais rápida e usa menos recursos, enquanto qualidade premium demora mais tempo mas produz resultados superiores com detalhes e clareza aprimorados.',
       },
       batchCount: {
         title: 'Contagem de Lote',
@@ -234,11 +249,6 @@ export const pt = {
         title: 'Tamanho da Imagem',
         message:
           'Determina a resolução da sua imagem gerada. Tamanhos maiores mostram mais detalhes, mas levam mais tempo para gerar.',
-      },
-      sampler: {
-        title: 'Amostrador',
-        message:
-          'O algoritmo de amostragem determina como a IA constrói sua imagem. Diferentes amostradores têm forças variadas - alguns são melhores para imagens fotorrealistas, enquanto outros se destacam em estilos artísticos.',
       },
       seed: {
         title: 'Valor da Semente',
