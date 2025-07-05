@@ -178,12 +178,14 @@ export const es = {
     somethingWentWrong: 'Algo salió mal',
     internalServerError: 'Error interno del servidor',
   },
-
   editProfile: {
     title: 'Editar Perfil',
     personalInfo: 'Información Personal',
     fullName: 'Nombre Completo',
     fullNameHint: 'Ingresa tu nombre completo',
+    bio: 'Biografía',
+    bioHint: 'Cuéntale a otros sobre ti',
+    bioPlaceholder: 'Escribe algo sobre ti...',
     email: 'Correo Electrónico',
     yourName: 'Tu nombre',
     accountManagement: 'Gestión de Cuenta',
