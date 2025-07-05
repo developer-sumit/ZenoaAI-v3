@@ -222,7 +222,8 @@ export const es = {
     negativePromptPlaceholder: 'Qué excluir de tu imagen',
     seedHint:
       'Ingresa un número para crear imágenes reproducibles o deja vacío para resultados aleatorios',
-    seedPlaceholder: 'Aleatorio',    featureInfo: {
+    seedPlaceholder: 'Aleatorio',
+    featureInfo: {
       'AI Engine': {
         title: 'Motor de IA',
         message:
@@ -264,6 +265,24 @@ export const es = {
           'Especifica lo que NO quieres en tu imagen. Esto ayuda a evitar elementos no deseados como extremidades extra, caras distorsionadas, u objetos específicos que de otro modo podrían aparecer en la imagen generada.',
       },
     },
+  },
+
+  community: {
+    title: 'Comunidad',
+    noImages: 'No hay imágenes de la comunidad aún',
+    noImagesDescription:
+      '¡Sé el primero en compartir tus creaciones con la comunidad!',
+    noMatchingImages: 'No se encontraron imágenes coincidentes',
+    searchPlaceholder: 'Buscar por prompt, estilo o creador...',
+    searchImages: 'Buscar imágenes de la comunidad',
+    searchHint: 'Escribe para buscar imágenes por prompt, estilo o creador',
+    loadingImages: 'Cargando imágenes de la comunidad...',
+    loadFailed: 'Error al cargar imágenes de la comunidad',
+    imageBy: 'Imagen por',
+    by: 'por',
+    filterBy: 'Filtrar por',
+    tryAdjusting: 'Intenta ajustar tu búsqueda o filtros',
+    clearFilters: 'Limpiar Filtros',
   },
 
   common: {

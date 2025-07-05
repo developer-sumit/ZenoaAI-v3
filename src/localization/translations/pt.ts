@@ -284,4 +284,22 @@ export const pt = {
     large: 'Grande',
     more: 'mais',
   },
+
+  community: {
+    title: 'Comunidade',
+    noImages: 'Ainda não há imagens da comunidade',
+    noImagesDescription:
+      'Seja o primeiro a compartilhar suas criações com a comunidade!',
+    noMatchingImages: 'Nenhuma imagem correspondente encontrada',
+    searchPlaceholder: 'Pesquisar por prompt, estilo ou criador...',
+    searchImages: 'Pesquisar imagens da comunidade',
+    searchHint: 'Digite para pesquisar imagens por prompt, estilo ou criador',
+    loadingImages: 'Carregando imagens da comunidade...',
+    loadFailed: 'Falha ao carregar imagens da comunidade',
+    imageBy: 'Imagem por',
+    by: 'por',
+    filterBy: 'Filtrar por',
+    tryAdjusting: 'Tente ajustar sua pesquisa ou filtros',
+    clearFilters: 'Limpar Filtros',
+  },
 };

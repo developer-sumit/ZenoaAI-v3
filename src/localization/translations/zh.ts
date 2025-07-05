@@ -272,4 +272,21 @@ export const zh = {
     large: '大',
     more: '更多',
   },
+
+  community: {
+    title: '社区',
+    noImages: '尚无社区图片',
+    noImagesDescription: '成为第一个与社区分享您的创作的人！',
+    noMatchingImages: '未找到匹配的图片',
+    searchPlaceholder: '按提示词、风格或创作者搜索...',
+    searchImages: '搜索社区图片',
+    searchHint: '输入以按提示词、风格或创作者搜索图片',
+    loadingImages: '正在加载社区图片...',
+    loadFailed: '加载社区图片失败',
+    imageBy: '图片作者',
+    by: '由',
+    filterBy: '筛选方式',
+    tryAdjusting: '尝试调整您的搜索或筛选条件',
+    clearFilters: '清除筛选',
+  },
 };

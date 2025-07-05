@@ -285,4 +285,23 @@ export const id = {
     large: 'Besar',
     more: 'lainnya',
   },
+
+  community: {
+    title: 'Komunitas',
+    noImages: 'Belum ada gambar komunitas',
+    noImagesDescription:
+      'Jadilah yang pertama berbagi kreasi Anda dengan komunitas!',
+    noMatchingImages: 'Tidak ditemukan gambar yang cocok',
+    searchPlaceholder: 'Cari berdasarkan prompt, gaya, atau pembuat...',
+    searchImages: 'Cari gambar komunitas',
+    searchHint:
+      'Ketik untuk mencari gambar berdasarkan prompt, gaya, atau pembuat',
+    loadingImages: 'Memuat gambar komunitas...',
+    loadFailed: 'Gagal memuat gambar komunitas',
+    imageBy: 'Gambar oleh',
+    by: 'oleh',
+    filterBy: 'Filter berdasarkan',
+    tryAdjusting: 'Coba sesuaikan pencarian atau filter Anda',
+    clearFilters: 'Hapus Filter',
+  },
 };
