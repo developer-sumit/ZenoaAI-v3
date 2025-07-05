@@ -33,7 +33,7 @@ import {useAuthStore} from '@src/store/authStore';
 import {useLanguageStore} from '@src/store/languageStore';
 
 // Services
-import {userService} from '@src/services/userService';
+import userService from '@src/services/userService';
 import {analyticsService} from '@src/services/analyticsService';
 import {crashlyticsService} from '@src/services/crashlyticsService';
 import {notificationService} from '@src/services/notificationService';

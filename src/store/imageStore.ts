@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {imageService} from '@src/services/imageService';
+import imageService from '@src/services/imageService';
 import {GeneratedImage, EngineType, ImageSize} from '@src/types';
 
 export interface ImageGenerationSettings {
