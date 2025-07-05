@@ -19,7 +19,7 @@ import {useToast} from '@masumdev/rn-toast';
 import {User} from '@src/types';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
-import {userService} from '@src/services/userService';
+import userService from '@src/services/userService';
 import {useStrings} from '@src/hooks/useStrings';
 
 // Icons

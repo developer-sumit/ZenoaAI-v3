@@ -40,14 +40,17 @@ export const useAndroidQuickActions = ({
     if (!user) {
       QuickActions.clearShortcutItems();
       return;
-    }    const setupQuickActions = () => {
-      try {        const actions: ShortcutItem[] = [
+    }
+
+    const setupQuickActions = () => {
+      try {
+        const actions: ShortcutItem[] = [
           // Navigation actions (Bottom nav bar items)
           {
             type: QUICK_ACTION_TYPES.OPEN_HOME,
             title: 'Home',
             subtitle: 'Create AI art',
-            icon: 'ic_home',
+            icon: 'ic_home_quick_action',
             userInfo: {
               url: '',
             },
@@ -56,7 +59,7 @@ export const useAndroidQuickActions = ({
             type: QUICK_ACTION_TYPES.OPEN_GALLERY,
             title: 'Gallery',
             subtitle: 'View your images',
-            icon: 'ic_gallery',
+            icon: 'ic_gallery_quick_action',
             userInfo: {
               url: '',
             },
@@ -65,7 +68,7 @@ export const useAndroidQuickActions = ({
             type: QUICK_ACTION_TYPES.OPEN_COMMUNITY,
             title: 'Community',
             subtitle: 'Explore community art',
-            icon: 'ic_community',
+            icon: 'ic_community_quick_action',
             userInfo: {
               url: '',
             },
@@ -74,7 +77,7 @@ export const useAndroidQuickActions = ({
             type: QUICK_ACTION_TYPES.OPEN_PROFILE,
             title: 'Profile',
             subtitle: 'Manage your account',
-            icon: 'ic_profile',
+            icon: 'ic_profile_quick_action',
             userInfo: {
               url: '',
             },
@@ -90,7 +93,8 @@ export const useAndroidQuickActions = ({
     };
 
     setupQuickActions();
-  }, [user]);  // Handle quick action selection
+  }, [user]); // Handle quick action selection
+
   useEffect(() => {
     const handleQuickAction = (data: QuickActionData) => {
       console.log('Quick action received:', data);
@@ -150,7 +154,5 @@ export const useAndroidQuickActions = ({
       .catch(console.error);
   }, [navigation, user, onQuickAction]);
 
-  return {
-    QUICK_ACTION_TYPES,
-  };
+  return {QUICK_ACTION_TYPES};
 };

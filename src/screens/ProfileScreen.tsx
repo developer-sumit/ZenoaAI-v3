@@ -16,7 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import {Toaster, useToast} from '@masumdev/rn-toast';
 
 import {useAuthStore} from '@src/store/authStore';
-import {userService} from '@src/services/userService';
+import userService from '@src/services/userService';
 import appConfig from '@src/config/app.config';
 import {useTheme} from '@src/store/themeStore';
 import {BlurView} from '@react-native-community/blur';

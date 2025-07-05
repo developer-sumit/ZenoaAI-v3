@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+  <!-- White background circle -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M24,0C10.75,0 0,10.75 0,24s10.75,24 24,24s24,-10.75 24,-24S37.25,0 24,0z"/>
+  <!-- Teal gallery icon - larger size -->
+  <path
+      android:fillColor="#14B8A6"
+      android:pathData="M42,30V10c0,-2.2 -1.8,-4 -4,-4H18c-2.2,0 -4,1.8 -4,4v20c0,2.2 1.8,4 4,4h20c2.2,0 4,-1.8 4,-4zM22,16L25,22l3,-4L31,26H19l4,-6L22,16zM6,14v24c0,2.2 1.8,4 4,4h24v-4H10V14H6z"/>
+</vector>
