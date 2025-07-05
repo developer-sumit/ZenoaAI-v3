@@ -9,6 +9,8 @@ import {
   ScrollView,
   Animated,
   RefreshControl,
+  Vibration,
+  Platform,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
@@ -143,6 +145,13 @@ const GalleryScreen = () => {
 
   const handleToggleFavorite = useCallback(
     async (image: GeneratedImage) => {
+      // Haptic feedback for favorite action
+      if (Platform.OS === 'ios') {
+        Vibration.vibrate(50);
+      } else {
+        Vibration.vibrate(30);
+      }
+
       if (!user?.uid) {
         showToast('Please log in to favorite images', 'error');
         return;
@@ -178,6 +187,13 @@ const GalleryScreen = () => {
   // Switch between All and Favorites tabs
   const switchTab = useCallback(
     (tab: 'all' | 'favorites') => {
+      // Haptic feedback for tab switch
+      if (Platform.OS === 'ios') {
+        Vibration.vibrate(30);
+      } else {
+        Vibration.vibrate(25);
+      }
+
       setActiveTab(tab);
       console.log(
         `Switched to ${tab} tab, favorites count: ${
