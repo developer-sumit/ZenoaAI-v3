@@ -7,10 +7,10 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useTheme} from '@src/store/themeStore';
 
 // Icons
-import RobotIcon from '@src/assets/icons/RobotIcon';
-import PersonIcon from '@src/assets/icons/PersonIcon';
+import HomeIcon from '@src/assets/icons/HomeIcon';
+import SettingsIcon from '@src/assets/icons/SettingsIcon';
 import CommunityIcon from '@src/assets/icons/CommunityIcon';
-import PhotoLibraryIcon from '@src/assets/icons/PhotoLibraryIcon';
+import GalleryIcon from '@src/assets/icons/GalleryIcon';
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
@@ -20,25 +20,23 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
   const strings = useStrings();
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
-
   const getTabIcon = (routeName: string, isFocused: boolean) => {
     const iconColor = isFocused ? theme.primary : theme.secondaryText + 'bb';
     const size = 24;
 
     switch (routeName) {
       case 'Home':
-        return <RobotIcon size={size} color={iconColor} />;
+        return <HomeIcon size={size} color={iconColor} />;
       case 'Gallery':
-        return <PhotoLibraryIcon size={size} color={iconColor} />;
+        return <GalleryIcon size={size} color={iconColor} />;
       case 'Community':
         return <CommunityIcon size={size} color={iconColor} />;
       case 'Settings':
-        return <PersonIcon size={size} color={iconColor} />;
+        return <SettingsIcon size={size} color={iconColor} />;
       default:
         return null;
     }
   };
-
   const getTabLabel = (routeName: string) => {
     switch (routeName) {
       case 'Home':

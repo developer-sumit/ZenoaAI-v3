@@ -23,7 +23,7 @@ import {useStrings} from '@src/hooks/useStrings';
 import ImageViewer from '@src/components/ImageViewer';
 
 // Icons
-import PhotoLibraryIcon from '@src/assets/icons/PhotoLibraryIcon';
+import GalleryIcon from '@src/assets/icons/GalleryIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
@@ -71,7 +71,7 @@ const GalleryScreen = () => {
       } else if (user?.uid) {
         console.log('Gallery: Using cached images, count:', images.length);
       }
-    }, [user?.uid, fetchImages, images.length]),
+    }, [images.length]),
   );
 
   // Filter images based on search and active tab
@@ -295,7 +295,7 @@ const GalleryScreen = () => {
                 <View
                   className="flex-1 justify-center items-center"
                   style={{backgroundColor: theme.surface}}>
-                  <PhotoLibraryIcon size={40} color={theme.secondaryText} />
+                  <GalleryIcon size={40} color={theme.secondaryText} />
                   <Text
                     className="text-xs mt-2 text-center px-2"
                     style={{color: theme.secondaryText}}>
@@ -375,7 +375,7 @@ const GalleryScreen = () => {
           </>
         ) : (
           <>
-            <PhotoLibraryIcon size={60} color={theme.primary} />
+            <GalleryIcon size={60} color={theme.primary} />
             <Text
               className="text-xl font-bold mt-4 mb-2"
               style={{color: theme.text}}>
