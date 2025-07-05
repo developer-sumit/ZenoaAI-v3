@@ -18,13 +18,13 @@ import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types';
 import ImageViewer from '@src/components/ImageViewer';
 import EmptyState from '@src/components/EmptyState';
+import UserAvatar from '@src/components/UserAvatar';
 import {useStrings} from '@src/hooks/useStrings';
 
 // Icons
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import CommunityIcon from '@src/assets/icons/CommunityIcon';
-import PersonIcon from '@src/assets/icons/PersonIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 
 // Constants
@@ -197,12 +197,18 @@ const CommunityScreen = () => {
           {/* Image overlay with basic info */}
           <View
             className="absolute bottom-0 left-0 right-0 p-3"
-            style={{backgroundColor: theme.surface + '90'}}>
+            style={{backgroundColor: theme.surface + 'df'}}>
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center">
-                <PersonIcon size={16} color={theme.text} />
+                <UserAvatar
+                  size={18}
+                  userName={item.userName || 'Anonymous'}
+                  userAvatar={item.userAvatar}
+                  backgroundColor={theme.primary}
+                  textColor="#ffffff"
+                />
                 <Text
-                  className="text-xs font-medium ml-1.5"
+                  className="text-sm font-semibold ml-1.5"
                   style={{color: theme.text}}>
                   {item.userName || 'Anonymous'}
                 </Text>
@@ -289,11 +295,8 @@ const CommunityScreen = () => {
           renderItem={renderImageItem}
           estimatedItemSize={200}
           className="rounded-3xl"
-          contentContainerStyle={{
-            paddingHorizontal: SPACING,
-            paddingBottom: 100,
-            paddingTop: 15,
-          }}
+          contentContainerStyle={{paddingHorizontal: SPACING}}
+          contentContainerClassName="pb-24 pt-6"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
