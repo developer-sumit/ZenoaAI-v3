@@ -10,6 +10,7 @@ import {
   Platform,
   UIManager,
   Pressable,
+  Vibration,
 } from 'react-native';
 import {useStrings} from '@src/hooks/useStrings';
 
@@ -127,11 +128,25 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   }
 
   const toggleCategory = (category: string) => {
+    // Haptic feedback for category expansion
+    if (Platform.OS === 'ios') {
+      Vibration.vibrate(30);
+    } else {
+      Vibration.vibrate(25);
+    }
+
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedCategory(expandedCategory === category ? null : category);
   };
 
   const handleSelectPrompt = (prompt: string) => {
+    // Haptic feedback for prompt selection
+    if (Platform.OS === 'ios') {
+      Vibration.vibrate(50);
+    } else {
+      Vibration.vibrate(40);
+    }
+
     // Animate closing
     Animated.parallel([
       Animated.timing(slideAnim, {

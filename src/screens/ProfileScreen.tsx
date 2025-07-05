@@ -10,6 +10,7 @@ import {
   Modal,
   LayoutAnimation,
   Linking,
+  Vibration,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
@@ -531,7 +532,15 @@ const ProfileScreen = () => {
             <TouchableOpacity
               className="w-14 h-8 rounded-full p-1.5"
               style={{backgroundColor: isDark ? theme.primary : '#cbd5e1'}}
-              onPress={toggleTheme}
+              onPress={() => {
+                // Haptic feedback for theme toggle
+                if (Platform.OS === 'ios') {
+                  Vibration.vibrate(50);
+                } else {
+                  Vibration.vibrate(40);
+                }
+                toggleTheme();
+              }}
               accessible={true}
               accessibilityLabel={
                 isDark

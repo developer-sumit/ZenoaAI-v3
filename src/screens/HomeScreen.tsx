@@ -10,6 +10,7 @@ import {
   Keyboard,
   Dimensions,
   ToastAndroid,
+  Animated,
 } from 'react-native';
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
@@ -24,6 +25,8 @@ import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useQuota} from '@src/hooks/useQuota';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
 import {GeneratedImage} from '../types';
 import {AspectRatio} from '../types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
@@ -87,6 +90,12 @@ const HomeScreen = () => {
   const flashListRef = useRef<FlashList<any>>(null);
 
   const [showOnboarding, setShowOnboarding] = React.useState(false);
+  // Animation values for micro interactions
+  const generateButtonScale = useRef(new Animated.Value(1)).current;
+  const promptSuggestionsButtonScale = useRef(new Animated.Value(1)).current;
+
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
 
   // Combined function to update both quota and profile
   const updateQuotaAndProfile = async () => {
@@ -152,6 +161,9 @@ const HomeScreen = () => {
   };
 
   const handleImageGeneration = async () => {
+    // Haptic feedback for generation start
+    triggerHaptic('medium');
+
     if (!prompt.trim()) {
       showToast(strings.home.enterDescription, 'error');
       return;
@@ -656,20 +668,28 @@ const HomeScreen = () => {
                 accessibilityLabel={strings.home.imageDescription}
                 accessibilityHint={strings.home.imageDescriptionHint}
               />
-              <TouchableOpacity
-                onPress={() => setShowPromptSuggestions(true)}
-                className="pr-4"
-                accessible={true}
-                accessibilityLabel={strings.home.promptSuggestions}
-                accessibilityHint={strings.home.promptSuggestionsHint}
-                accessibilityRole="button">
-                <LightbulbOutlineIcon
-                  size={24}
-                  color={
-                    prompt.length === 0 ? theme.primary : theme.secondaryText
-                  }
-                />
-              </TouchableOpacity>
+              <Animated.View
+                style={{transform: [{scale: promptSuggestionsButtonScale}]}}>
+                <TouchableOpacity
+                  onPress={() => {
+                    // Haptic feedback
+                    triggerHaptic('light');
+                    animatePress(promptSuggestionsButtonScale);
+                    setShowPromptSuggestions(true);
+                  }}
+                  className="pr-4"
+                  accessible={true}
+                  accessibilityLabel={strings.home.promptSuggestions}
+                  accessibilityHint={strings.home.promptSuggestionsHint}
+                  accessibilityRole="button">
+                  <LightbulbOutlineIcon
+                    size={24}
+                    color={
+                      prompt.length === 0 ? theme.primary : theme.secondaryText
+                    }
+                  />
+                </TouchableOpacity>
+              </Animated.View>
             </View>
 
             {/* Selected Styles Pills */}
@@ -762,38 +782,42 @@ const HomeScreen = () => {
                 accessibilityRole="button"
                 accessibilityHint={strings.advancedSettings.title}>
                 <TuneIcon size={24} color={theme.primary} />
-                {/* <View
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
-                  style={{backgroundColor: theme.primary}}
-                  accessibilityLabel="New feature"></View> */}
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleImageGeneration}
-                disabled={imageLoading || prompt.trim().length === 0}
-                style={{
-                  opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
-                  backgroundColor: theme.primary,
-                }}
-                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
-                accessible={true}
-                accessibilityLabel={strings.home.generateImage}
-                accessibilityRole="button"
-                accessibilityState={{
-                  disabled: imageLoading || prompt.trim().length === 0,
-                  busy: imageLoading,
-                }}
-                accessibilityHint={strings.home.generateImageHint}>
-                {imageLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <Text className="text-white mr-2 font-medium">
-                      {strings.home.generate}
-                    </Text>
-                    <MagicWand color="white" />
-                  </>
-                )}
-              </TouchableOpacity>
+              <Animated.View
+                className="flex-1"
+                style={{transform: [{scale: generateButtonScale}]}}>
+                <TouchableOpacity
+                  onPress={() => {
+                    animatePress(generateButtonScale);
+                    handleImageGeneration();
+                  }}
+                  disabled={imageLoading || prompt.trim().length === 0}
+                  style={{
+                    opacity:
+                      imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
+                    backgroundColor: theme.primary,
+                  }}
+                  className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
+                  accessible={true}
+                  accessibilityLabel={strings.home.generateImage}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    disabled: imageLoading || prompt.trim().length === 0,
+                    busy: imageLoading,
+                  }}
+                  accessibilityHint={strings.home.generateImageHint}>
+                  {imageLoading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text className="text-white mr-2 font-medium">
+                        {strings.home.generate}
+                      </Text>
+                      <MagicWand color="white" />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </View>
         </View>
