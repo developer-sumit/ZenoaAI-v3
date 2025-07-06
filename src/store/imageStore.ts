@@ -313,6 +313,13 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         setTimeout(() => {
           console.log('🏪 Store: Triggering image refresh after generation...');
           get().fetchImages();
+          // Clear the current generation batch after successful generation and fetch
+          setTimeout(() => {
+            console.log(
+              '🏪 Store: Clearing generation batch after successful fetch...',
+            );
+            set({currentGenerationBatch: []});
+          }, 1000);
         }, 2000); // Delay to ensure DB save is complete
       }
 

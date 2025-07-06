@@ -19,7 +19,6 @@ import {useRoute} from '@react-navigation/native';
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
-import ImageSkeleton from '@src/components/ImageSkeleton';
 import ImageViewer from '@src/components/ImageViewer';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
@@ -95,7 +94,7 @@ const HomeScreen = () => {
   const promptSuggestionsButtonScale = useRef(new Animated.Value(1)).current;
 
   const {triggerHaptic} = useHaptics();
-  const {animatePress, animateFade, animateBounce} = useAnimations();
+  const {animatePress} = useAnimations();
 
   // Combined function to update both quota and profile
   const updateQuotaAndProfile = async () => {
@@ -271,8 +270,36 @@ const HomeScreen = () => {
   };
 
   const getCombinedImages = () => {
-    // Show current generation batch at the top if there are any
-    const combinedImages = [...currentGenerationBatch, ...generatedImages];
+    // Filter out placeholder images from currentGenerationBatch if corresponding real images exist
+    const filteredBatch = currentGenerationBatch.filter(batchImage => {
+      // If this is a placeholder image, check if a real image exists
+      const isPlaceholder =
+        !batchImage.imageUrl ||
+        batchImage.imageUrl === 'placeholder' ||
+        batchImage.id?.startsWith('placeholder-');
+
+      if (isPlaceholder) {
+        // Look for a corresponding real image with the same exact batchTimestamp and prompt
+        const hasRealImage = generatedImages.some(
+          realImage =>
+            realImage.prompt === batchImage.prompt &&
+            realImage.batchTimestamp &&
+            batchImage.batchTimestamp &&
+            Math.abs(
+              realImage.batchTimestamp.getTime() -
+                batchImage.batchTimestamp.getTime(),
+            ) < 5000 && // Within 5 seconds
+            realImage.imageUrl &&
+            realImage.imageUrl !== 'placeholder' &&
+            !realImage.id?.startsWith('placeholder-'),
+        );
+        return !hasRealImage; // Only keep placeholder if no real image exists
+      }
+      return true; // Keep non-placeholder images
+    });
+
+    // Combine filtered placeholders with real generated images
+    const combinedImages = [...filteredBatch, ...generatedImages];
     return combinedImages;
   };
 
@@ -339,28 +366,11 @@ const HomeScreen = () => {
       .sort((a, b) => b.parameters.timestamp - a.parameters.timestamp); // Sort groups by timestamp, newest first
   };
 
-  // Render a placeholder or loading image
+  // Render image content using ImageCard (which handles skeleton internally)
   const renderImageContent = (image: GeneratedImage) => {
     const imageHeight = getImageHeight(image);
     const imageWidth = COLUMN_WIDTH - 12; // Account for padding (p-1.5 = 6px on each side)
 
-    // Show skeleton for loading images (images without imageUrl or with temp IDs)
-    if (
-      !image.imageUrl ||
-      image.id?.startsWith('temp-') ||
-      image.id?.startsWith('loading-')
-    ) {
-      return (
-        <ImageSkeleton
-          width={imageWidth}
-          height={imageHeight}
-          borderRadius={16}
-          showTimer={true}
-        />
-      );
-    }
-
-    // For loaded images, show the ImageCard
     return (
       <ImageCard
         image={image}
