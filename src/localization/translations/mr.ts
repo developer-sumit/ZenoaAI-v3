@@ -200,6 +200,18 @@ export const mr = {
     tapCamera: 'तुमची प्रोफाइल फोटो बदलण्यासाठी कॅमेरा किंवा गॅलरीवर टॅप करा',
     cancelAccountDelete: 'खाते हटवणे रद्द करा',
     confirmAccountDelete: 'खाते हटवा',
+    deleteReasonTitle: 'तुम्ही तुमचे खाते का हटवत आहात?',
+    deleteReasonSubtitle:
+      'तुम्ही का निघत आहात हे सांगून आम्हाला सुधारण्यात मदत करा',
+    deleteReasonOption1: 'आता अॅप वापरत नाही',
+    deleteReasonOption2: 'गोपनीयतेची चिंता',
+    deleteReasonOption3: 'चांगला पर्याय सापडला',
+    deleteReasonOption4: 'तांत्रिक समस्या',
+    deleteReasonOther: 'इतर',
+    deleteReasonPlaceholder: 'कृपया आम्हाला आणखी सांगा...',
+    deleteReasonNext: 'पुढे',
+    deleteReasonBack: 'मागे',
+    selectReasonError: 'कृपया कारण निवडा किंवा तपशील द्या',
   },
 
   advancedSettings: {
@@ -310,5 +322,20 @@ export const mr = {
     filterBy: 'याद्वारे फिल्टर करा',
     tryAdjusting: 'आपला शोध किंवा फिल्टर समायोजित करण्याचा प्रयत्न करा',
     clearFilters: 'फिल्टर साफ करा',
+  },
+
+  emailRestriction: {
+    title: 'ईमेल तात्पुरता प्रतिबंधित',
+    message:
+      'अलीकडील खाते हटवल्यामुळे हा ईमेल नवीन खाते तयार करण्यासाठी वापरता येणार नाही. कृपया नंतर पुन्हा प्रयत्न करा किंवा वेगळा ईमेल वापरा.',
+    timeRemaining: 'उर्वरित वेळ:',
+    days: 'दिवस',
+    daysPlural: 'दिवस',
+    hours: 'तास',
+    hoursPlural: 'तास',
+    minutes: 'मिनिट',
+    minutesPlural: 'मिनिटे',
+    seconds: 'सेकंद',
+    secondsPlural: 'सेकंद',
   },
 };

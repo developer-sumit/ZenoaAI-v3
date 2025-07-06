@@ -203,6 +203,18 @@ export const id = {
     tapCamera: 'Ketuk ikon kamera untuk mengunggah foto profil',
     cancelAccountDelete: 'Batalkan Penghapusan Akun',
     confirmAccountDelete: 'Konfirmasi Penghapusan Akun',
+    deleteReasonTitle: 'Mengapa Anda menghapus akun Anda?',
+    deleteReasonSubtitle:
+      'Bantu kami untuk berkembang dengan memberi tahu mengapa Anda pergi',
+    deleteReasonOption1: 'Tidak lagi menggunakan aplikasi',
+    deleteReasonOption2: 'Kekhawatiran privasi',
+    deleteReasonOption3: 'Menemukan alternatif yang lebih baik',
+    deleteReasonOption4: 'Masalah teknis',
+    deleteReasonOther: 'Lainnya',
+    deleteReasonPlaceholder: 'Tolong ceritakan lebih lanjut...',
+    deleteReasonNext: 'Selanjutnya',
+    deleteReasonBack: 'Kembali',
+    selectReasonError: 'Silakan pilih alasan atau berikan detail',
   },
 
   advancedSettings: {
@@ -317,5 +329,20 @@ export const id = {
     filterBy: 'Filter berdasarkan',
     tryAdjusting: 'Coba sesuaikan pencarian atau filter Anda',
     clearFilters: 'Hapus Filter',
+  },
+
+  emailRestriction: {
+    title: 'Email Sementara Dibatasi',
+    message:
+      'Email ini tidak dapat digunakan untuk membuat akun baru karena penghapusan akun baru-baru ini. Silakan coba lagi nanti atau gunakan email yang berbeda.',
+    timeRemaining: 'Waktu tersisa:',
+    days: 'hari',
+    daysPlural: 'hari',
+    hours: 'jam',
+    hoursPlural: 'jam',
+    minutes: 'menit',
+    minutesPlural: 'menit',
+    seconds: 'detik',
+    secondsPlural: 'detik',
   },
 };

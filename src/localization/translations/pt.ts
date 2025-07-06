@@ -204,6 +204,18 @@ export const pt = {
     tapCamera: 'Toque no ícone da câmera para enviar uma foto de perfil',
     cancelAccountDelete: 'Cancelar Exclusão da Conta',
     confirmAccountDelete: 'Confirmar Exclusão da Conta',
+    deleteReasonTitle: 'Por que você está excluindo sua conta?',
+    deleteReasonSubtitle:
+      'Ajude-nos a melhorar nos contando por que você está saindo',
+    deleteReasonOption1: 'Não uso mais o aplicativo',
+    deleteReasonOption2: 'Preocupações com privacidade',
+    deleteReasonOption3: 'Encontrei uma alternativa melhor',
+    deleteReasonOption4: 'Problemas técnicos',
+    deleteReasonOther: 'Outro',
+    deleteReasonPlaceholder: 'Por favor, nos conte mais...',
+    deleteReasonNext: 'Próximo',
+    deleteReasonBack: 'Voltar',
+    selectReasonError: 'Por favor selecione uma razão ou forneça detalhes',
   },
 
   advancedSettings: {
@@ -315,5 +327,20 @@ export const pt = {
     filterBy: 'Filtrar por',
     tryAdjusting: 'Tente ajustar sua pesquisa ou filtros',
     clearFilters: 'Limpar Filtros',
+  },
+
+  emailRestriction: {
+    title: 'Email Temporariamente Restrito',
+    message:
+      'Este email não pode ser usado para criar uma nova conta devido a uma exclusão recente de conta. Tente novamente mais tarde ou use um email diferente.',
+    timeRemaining: 'Tempo restante:',
+    days: 'dia',
+    daysPlural: 'dias',
+    hours: 'hora',
+    hoursPlural: 'horas',
+    minutes: 'minuto',
+    minutesPlural: 'minutos',
+    seconds: 'segundo',
+    secondsPlural: 'segundos',
   },
 };

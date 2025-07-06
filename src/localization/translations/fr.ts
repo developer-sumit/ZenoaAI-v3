@@ -209,6 +209,19 @@ export const fr = {
       "Appuyez sur l'icône caméra pour télécharger une photo de profil",
     cancelAccountDelete: 'Annuler la suppression du compte',
     confirmAccountDelete: 'Confirmer la suppression du compte',
+    deleteReasonTitle: 'Pourquoi supprimez-vous votre compte ?',
+    deleteReasonSubtitle:
+      'Aidez-nous à nous améliorer en nous disant pourquoi vous partez',
+    deleteReasonOption1: "Je n'utilise plus l'application",
+    deleteReasonOption2: 'Préoccupations concernant la vie privée',
+    deleteReasonOption3: "J'ai trouvé une meilleure alternative",
+    deleteReasonOption4: 'Problèmes techniques',
+    deleteReasonOther: 'Autre',
+    deleteReasonPlaceholder: 'Veuillez nous en dire plus...',
+    deleteReasonNext: 'Suivant',
+    deleteReasonBack: 'Retour',
+    selectReasonError:
+      'Veuillez sélectionner une raison ou fournir des détails',
   },
 
   advancedSettings: {
@@ -322,5 +335,20 @@ export const fr = {
     medium: 'Moyen',
     large: 'Grand',
     more: 'plus',
+  },
+
+  emailRestriction: {
+    title: 'Email Temporairement Restreint',
+    message:
+      "Cet email ne peut pas être utilisé pour créer un nouveau compte en raison d'une suppression récente de compte. Veuillez réessayer plus tard ou utiliser un email différent.",
+    timeRemaining: 'Temps restant:',
+    days: 'jour',
+    daysPlural: 'jours',
+    hours: 'heure',
+    hoursPlural: 'heures',
+    minutes: 'minute',
+    minutesPlural: 'minutes',
+    seconds: 'seconde',
+    secondsPlural: 'secondes',
   },
 };

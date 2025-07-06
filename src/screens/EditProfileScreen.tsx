@@ -58,6 +58,9 @@ const EditProfileScreen = () => {
   const [bio, setBio] = useState('');
   const [photoUri, setPhotoUri] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Load user data on mount
@@ -88,12 +91,6 @@ const EditProfileScreen = () => {
     triggerHaptic('selection');
     animatePress(saveButtonScale, 150);
     navigation.goBack();
-  };
-
-  const handleAvatarPress = () => {
-    triggerHaptic('light');
-    animatePress(avatarScale, 200);
-    // TODO: Implement image picker
   };
 
   const saveProfile = async () => {
@@ -165,7 +162,8 @@ const EditProfileScreen = () => {
       showToast(strings.editProfile.updateFailed, 'error');
     }
   };
-  const handleChangePhoto = () => {
+
+  const handleAvatarPress = () => {
     triggerHaptic('light');
     animatePress(avatarScale, 200);
     // TODO: Implement image picker for avatar upload
@@ -179,8 +177,12 @@ const EditProfileScreen = () => {
       if (user?.uid) {
         showToast(strings.editProfile.deletingAccount, 'info');
 
+        // Get the final reason - either selected option or custom reason
+        const deletionReason =
+          selectedReason === 'Other' ? customReason : selectedReason;
+
         // Use userService to mark account as deleted via API
-        await userService.markAccountAsDeleted(user.uid);
+        await userService.deleteUserAccount(user.uid, deletionReason);
 
         triggerHaptic('success');
         showToast(strings.editProfile.accountDeleted, 'success');
@@ -191,6 +193,24 @@ const EditProfileScreen = () => {
       triggerHaptic('error');
       showToast(strings.editProfile.accountDeleteFailed, 'error');
     }
+  };
+
+  const handleDeleteAccountPress = () => {
+    triggerHaptic('selection');
+    animatePress(deleteButtonScale, 150);
+    setShowReasonModal(true);
+  };
+
+  const handleReasonNext = () => {
+    if (
+      !selectedReason ||
+      (selectedReason === 'Other' && !customReason.trim())
+    ) {
+      showToast(strings.editProfile.selectReasonError, 'error');
+      return;
+    }
+    setShowReasonModal(false);
+    setShowDeleteModal(true);
   };
 
   if (!user) {
@@ -217,11 +237,7 @@ const EditProfileScreen = () => {
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{backgroundColor: theme.surface}}
-            onPress={() => {
-              triggerHaptic('selection');
-              animatePress(saveButtonScale, 150);
-              navigation.goBack();
-            }}
+            onPress={handleBackPress}
             accessible={true}
             accessibilityLabel={strings.common.goBack}>
             <ArrowBackIcon size={20} color={theme.text} />
@@ -247,7 +263,6 @@ const EditProfileScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
-
         <Animated.View
           style={{opacity: fadeAnim, transform: [{translateY: slideAnim}]}}>
           {/* Avatar Section with Change option */}
@@ -286,7 +301,7 @@ const EditProfileScreen = () => {
                     borderWidth: 3,
                     borderColor: theme.background,
                   }}
-                  onPress={handleChangePhoto}
+                  onPress={handleAvatarPress}
                   accessible={true}
                   accessibilityLabel="Change profile photo">
                   <CameraIcon size={20} color="white" />
@@ -422,11 +437,7 @@ const EditProfileScreen = () => {
               {/* Delete Account Button */}
               <TouchableOpacity
                 className="px-5 py-4 flex-row items-center"
-                onPress={() => {
-                  triggerHaptic('warning');
-                  animatePress(deleteButtonScale, 150);
-                  setShowDeleteModal(true);
-                }}
+                onPress={handleDeleteAccountPress}
                 accessible={true}
                 accessibilityLabel={strings.editProfile.deleteMyAccount}
                 accessibilityHint={strings.editProfile.deleteAccountHint}>
@@ -448,6 +459,158 @@ const EditProfileScreen = () => {
           </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Reason Selection Modal */}
+      <Modal visible={showReasonModal} transparent animationType="fade">
+        <BlurView
+          style={{flex: 1}}
+          blurType={isDark ? 'dark' : 'light'}
+          blurAmount={10}>
+          <View className="flex-1 justify-center items-center p-6">
+            <View
+              className="w-full max-w-md rounded-3xl overflow-hidden"
+              style={{
+                backgroundColor: theme.background,
+                shadowColor: '#000',
+                shadowOffset: {width: 0, height: 10},
+                shadowOpacity: 0.2,
+                shadowRadius: 20,
+                elevation: 10,
+              }}>
+              <View
+                className="w-full h-1.5"
+                style={{backgroundColor: theme.primary}}
+              />
+              <View className="p-6">
+                <View className="items-center mb-6">
+                  <Text
+                    className="text-xl font-semibold mb-2 text-center"
+                    style={{color: theme.text}}>
+                    {strings.editProfile.deleteReasonTitle ||
+                      'Why are you deleting your account?'}
+                  </Text>
+                  <Text
+                    className="text-sm mb-4 text-center leading-5"
+                    style={{color: theme.secondaryText}}>
+                    {strings.editProfile.deleteReasonSubtitle ||
+                      "Help us improve by letting us know why you're leaving"}
+                  </Text>
+                </View>
+                <View className="space-y-3 mb-6">
+                  {[
+                    strings.editProfile.deleteReasonOption1 ||
+                      'No longer using the app',
+                    strings.editProfile.deleteReasonOption2 ||
+                      'Privacy concerns',
+                    strings.editProfile.deleteReasonOption3 ||
+                      'Found a better alternative',
+                    strings.editProfile.deleteReasonOption4 ||
+                      'Technical issues',
+                    strings.editProfile.deleteReasonOther || 'Other',
+                  ].map((option, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      className="p-4 rounded-xl flex-row items-center"
+                      style={{
+                        backgroundColor:
+                          selectedReason === option
+                            ? theme.primary + '15'
+                            : theme.surface,
+                        borderWidth: selectedReason === option ? 1 : 0,
+                        borderColor:
+                          selectedReason === option
+                            ? theme.primary
+                            : 'transparent',
+                      }}
+                      onPress={() => {
+                        triggerHaptic('selection');
+                        setSelectedReason(option);
+                        if (option !== 'Other') {
+                          setCustomReason('');
+                        }
+                      }}>
+                      <View
+                        className="w-5 h-5 rounded-full mr-3 items-center justify-center"
+                        style={{
+                          backgroundColor:
+                            selectedReason === option
+                              ? theme.primary
+                              : 'transparent',
+                          borderWidth: selectedReason === option ? 0 : 2,
+                          borderColor: theme.secondaryText,
+                        }}>
+                        {selectedReason === option && (
+                          <View
+                            className="w-2 h-2 rounded-full"
+                            style={{backgroundColor: 'white'}}
+                          />
+                        )}
+                      </View>
+                      <Text className="text-base" style={{color: theme.text}}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {selectedReason === 'Other' && (
+                  <TextInput
+                    className="p-4 rounded-xl mb-6"
+                    style={{
+                      backgroundColor: theme.surface,
+                      color: theme.text,
+                      borderWidth: 1,
+                      borderColor: theme.secondaryText + '30',
+                      minHeight: 80,
+                      textAlignVertical: 'top',
+                    }}
+                    placeholder={strings.editProfile.deleteReasonPlaceholder}
+                    placeholderTextColor={theme.secondaryText}
+                    value={customReason}
+                    onChangeText={setCustomReason}
+                    multiline
+                    numberOfLines={3}
+                  />
+                )}
+                <View className="flex-row justify-between">
+                  <TouchableOpacity
+                    className="py-3.5 px-6 rounded-xl flex-1 mr-3"
+                    style={{backgroundColor: theme.surface}}
+                    onPress={() => {
+                      triggerHaptic('selection');
+                      setShowReasonModal(false);
+                      setSelectedReason('');
+                      setCustomReason('');
+                    }}>
+                    <Text
+                      className="text-center font-medium"
+                      style={{color: theme.text}}>
+                      {strings.editProfile.deleteReasonBack}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="py-3.5 px-6 rounded-xl flex-1"
+                    style={{
+                      backgroundColor:
+                        !selectedReason ||
+                        (selectedReason === 'Other' && !customReason.trim())
+                          ? theme.secondaryText + '50'
+                          : theme.primary,
+                    }}
+                    onPress={handleReasonNext}
+                    disabled={
+                      !selectedReason ||
+                      (selectedReason === 'Other' && !customReason.trim())
+                    }>
+                    <Text className="text-white font-medium text-center">
+                      {strings.editProfile.deleteReasonNext}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </BlurView>
+      </Modal>
 
       {/* Delete Account Modal */}
       <Modal visible={showDeleteModal} transparent animationType="fade">

@@ -200,6 +200,18 @@ export const en = {
     tapCamera: 'Tap the camera icon to upload a profile photo',
     cancelAccountDelete: 'Cancel Account Deletion',
     confirmAccountDelete: 'Confirm Account Deletion',
+    deleteReasonTitle: 'Why are you deleting your account?',
+    deleteReasonSubtitle:
+      "Help us improve by letting us know why you're leaving",
+    deleteReasonOption1: 'No longer using the app',
+    deleteReasonOption2: 'Privacy concerns',
+    deleteReasonOption3: 'Found a better alternative',
+    deleteReasonOption4: 'Technical issues',
+    deleteReasonOther: 'Other',
+    deleteReasonPlaceholder: 'Please tell us more...',
+    deleteReasonNext: 'Next',
+    deleteReasonBack: 'Back',
+    selectReasonError: 'Please select a reason or provide details',
   },
 
   advancedSettings: {
@@ -291,6 +303,21 @@ export const en = {
     filterBy: 'Filter by',
     tryAdjusting: 'Try adjusting your search or filters',
     clearFilters: 'Clear Filters',
+  },
+
+  emailRestriction: {
+    title: 'Email Temporarily Restricted',
+    message:
+      'This email cannot be used to create a new account due to a recent account deletion. Please try again later or use a different email.',
+    timeRemaining: 'Time remaining:',
+    days: 'day',
+    daysPlural: 'days',
+    hours: 'hour',
+    hoursPlural: 'hours',
+    minutes: 'minute',
+    minutesPlural: 'minutes',
+    seconds: 'second',
+    secondsPlural: 'seconds',
   },
 
   common: {

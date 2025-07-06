@@ -215,6 +215,19 @@ export const ta = {
     tapCamera: 'சுயவிவரப் புகைப்படத்தைப் பதிவேற்ற கேமரா ஐகானைத் தட்டவும்',
     cancelAccountDelete: 'கணக்கு அழிப்பதை ரத்து செய்',
     confirmAccountDelete: 'கணக்கு அழிப்பதை உறுதிப்படுத்து',
+    deleteReasonTitle: 'நீங்கள் ஏன் உங்கள் கணக்கை அழிக்கிறீர்கள்?',
+    deleteReasonSubtitle:
+      'நீங்கள் ஏன் வெளியேறுகிறீர்கள் என்று சொல்லி எங்களை மேம்படுத்த உதவுங்கள்',
+    deleteReasonOption1: 'இனி ஆப்பை பயன்படுத்துவதில்லை',
+    deleteReasonOption2: 'தனியுரிமை கவலைகள்',
+    deleteReasonOption3: 'சிறந்த மாற்று கண்டுபிடித்தேன்',
+    deleteReasonOption4: 'தொழில்நுட்ப சிக்கல்கள்',
+    deleteReasonOther: 'மற்றவை',
+    deleteReasonPlaceholder: 'தயவுசெய்து எங்களுக்கு மேலும் சொல்லுங்கள்...',
+    deleteReasonNext: 'அடுத்து',
+    deleteReasonBack: 'பின்னால்',
+    selectReasonError:
+      'தயவுசெய்து ஒரு காரணத்தைத் தேர்ந்தெடுங்கள் அல்லது விவரங்களை வழங்கவும்',
   },
 
   advancedSettings: {
@@ -328,5 +341,20 @@ export const ta = {
     filterBy: 'வடிகட்டு',
     tryAdjusting: 'உங்கள் தேடல் அல்லது வடிகட்டிகளைச் சரிசெய்ய முயற்சிக்கவும்',
     clearFilters: 'வடிகட்டிகளை அழிக்கவும்',
+  },
+
+  emailRestriction: {
+    title: 'மின்னஞ்சல் தற்காலிகமாக தடுக்கப்பட்டது',
+    message:
+      'சமீபத்திய கணக்கு நீக்கம் காரணமாக இந்த மின்னஞ்சலை புதிய கணக்கை உருவாக்க பயன்படுத்த முடியாது. தயவுசெய்து பின்னர் மீண்டும் முயற்சிக்கவும் அல்லது வேறு மின்னஞ்சலைப் பயன்படுத்தவும்.',
+    timeRemaining: 'மீதமுள்ள நேரம்:',
+    days: 'நாள்',
+    daysPlural: 'நாட்கள்',
+    hours: 'மணி',
+    hoursPlural: 'மணிநேரங்கள்',
+    minutes: 'நிமிடம்',
+    minutesPlural: 'நிமிடங்கள்',
+    seconds: 'வினாடி',
+    secondsPlural: 'வினாடிகள்',
   },
 };

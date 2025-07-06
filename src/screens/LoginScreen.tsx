@@ -11,6 +11,7 @@ import {
 import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {useToast} from '@masumdev/rn-toast';
+import auth from '@react-native-firebase/auth';
 
 import urls from '@src/constants/urls';
 import {useTheme} from '@src/store/themeStore';
@@ -20,7 +21,9 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
 import LanguageSelector from '@src/components/LanguageSelector';
+import EmailRestrictionDialog from '@src/components/EmailRestrictionDialog';
 import authService from '@src/services/authService';
+import userService from '@src/services/userService';
 
 // Icons
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
@@ -35,6 +38,14 @@ const LoginScreen = () => {
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
   const [signingIn, setSigningIn] = React.useState(false);
+  const [emailRestrictionVisible, setEmailRestrictionVisible] =
+    React.useState(false);
+  const [restrictionData, setRestrictionData] = React.useState<{
+    expiresAt?: Date;
+    daysRemaining?: number;
+    hoursRemaining?: number;
+    minutesRemaining?: number;
+  }>({});
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
   const buttonScale = React.useRef(new Animated.Value(1)).current;
@@ -101,6 +112,37 @@ const LoginScreen = () => {
         throw new Error('Failed to get ID token from Google Sign-In');
       }
 
+      // Extract email from the user data to check for restrictions
+      const currentUser = auth().currentUser;
+      const userEmail = currentUser?.email || data.user?.email; // Check for local email restrictions first
+      if (userEmail) {
+        const restriction = await userService.checkEmailRestriction(userEmail);
+        if (restriction.isRestricted) {
+          triggerHaptic('error');
+
+          // Sign out from Firebase and Google to allow user to select different account
+          try {
+            await auth().signOut();
+            await GoogleSignin.revokeAccess();
+            await GoogleSignin.signOut();
+          } catch (signOutError) {
+            console.warn(
+              'Failed to sign out after local restriction:',
+              signOutError,
+            );
+          }
+
+          setRestrictionData({
+            expiresAt: restriction.expiresAt,
+            daysRemaining: restriction.daysRemaining,
+            hoursRemaining: restriction.hoursRemaining,
+            minutesRemaining: restriction.minutesRemaining,
+          });
+          setEmailRestrictionVisible(true);
+          return; // Don't continue with sign-in
+        }
+      }
+
       // Log token receipt for debugging
       console.log('Google sign-in successful, proceeding with Firebase auth');
 
@@ -118,16 +160,49 @@ const LoginScreen = () => {
       // Check for email restriction error first
       if ((error as any).errorType === 'EMAIL_RESTRICTION') {
         triggerHaptic('error');
-        showToast(
-          error.message ||
-            'This email cannot be used due to a recent account deletion.',
-          'error',
-          {duration: 8000}, // Show longer for this important message
-        );
-        return; // Don't try fallback for email restrictions
+
+        // Sign out from Firebase and Google to allow user to select different account
+        try {
+          await auth().signOut();
+          await GoogleSignin.revokeAccess();
+          await GoogleSignin.signOut();
+        } catch (signOutError) {
+          console.warn('Failed to sign out after restriction:', signOutError);
+        }
+        // If we have emailRestrictionExpiresAt from the backend, use it to show the dialog
+        if (error.emailRestrictionExpiresAt) {
+          const expiresAt = new Date(error.emailRestrictionExpiresAt);
+          const now = new Date();
+          const timeDiff = expiresAt.getTime() - now.getTime();
+
+          const daysRemaining = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+          const hoursRemaining = Math.floor(
+            (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+          );
+          const minutesRemaining = Math.floor(
+            (timeDiff % (1000 * 60 * 60)) / (1000 * 60),
+          );
+
+          setRestrictionData({
+            expiresAt,
+            daysRemaining: Math.max(0, daysRemaining),
+            hoursRemaining: Math.max(0, hoursRemaining),
+            minutesRemaining: Math.max(0, minutesRemaining),
+          });
+          setEmailRestrictionVisible(true);
+        } else {
+          // Fallback to just showing the error message
+          showToast(
+            error.message ||
+              'This email cannot be used due to a recent account deletion.',
+            'error',
+            {duration: 8000}, // Show longer for this important message
+          );
+        }
+        return; // Don't proceed with fallback for email restrictions
       }
 
-      // Check if this is a network error, which could be causing the 401
+      // Check if this is a network error
       if (
         error.message?.includes('Network Error') ||
         error.message?.includes('network request failed')
@@ -140,15 +215,6 @@ const LoginScreen = () => {
       } else {
         triggerHaptic('error');
         showToast(strings.auth.signInFailed, 'error');
-      }
-
-      // If we're already authenticated with Firebase but server failed
-      const fallbackUser = await authService.handleFailedGoogleSignIn();
-      if (fallbackUser) {
-        console.log('Using fallback authentication method');
-        await login(fallbackUser);
-        triggerHaptic('warning');
-        showToast('Signed in with limited functionality', 'info');
       }
     } finally {
       setSigningIn(false);
@@ -186,11 +252,9 @@ const LoginScreen = () => {
         <Animated.View
           className="items-center mb-16"
           style={{transform: [{scale: logoScale}]}}>
-          <SparklesIcon
-            size={64}
-            color={theme.primary}
-            style={{marginBottom: 16}}
-          />
+          <View className="mb-4">
+            <SparklesIcon size={64} color={theme.primary} />
+          </View>
           <Text
             className="text-4xl font-bold text-center mb-4"
             style={{color: theme.text}}>
@@ -261,6 +325,16 @@ const LoginScreen = () => {
           </Text>
         </Text>
       </Animated.View>
+
+      {/* Email Restriction Dialog */}
+      <EmailRestrictionDialog
+        visible={emailRestrictionVisible}
+        onClose={() => setEmailRestrictionVisible(false)}
+        expiresAt={restrictionData.expiresAt}
+        daysRemaining={restrictionData.daysRemaining}
+        hoursRemaining={restrictionData.hoursRemaining}
+        minutesRemaining={restrictionData.minutesRemaining}
+      />
     </View>
   );
 };
