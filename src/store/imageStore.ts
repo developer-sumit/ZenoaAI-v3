@@ -37,7 +37,11 @@ interface ImageState {
     reset?: boolean,
   ) => Promise<void>;
   loadMoreImages: () => Promise<void>;
-  fetchPublicImages: (page?: number, limit?: number) => Promise<void>;
+  fetchPublicImages: (
+    page?: number,
+    limit?: number,
+    filter?: string,
+  ) => Promise<void>;
   generateImage: (
     prompt: string,
     settings: ImageGenerationSettings,
@@ -129,11 +133,19 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     await get().fetchImages(nextPage, 20, false);
   },
 
-  fetchPublicImages: async (page: number = 1, limit: number = 20) => {
+  fetchPublicImages: async (
+    page: number = 1,
+    limit: number = 20,
+    filter: string = 'latest',
+  ) => {
     try {
       set({isLoadingPublic: true, error: null});
 
-      const newPublicImages = await imageService.getPublicImages(page, limit);
+      const newPublicImages = await imageService.getPublicImages(
+        page,
+        limit,
+        filter,
+      );
 
       // If it's the first page, replace all images
       // Otherwise, append to existing images

@@ -23,6 +23,7 @@ import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
 import Routes from '@src/constants/routes';
 import appConfig from '@src/config/app.config';
 
@@ -67,6 +68,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const strings = useStrings();
   const {isDark, theme} = useTheme();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
   const {deleteImage: storeDeleteImage} = useImageStore();
   const navigation = useNavigation();
@@ -128,7 +130,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     );
 
     return () => backHandler.remove();
-  }, [image, onClose, fullscreenMode, showDeleteDialog]);
+  }, [image, onClose]);
 
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen mode, current mode:', fullscreenMode);
@@ -394,26 +396,37 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               {imageLoaded && !fullscreenMode && (
                 <View className="absolute top-2.5 right-2.5 flex-row gap-2">
                   {/* Favorite Button */}
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (onToggleFavorite) {
-                        onToggleFavorite();
-                      }
-                    }}
-                    className="bg-black/40 rounded-3xl p-2"
-                    accessible={true}
-                    accessibilityLabel={
-                      image?.isFavorite
-                        ? 'Remove from favorites'
-                        : 'Add to favorites'
-                    }>
-                    <HeartIcon
-                      size={24}
-                      color={image?.isFavorite ? '#FF4B8C' : 'white'}
-                      fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
-                    />
-                  </TouchableOpacity>
+                  <View className="items-center">
+                    <TouchableOpacity
+                      onPress={() => {
+                        triggerHaptic('light');
+                        if (onToggleFavorite) {
+                          onToggleFavorite();
+                        }
+                      }}
+                      className="bg-black/40 rounded-3xl p-2"
+                      accessible={true}
+                      accessibilityLabel={
+                        image?.isFavorite
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }>
+                      <HeartIcon
+                        size={24}
+                        color={image?.isFavorite ? '#FF4B8C' : 'white'}
+                        fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
+                      />
+                    </TouchableOpacity>
 
+                    {/* Favorite Count */}
+                    {image?.favoriteCount && image.favoriteCount > 0 && (
+                      <View className="mt-1 px-2 py-0.5 bg-black/40 rounded-full">
+                        <Text className="text-white text-xs font-medium">
+                          {image.favoriteCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   {/* Fullscreen Button */}
                   <View className="bg-black/40 rounded-3xl p-2">
                     <FullscreenIcon size={24} color="white" />
@@ -447,6 +460,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
+                    triggerHaptic('light');
                     setImageLoadFailed(false);
                     setImageLoaded(false);
                     // Force reload
@@ -475,7 +489,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {/* Exit fullscreen button - only in fullscreen mode */}
           {fullscreenMode && (
             <TouchableOpacity
-              onPress={() => setFullscreenMode(false)}
+              onPress={() => {
+                triggerHaptic('selection');
+                setFullscreenMode(false);
+              }}
               className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
               style={{top: StatusBar.currentHeight || 40}}
               accessible={true}

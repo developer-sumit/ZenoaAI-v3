@@ -10,6 +10,7 @@ import {
 
 import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
 
 interface InfoDialogProps {
   visible: boolean;
@@ -28,6 +29,7 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
 }) => {
   const strings = useStrings();
   const {isDark, theme} = useTheme();
+  const {triggerHaptic} = useHaptics();
 
   return (
     <Modal
@@ -60,7 +62,10 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
               backgroundColor: theme.primary,
               shadowColor: theme.primary,
             }}
-            onPress={onClose}>
+            onPress={() => {
+              triggerHaptic('selection');
+              onClose();
+            }}>
             <Text
               className="font-semibold text-center text-lg"
               style={{color: isDark ? theme.text : 'white'}}>

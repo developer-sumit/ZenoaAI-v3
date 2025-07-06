@@ -95,7 +95,7 @@ const HomeScreen = () => {
   const promptSuggestionsButtonScale = useRef(new Animated.Value(1)).current;
 
   const {triggerHaptic} = useHaptics();
-  const {animatePress} = useAnimations();
+  const {animatePress, animateFade, animateBounce} = useAnimations();
 
   // Combined function to update both quota and profile
   const updateQuotaAndProfile = async () => {
@@ -157,6 +157,7 @@ const HomeScreen = () => {
   };
 
   const handleSelectPrompt = (selectedPrompt: string) => {
+    triggerHaptic('selection'); // Add haptic feedback for prompt selection
     setPrompt(selectedPrompt);
   };
 
@@ -221,6 +222,7 @@ const HomeScreen = () => {
 
       if (success) {
         console.log('Image generated successfully!');
+        triggerHaptic('success'); // Add success haptic feedback
         // Scroll to top if needed
         if (flashListRef.current) {
           // @ts-ignore
@@ -228,10 +230,12 @@ const HomeScreen = () => {
         }
       } else {
         console.error('Image generation failed');
+        triggerHaptic('error'); // Add error haptic feedback
         showToast('Failed to generate image', 'error');
       }
     } catch (error) {
       console.error('Generation failed:', error);
+      triggerHaptic('error'); // Add error haptic feedback
       showToast('Failed to generate image', 'error');
     }
   };
@@ -447,6 +451,7 @@ const HomeScreen = () => {
   );
 
   const clearInputs = () => {
+    triggerHaptic('light');
     setPrompt('');
     setSelectedStyles([]);
     // Optionally reset other settings to defaults
@@ -745,7 +750,8 @@ const HomeScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() =>
+                onPress={() => {
+                  triggerHaptic('light'); // Add haptic feedback for navigation
                   navigator.navigate({
                     route: Routes.ADVANCED_SETTINGS,
                     params: {
@@ -773,8 +779,8 @@ const HomeScreen = () => {
                       steps,
                       setSteps: (s: number) => setSteps(s),
                     },
-                  })
-                }
+                  });
+                }}
                 className="p-3 rounded-2xl"
                 style={{backgroundColor: theme.primary + '20'}}
                 accessible={true}

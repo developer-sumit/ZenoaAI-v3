@@ -28,6 +28,7 @@ import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
 import {useStrings} from '@src/hooks/useStrings';
 import {useTheme} from '@src/store/themeStore';
+import {useHaptics} from '@src/hooks/useHaptics';
 import {ArtStyleType, ImageSize, AspectRatio} from '@src/types/image';
 import InfoDialog from '@src/components/InfoDialog';
 
@@ -275,6 +276,7 @@ const ArtStylesDialog = memo(
     toggleStyle: (styleName: string) => void;
   }) => {
     const strings = useStrings();
+    const {triggerHaptic} = useHaptics();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredStyles = useMemo(() => {
@@ -301,7 +303,10 @@ const ArtStylesDialog = memo(
           {/* Header */}
           <View className="flex-row items-center justify-between p-4">
             <TouchableOpacity
-              onPress={onClose}
+              onPress={() => {
+                triggerHaptic('selection');
+                onClose();
+              }}
               className="w-10 h-10 rounded-full items-center justify-center"
               style={{backgroundColor: theme.surface}}>
               <ArrowBackIcon size={20} color={theme.text} />
@@ -320,6 +325,7 @@ const ArtStylesDialog = memo(
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onFocus={() => triggerHaptic('light')}
               placeholder={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}...`}
               placeholderTextColor={theme.secondaryText}
               className="flex-1 py-3 px-2 h-12 text-lg"
@@ -335,7 +341,10 @@ const ArtStylesDialog = memo(
             />
             {searchQuery ? (
               <TouchableOpacity
-                onPress={() => setSearchQuery('')}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setSearchQuery('');
+                }}
                 accessible={true}
                 accessibilityLabel={`${strings.common.clear} ${strings.advancedSettings.featureInfo.artStyles.title}`}
                 accessibilityRole="button">
@@ -372,7 +381,10 @@ const ArtStylesDialog = memo(
                 {selectedStyles.length === 1 ? 'style' : 'styles'} selected
               </Text>
               <TouchableOpacity
-                onPress={onClose}
+                onPress={() => {
+                  triggerHaptic('success');
+                  onClose();
+                }}
                 className="bg-white py-2.5 px-4 rounded-full">
                 <Text className="font-bold text-[#f97316]">
                   {strings.common.done}
@@ -393,6 +405,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const strings = useStrings();
   const navigation = useNavigation();
   const {isDark, theme} = useTheme();
+  const {triggerHaptic} = useHaptics();
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
@@ -450,6 +463,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   // Memoize expensive functions
   const showInfoDialog = useCallback(
     (title: string) => {
+      triggerHaptic('light');
       const featureInfo = strings.advancedSettings.featureInfo;
       if (title in featureInfo) {
         setDialogContent(featureInfo[title as keyof typeof featureInfo]);
@@ -492,6 +506,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   // Optimized toggle function with useCallback to prevent recreation on each render
   const toggleStyle = useCallback(
     (styleName: string) => {
+      triggerHaptic('selection');
       LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
       setLocalSelectedStyles(prevStyles => {
         const newStyles = prevStyles.includes(styleName)
@@ -513,7 +528,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
       {/* Header */}
       <View className="flex-row items-center justify-between py-3 px-4">
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            triggerHaptic('selection');
+            navigation.goBack();
+          }}
           className="p-2"
           accessible={true}
           accessibilityLabel={strings.common.goBack}>
@@ -550,6 +568,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             <View className="flex-row gap-2">
               <TouchableOpacity
                 onPress={() => {
+                  triggerHaptic('selection');
                   setLocalEngine('quantum');
                   if (params.setEngine) {
                     params.setEngine('quantum');
@@ -593,6 +612,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
 
               <TouchableOpacity
                 onPress={() => {
+                  triggerHaptic('selection');
                   setLocalEngine('nebula');
                   if (params.setEngine) {
                     params.setEngine('nebula');
@@ -651,7 +671,10 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               theme={theme}
               isDark={isDark}
               showButton={true}
-              onShowAllPress={() => setArtStylesDialogVisible(true)}
+              onShowAllPress={() => {
+                triggerHaptic('light');
+                setArtStylesDialogVisible(true);
+              }}
             />
           </View>
 
@@ -682,6 +705,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     localQuality === 50 ? theme.primary : '#cbd5e1',
                 }}
                 onPress={() => {
+                  triggerHaptic('selection');
                   LayoutAnimation.spring();
                   const newQuality = localQuality === 50 ? 25 : 50;
                   setLocalQuality(newQuality);
@@ -718,6 +742,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 <TouchableOpacity
                   key={count}
                   onPress={() => {
+                    triggerHaptic('selection');
                     LayoutAnimation.spring();
                     setLocalNumberOfImages(count);
                     params.setNumberOfImages(count);
@@ -796,6 +821,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     <TouchableOpacity
                       key={ratio.ratio}
                       onPress={() => {
+                        triggerHaptic('selection');
                         LayoutAnimation.spring();
                         const newRatio = {
                           ...ratio,
@@ -867,6 +893,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     <TouchableOpacity
                       key={size}
                       onPress={() => {
+                        triggerHaptic('selection');
                         LayoutAnimation.spring();
                         const newRatio = {
                           ...localAspectRatio,
@@ -930,7 +957,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 showInfoDialog={() => showInfoDialog('seed')}
                 theme={theme}
               />
-
               <TextInput
                 ref={seedInputRef}
                 value={localSeed}
@@ -938,6 +964,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   setLocalSeed(text);
                   params.setSeed(text);
                 }}
+                onFocus={() => triggerHaptic('light')}
                 placeholder={strings.advancedSettings.seedPlaceholder}
                 keyboardType="numeric"
                 className="p-4 rounded-xl text-lg"
@@ -964,7 +991,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 showInfoDialog={() => showInfoDialog('negativePrompt')}
                 theme={theme}
               />
-
               <TextInput
                 ref={negativePromptRef}
                 value={localNegativePrompt}
@@ -972,6 +998,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   setLocalNegativePrompt(text);
                   params.setNegativePrompt(text);
                 }}
+                onFocus={() => triggerHaptic('light')}
                 placeholder={strings.advancedSettings.negativePromptPlaceholder}
                 multiline
                 numberOfLines={4}

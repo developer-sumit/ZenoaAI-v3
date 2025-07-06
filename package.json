@@ -44,6 +44,7 @@
     "react-native-fast-image": "^8.6.3",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.21.2",
+    "react-native-haptic-feedback": "^2.3.3",
     "react-native-localization": "^2.3.2",
     "react-native-mmkv": "^3.3.0",
     "react-native-quick-actions": "^0.3.13",

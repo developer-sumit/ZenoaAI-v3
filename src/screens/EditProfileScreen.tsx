@@ -21,6 +21,8 @@ import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -42,15 +44,22 @@ const EditProfileScreen = () => {
   const {isDark, theme} = useTheme();
   const {user, logout, updateUser} = useAuthStore();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
 
   // Animation references
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const saveButtonScale = useRef(new Animated.Value(1)).current;
+  const deleteButtonScale = useRef(new Animated.Value(1)).current;
+  const avatarScale = useRef(new Animated.Value(1)).current;
+
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [photoUri, setPhotoUri] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
   // Load user data on mount
   useEffect(() => {
     if (user) {
@@ -66,21 +75,38 @@ const EditProfileScreen = () => {
         duration: 400,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 400,
+        tension: 100,
+        friction: 8,
         useNativeDriver: true,
       }),
     ]).start();
   }, [user, fadeAnim, slideAnim]);
 
+  const handleBackPress = () => {
+    triggerHaptic('selection');
+    animatePress(saveButtonScale, 150);
+    navigation.goBack();
+  };
+
+  const handleAvatarPress = () => {
+    triggerHaptic('light');
+    animatePress(avatarScale, 200);
+    // TODO: Implement image picker
+  };
+
   const saveProfile = async () => {
     if (!user) {
+      triggerHaptic('error');
       showToast(strings.editProfile.pleaseLogin, 'error');
       return;
     }
     try {
       setIsSaving(true);
+      triggerHaptic('selection');
+      animatePress(saveButtonScale, 150);
+
       console.log('Starting profile update with user ID:', user.uid);
       if (name !== user.profile.username || bio !== user.profile.bio) {
         // Debug log for better troubleshooting
@@ -129,15 +155,19 @@ const EditProfileScreen = () => {
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setIsSaving(false);
+      triggerHaptic('success');
       showToast(strings.editProfile.profileUpdated, 'success');
       navigation.goBack();
     } catch (error) {
       console.error('Error updating profile:', error);
       setIsSaving(false);
+      triggerHaptic('error');
       showToast(strings.editProfile.updateFailed, 'error');
     }
   };
   const handleChangePhoto = () => {
+    triggerHaptic('light');
+    animatePress(avatarScale, 200);
     // TODO: Implement image picker for avatar upload
     // For now, show info message that this feature will be added
     showToast(strings.editProfile.uploadPhoto, 'info');
@@ -145,17 +175,20 @@ const EditProfileScreen = () => {
 
   const handleAccountDeletion = async () => {
     try {
+      triggerHaptic('warning');
       if (user?.uid) {
         showToast(strings.editProfile.deletingAccount, 'info');
 
         // Use userService to mark account as deleted via API
         await userService.markAccountAsDeleted(user.uid);
 
+        triggerHaptic('success');
         showToast(strings.editProfile.accountDeleted, 'success');
         await logout();
       }
     } catch (error) {
       console.error('Error deleting account:', error);
+      triggerHaptic('error');
       showToast(strings.editProfile.accountDeleteFailed, 'error');
     }
   };
@@ -184,7 +217,11 @@ const EditProfileScreen = () => {
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{backgroundColor: theme.surface}}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              triggerHaptic('selection');
+              animatePress(saveButtonScale, 150);
+              navigation.goBack();
+            }}
             accessible={true}
             accessibilityLabel={strings.common.goBack}>
             <ArrowBackIcon size={20} color={theme.text} />
@@ -241,18 +278,20 @@ const EditProfileScreen = () => {
               </View>
 
               {/* Camera icon overlay */}
-              <TouchableOpacity
-                className="absolute bottom-0 right-0 w-12 h-12 rounded-full items-center justify-center"
-                style={{
-                  backgroundColor: theme.primary,
-                  borderWidth: 3,
-                  borderColor: theme.background,
-                }}
-                onPress={handleChangePhoto}
-                accessible={true}
-                accessibilityLabel="Change profile photo">
-                <CameraIcon size={20} color="white" />
-              </TouchableOpacity>
+              <Animated.View style={{transform: [{scale: avatarScale}]}}>
+                <TouchableOpacity
+                  className="absolute bottom-0 right-0 w-12 h-12 rounded-full items-center justify-center"
+                  style={{
+                    backgroundColor: theme.primary,
+                    borderWidth: 3,
+                    borderColor: theme.background,
+                  }}
+                  onPress={handleChangePhoto}
+                  accessible={true}
+                  accessibilityLabel="Change profile photo">
+                  <CameraIcon size={20} color="white" />
+                </TouchableOpacity>
+              </Animated.View>
             </View>
 
             <Text className="text-sm mt-4" style={{color: theme.secondaryText}}>
@@ -383,15 +422,22 @@ const EditProfileScreen = () => {
               {/* Delete Account Button */}
               <TouchableOpacity
                 className="px-5 py-4 flex-row items-center"
-                onPress={() => setShowDeleteModal(true)}
+                onPress={() => {
+                  triggerHaptic('warning');
+                  animatePress(deleteButtonScale, 150);
+                  setShowDeleteModal(true);
+                }}
                 accessible={true}
                 accessibilityLabel={strings.editProfile.deleteMyAccount}
                 accessibilityHint={strings.editProfile.deleteAccountHint}>
-                <View
-                  className="w-10 h-10 rounded-full items-center justify-center mr-4"
-                  style={{backgroundColor: '#e11d4815'}}>
-                  <TrashIcon size={20} color="#e11d48" />
-                </View>
+                <Animated.View
+                  style={{transform: [{scale: deleteButtonScale}]}}>
+                  <View
+                    className="w-10 h-10 rounded-full items-center justify-center mr-4"
+                    style={{backgroundColor: '#e11d4815'}}>
+                    <TrashIcon size={20} color="#e11d48" />
+                  </View>
+                </Animated.View>
                 <View className="flex-1">
                   <Text className="text-base" style={{color: '#e11d48'}}>
                     {strings.editProfile.deleteMyAccount}
@@ -447,7 +493,10 @@ const EditProfileScreen = () => {
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
                     style={{backgroundColor: theme.surface}}
-                    onPress={() => setShowDeleteModal(false)}
+                    onPress={() => {
+                      triggerHaptic('selection');
+                      setShowDeleteModal(false);
+                    }}
                     accessible={true}
                     accessibilityLabel={
                       strings.editProfile.cancelAccountDelete
@@ -462,6 +511,7 @@ const EditProfileScreen = () => {
                     className="py-3.5 px-6 rounded-xl flex-1"
                     style={{backgroundColor: '#e11d48'}}
                     onPress={() => {
+                      triggerHaptic('heavy');
                       handleAccountDeletion();
                       setShowDeleteModal(false);
                     }}

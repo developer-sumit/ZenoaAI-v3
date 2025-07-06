@@ -10,7 +10,6 @@ import {
   Modal,
   LayoutAnimation,
   Linking,
-  Vibration,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
@@ -25,6 +24,8 @@ import Routes from '@src/constants/routes';
 import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
 import {useQuota} from '@src/hooks/useQuota';
 import urls from '@src/constants/urls';
 import {notificationService} from '@src/services/notificationService';
@@ -59,6 +60,8 @@ const ProfileScreen = () => {
   const {user, logout} = useAuthStore();
   const {isDark, theme, toggleTheme} = useTheme();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
+  const {animatePress, animateBounce} = useAnimations();
   const {quota, refetch, isLoading: quotaLoading} = useQuota();
   const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
@@ -453,7 +456,10 @@ const ProfileScreen = () => {
             accessibilityLabel={strings.settings.changeLanguage}
             accessibilityHint={strings.settings.changeLanguageHint}
             style={{borderColor: theme.secondaryText + '20'}}
-            onPress={() => languageSelectorRef.current?.openModal()}>
+            onPress={() => {
+              triggerHaptic('light');
+              languageSelectorRef.current?.openModal();
+            }}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -534,11 +540,7 @@ const ProfileScreen = () => {
               style={{backgroundColor: isDark ? theme.primary : '#cbd5e1'}}
               onPress={() => {
                 // Haptic feedback for theme toggle
-                if (Platform.OS === 'ios') {
-                  Vibration.vibrate(50);
-                } else {
-                  Vibration.vibrate(40);
-                }
+                triggerHaptic('light');
                 toggleTheme();
               }}
               accessible={true}
@@ -579,7 +581,10 @@ const ProfileScreen = () => {
 
           <TouchableOpacity
             className="px-5 py-4 flex-row justify-between items-center"
-            onPress={() => setShowFeedbackModal(true)}
+            onPress={() => {
+              triggerHaptic('light');
+              setShowFeedbackModal(true);
+            }}
             accessible={true}
             accessibilityLabel={strings.settings.shareFeedback}
             accessibilityHint={strings.settings.shareFeedbackHint}>
@@ -637,7 +642,10 @@ const ProfileScreen = () => {
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
             style={{borderColor: theme.secondaryText + '20'}}
-            onPress={() => Linking.openURL(urls.privacyPolicy)}
+            onPress={() => {
+              triggerHaptic('light');
+              Linking.openURL(urls.privacyPolicy);
+            }}
             accessible={true}
             accessibilityLabel={strings.settings.privacyPolicy}
             accessibilityHint={strings.settings.privacyPolicyHint}>
@@ -678,7 +686,10 @@ const ProfileScreen = () => {
         <TouchableOpacity
           className="rounded-2xl py-4 mb-4 items-center flex-row justify-center shadow-lg"
           style={{backgroundColor: theme.surface}}
-          onPress={logout}
+          onPress={() => {
+            triggerHaptic('heavy'); // Strong haptic for logout action
+            logout();
+          }}
           accessible={true}
           accessibilityLabel={strings.auth.signOut}
           accessibilityHint={strings.auth.signOutHint}>

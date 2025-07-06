@@ -28,6 +28,7 @@ export interface ImageResponse {
   aspectRatio: string; // e.g., "1:1", "16:9", etc.
   negativePrompt?: string;
   isFavorite?: boolean;
+  favoriteCount?: number;
   isPrivate: boolean;
   createdAt: Date;
   userName: string; // Name of the user who generated the image

@@ -303,9 +303,10 @@ const getUserImages = async (params?: {
 const getPublicImages = async (
   page: number = 1,
   limit: number = 20,
+  filter: string = 'latest',
 ): Promise<GeneratedImage[]> => {
   try {
-    const response = await imageAPI.getPublicImages({page, limit});
+    const response = await imageAPI.getPublicImages({page, limit, filter});
     if (response.data.success) {
       // Handle both paginated and simple array responses
       const images = response.data.data || response.data.images || [];

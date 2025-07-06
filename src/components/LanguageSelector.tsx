@@ -10,6 +10,7 @@ import {
 import {BlurView} from '@react-native-community/blur';
 import {useTheme} from '@src/store/themeStore';
 import {useLanguageStore} from '@src/store/languageStore';
+import {useHaptics} from '@src/hooks/useHaptics';
 import CheckmarkIcon from '@src/assets/icons/CheckmarkIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import {useStrings} from '@src/hooks/useStrings';
@@ -28,18 +29,24 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
     const {isDark, theme} = useTheme();
     const {language, setLanguage} = useLanguageStore();
     const [modalVisible, setModalVisible] = useState(false);
+    const {triggerHaptic} = useHaptics();
 
     // Expose the openModal function through ref
     useImperativeHandle(ref, () => ({
-      openModal: () => setModalVisible(true),
+      openModal: () => {
+        triggerHaptic('light');
+        setModalVisible(true);
+      },
     }));
 
     const handleLanguageChange = async (selectedLanguage: string) => {
       try {
+        triggerHaptic('selection');
         setLanguage(selectedLanguage);
         setModalVisible(false);
       } catch (error) {
         console.error('Error changing language:', error);
+        triggerHaptic('error');
       }
     };
 
@@ -62,7 +69,10 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
     return (
       <>
         <TouchableOpacity
-          onPress={() => setModalVisible(true)}
+          onPress={() => {
+            triggerHaptic('light');
+            setModalVisible(true);
+          }}
           className={`${
             iconOnly ? 'p-2 rounded-full' : 'flex-row items-center p-3'
           }`}
@@ -126,7 +136,9 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                   {languages.map(lang => (
                     <TouchableOpacity
                       key={lang.code}
-                      onPress={() => handleLanguageChange(lang.code)}
+                      onPress={() => {
+                        handleLanguageChange(lang.code);
+                      }}
                       className="flex-row items-center justify-between py-4 border-b pr-6"
                       style={{borderColor: theme.secondaryText + '20'}}
                       accessible={true}
