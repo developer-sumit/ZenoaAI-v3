@@ -193,6 +193,17 @@ export const zh = {
     tapCamera: '点击相机图标上传个人资料照片',
     cancelAccountDelete: '取消删除账户',
     confirmAccountDelete: '确认删除账户',
+    deleteReasonTitle: '您为什么要删除账户？',
+    deleteReasonSubtitle: '请告诉我们您离开的原因，帮助我们改进',
+    deleteReasonOption1: '不再使用此应用',
+    deleteReasonOption2: '隐私担忧',
+    deleteReasonOption3: '找到了更好的替代方案',
+    deleteReasonOption4: '技术问题',
+    deleteReasonOther: '其他',
+    deleteReasonPlaceholder: '请告诉我们更多信息...',
+    deleteReasonNext: '下一步',
+    deleteReasonBack: '返回',
+    selectReasonError: '请选择原因或提供详细信息',
   },
 
   advancedSettings: {
@@ -300,5 +311,20 @@ export const zh = {
     filterBy: '筛选方式',
     tryAdjusting: '尝试调整您的搜索或筛选条件',
     clearFilters: '清除筛选',
+  },
+
+  emailRestriction: {
+    title: '邮箱暂时受限',
+    message:
+      '由于最近删除了账户，此邮箱无法用于创建新账户。请稍后重试或使用其他邮箱。',
+    timeRemaining: '剩余时间：',
+    days: '天',
+    daysPlural: '天',
+    hours: '小时',
+    hoursPlural: '小时',
+    minutes: '分钟',
+    minutesPlural: '分钟',
+    seconds: '秒',
+    secondsPlural: '秒',
   },
 };

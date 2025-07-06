@@ -205,6 +205,18 @@ export const de = {
       'Tippen Sie auf das Kamera-Symbol, um ein Profilbild hochzuladen',
     cancelAccountDelete: 'Kontolöschung abbrechen',
     confirmAccountDelete: 'Kontolöschung bestätigen',
+    deleteReasonTitle: 'Warum löschen Sie Ihr Konto?',
+    deleteReasonSubtitle:
+      'Helfen Sie uns uns zu verbessern, indem Sie uns den Grund mitteilen',
+    deleteReasonOption1: 'Verwende die App nicht mehr',
+    deleteReasonOption2: 'Datenschutzbedenken',
+    deleteReasonOption3: 'Bessere Alternative gefunden',
+    deleteReasonOption4: 'Technische Probleme',
+    deleteReasonOther: 'Andere',
+    deleteReasonPlaceholder: 'Bitte erzählen Sie uns mehr...',
+    deleteReasonNext: 'Weiter',
+    deleteReasonBack: 'Zurück',
+    selectReasonError: 'Bitte wählen Sie einen Grund oder geben Sie Details an',
   },
 
   advancedSettings: {
@@ -318,5 +330,20 @@ export const de = {
     filterBy: 'Filtern nach',
     tryAdjusting: 'Versuchen Sie, Ihre Suche oder Filter anzupassen',
     clearFilters: 'Filter löschen',
+  },
+
+  emailRestriction: {
+    title: 'E-Mail vorübergehend gesperrt',
+    message:
+      'Diese E-Mail kann aufgrund einer kürzlichen Kontolöschung nicht für die Erstellung eines neuen Kontos verwendet werden. Bitte versuchen Sie es später erneut oder verwenden Sie eine andere E-Mail.',
+    timeRemaining: 'Verbleibende Zeit:',
+    days: 'Tag',
+    daysPlural: 'Tage',
+    hours: 'Stunde',
+    hoursPlural: 'Stunden',
+    minutes: 'Minute',
+    minutesPlural: 'Minuten',
+    seconds: 'Sekunde',
+    secondsPlural: 'Sekunden',
   },
 };

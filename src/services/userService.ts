@@ -293,12 +293,13 @@ const updateProfile = async (
 };
 
 /**
- * Marks a user account as deleted by calling the backend API and updating local storage.
+ * Deletes a user account by calling the backend API and clearing all local data.
  *
  * This function performs the following operations:
  * 1. Calls the backend API to delete the account with an optional reason
- * 2. Updates the local user data with a new timestamp
+ * 2. Clears all user data from local storage
  * 3. Removes the current user ID from encrypted storage
+ * 4. Sets the email restriction in local storage for 30 days
  *
  * @param userId - The unique identifier of the user account to delete
  * @param reason - Optional reason for account deletion to be sent to the backend
@@ -307,15 +308,19 @@ const updateProfile = async (
  *
  * @example
  * ```typescript
- * await markAccountAsDeleted('user123', 'User requested deletion');
+ * await deleteUserAccount('user123', 'User requested deletion');
  * ```
  */
-const markAccountAsDeleted = async (
+const deleteUserAccount = async (
   userId: string,
   reason?: string,
 ): Promise<void> => {
   try {
     console.log('Initiating account deletion process');
+
+    // Get user data to store email for restriction
+    const existingUser = await getUser(userId);
+    const userEmail = existingUser?.email;
 
     // Call the backend API endpoint using userAPI (token automatically added)
     const response = await userAPI.deleteAccount(reason);
@@ -324,23 +329,33 @@ const markAccountAsDeleted = async (
       throw new Error(response.data.message || 'Failed to delete account');
     }
 
-    // Update local storage to reflect deleted status immediately
-    const existingUser = await getUser(userId);
-    if (existingUser) {
-      const userWithDeletedFlag = {
-        ...existingUser,
-        updatedAt: new Date(),
-      };
+    // Set email restriction for 30 days if we have the user's email
+    if (userEmail) {
+      const restrictionExpiry = new Date();
+      restrictionExpiry.setDate(restrictionExpiry.getDate() + 30);
 
-      await saveUser(userWithDeletedFlag);
+      await EncryptedStorage.setItem(
+        `email_restriction_${userEmail.toLowerCase()}`,
+        JSON.stringify({
+          email: userEmail.toLowerCase(),
+          deletedAt: new Date().toISOString(),
+          expiresAt: restrictionExpiry.toISOString(),
+          reason: reason || 'Account deletion',
+        }),
+      );
+
+      console.log(
+        `Email restriction set for ${userEmail} until ${restrictionExpiry.toISOString()}`,
+      );
     }
 
-    // Clear current user ID from local storage
+    // Clear all user data from local storage
+    await EncryptedStorage.removeItem(`user_${userId}`);
     await EncryptedStorage.removeItem('currentUserId');
 
-    console.log('Account successfully marked as deleted through API');
+    console.log('Account successfully deleted and all data cleared');
   } catch (error) {
-    console.error('Error marking account as deleted:', error);
+    console.error('Error deleting account:', error);
     throw error;
   }
 };
@@ -494,6 +509,9 @@ const getCurrentUserId = async (): Promise<string | null> => {
  *   - `isAvailable`: Boolean indicating if the email is available
  *   - `message`: Optional message with additional details
  *   - `expiresAt`: Optional expiration date for email restrictions
+ *   - `daysRemaining`: Optional number of days remaining in restriction
+ *   - `hoursRemaining`: Optional number of hours remaining in restriction
+ *   - `minutesRemaining`: Optional number of minutes remaining in restriction
  *
  * @throws {Error} When there's no internet connection or other network errors occur
  *
@@ -513,8 +531,25 @@ const checkEmailAvailability = async (
   isAvailable: boolean;
   message?: string;
   expiresAt?: Date;
+  daysRemaining?: number;
+  hoursRemaining?: number;
+  minutesRemaining?: number;
 }> => {
   try {
+    // First check local email restrictions
+    const localRestriction = await checkEmailRestriction(email);
+    if (localRestriction.isRestricted) {
+      return {
+        isAvailable: false,
+        message:
+          'This email cannot be used to create a new account due to a recent account deletion. Please try again later or use a different email.',
+        expiresAt: localRestriction.expiresAt,
+        daysRemaining: localRestriction.daysRemaining,
+        hoursRemaining: localRestriction.hoursRemaining,
+        minutesRemaining: localRestriction.minutesRemaining,
+      };
+    }
+
     const netInfo = await NetInfo.fetch();
     if (!netInfo.isConnected) {
       throw new Error('No internet connection available');
@@ -546,15 +581,107 @@ const checkEmailAvailability = async (
   }
 };
 
+/**
+ * Checks if an email is restricted due to recent account deletion.
+ *
+ * @param email - The email address to check for restrictions
+ * @returns A promise that resolves to an object containing:
+ *   - `isRestricted`: Boolean indicating if the email is restricted
+ *   - `expiresAt`: Date when the restriction expires (if restricted)
+ *   - `daysRemaining`: Number of days remaining in the restriction
+ *   - `hoursRemaining`: Number of hours remaining in the restriction
+ *   - `minutesRemaining`: Number of minutes remaining in the restriction
+ *
+ * @example
+ * ```typescript
+ * const restriction = await checkEmailRestriction("user@example.com");
+ * if (restriction.isRestricted) {
+ *   console.log(`Email restricted for ${restriction.daysRemaining} more days`);
+ * }
+ * ```
+ */
+const checkEmailRestriction = async (
+  email: string,
+): Promise<{
+  isRestricted: boolean;
+  expiresAt?: Date;
+  daysRemaining?: number;
+  hoursRemaining?: number;
+  minutesRemaining?: number;
+}> => {
+  try {
+    const restrictionData = await EncryptedStorage.getItem(
+      `email_restriction_${email.toLowerCase()}`,
+    );
+
+    if (!restrictionData) {
+      return {isRestricted: false};
+    }
+
+    const restriction = JSON.parse(restrictionData);
+    const expiresAt = new Date(restriction.expiresAt);
+    const now = new Date();
+
+    if (now >= expiresAt) {
+      // Restriction has expired, remove it
+      await EncryptedStorage.removeItem(
+        `email_restriction_${email.toLowerCase()}`,
+      );
+      return {isRestricted: false};
+    }
+
+    // Calculate remaining time
+    const timeDiff = expiresAt.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    const hoursRemaining = Math.ceil(timeDiff / (1000 * 60 * 60));
+    const minutesRemaining = Math.ceil(timeDiff / (1000 * 60));
+
+    return {
+      isRestricted: true,
+      expiresAt,
+      daysRemaining,
+      hoursRemaining,
+      minutesRemaining,
+    };
+  } catch (error) {
+    console.error('Error checking email restriction:', error);
+    return {isRestricted: false};
+  }
+};
+
+/**
+ * Removes an email restriction from local storage.
+ *
+ * @param email - The email address to remove restrictions for
+ * @returns A promise that resolves when the restriction is removed
+ *
+ * @example
+ * ```typescript
+ * await removeEmailRestriction("user@example.com");
+ * ```
+ */
+const removeEmailRestriction = async (email: string): Promise<void> => {
+  try {
+    await EncryptedStorage.removeItem(
+      `email_restriction_${email.toLowerCase()}`,
+    );
+    console.log(`Email restriction removed for ${email}`);
+  } catch (error) {
+    console.error('Error removing email restriction:', error);
+  }
+};
+
 const userService = {
   saveUser,
   getUser,
   updateProfile,
-  markAccountAsDeleted,
+  deleteUserAccount,
   clearCurrentUserData,
   checkQuota,
   isOffline,
   getCurrentUserId,
   checkEmailAvailability,
+  checkEmailRestriction,
+  removeEmailRestriction,
 };
 export default userService;

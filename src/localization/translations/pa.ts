@@ -205,6 +205,18 @@ export const pa = {
     tapCamera: 'ਆਪਣੀ ਫੋਟੋ ਅਪਲੋਡ ਕਰਨ ਲਈ ਕੈਮਰਾ ਆਈਕਨ ਤੇ ਟੈਪ ਕਰੋ',
     cancelAccountDelete: 'ਖਾਤਾ ਮਿਟਾਉਣਾ ਰੱਦ ਕਰੋ',
     confirmAccountDelete: 'ਮਿਟਾਓ',
+    deleteReasonTitle: 'ਤੁਸੀਂ ਆਪਣਾ ਖਾਤਾ ਕਿਉਂ ਮਿਟਾ ਰਹੇ ਹੋ?',
+    deleteReasonSubtitle:
+      'ਸਾਨੂੰ ਬੇਹਤਰ ਬਣਾਉਣ ਵਿੱਚ ਮਦਦ ਕਰੋ ਇਹ ਦੱਸ ਕੇ ਕਿ ਤੁਸੀਂ ਕਿਉਂ ਜਾ ਰਹੇ ਹੋ',
+    deleteReasonOption1: 'ਹੁਣ ਐਪ ਦੀ ਵਰਤੋਂ ਨਹੀਂ ਕਰ ਰਿਹਾ',
+    deleteReasonOption2: 'ਗੁਪਤਤਾ ਦੀਆਂ ਚਿੰਤਾਵਾਂ',
+    deleteReasonOption3: 'ਬਿਹਤਰ ਵਿਕਲਪ ਮਿਲ ਗਿਆ',
+    deleteReasonOption4: 'ਤਕਨੀਕੀ ਸਮੱਸਿਆਵਾਂ',
+    deleteReasonOther: 'ਹੋਰ',
+    deleteReasonPlaceholder: 'ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਹੋਰ ਦੱਸੋ...',
+    deleteReasonNext: 'ਅਗਲਾ',
+    deleteReasonBack: 'ਵਾਪਸ',
+    selectReasonError: 'ਕਿਰਪਾ ਕਰਕੇ ਕੋਈ ਕਾਰਨ ਚੁਣੋ ਜਾਂ ਵੇਰਵੇ ਦਿਓ',
   },
 
   advancedSettings: {
@@ -314,5 +326,20 @@ export const pa = {
     filterBy: 'ਦੁਆਰਾ ਫਿਲਟਰ ਕਰੋ',
     tryAdjusting: 'ਆਪਣੀ ਖੋਜ ਜਾਂ ਫਿਲਟਰ ਸਮਾਯੋਜਿਤ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ',
     clearFilters: 'ਫਿਲਟਰ ਸਾਫ਼ ਕਰੋ',
+  },
+
+  emailRestriction: {
+    title: "ਈਮੇਲ ਅਸਥਾਈ ਤੌਰ 'ਤੇ ਪ੍ਰਤਿਬੰਧਿਤ",
+    message:
+      'ਹਾਲ ਹੀ ਵਿੱਚ ਖਾਤਾ ਮਿਟਾਉਣ ਕਾਰਨ ਇਸ ਈਮੇਲ ਦਾ ਨਵਾਂ ਖਾਤਾ ਬਣਾਉਣ ਲਈ ਵਰਤੋਂ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ। ਕਿਰਪਾ ਕਰਕੇ ਬਾਅਦ ਵਿੱਚ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਕੋਈ ਵੱਖਰੀ ਈਮੇਲ ਵਰਤੋ।',
+    timeRemaining: 'ਬਾਕੀ ਸਮਾਂ:',
+    days: 'ਦਿਨ',
+    daysPlural: 'ਦਿਨ',
+    hours: 'ਘੰਟਾ',
+    hoursPlural: 'ਘੰਟੇ',
+    minutes: 'ਮਿੰਟ',
+    minutesPlural: 'ਮਿੰਟ',
+    seconds: 'ਸਕਿੰਟ',
+    secondsPlural: 'ਸਕਿੰਟ',
   },
 };

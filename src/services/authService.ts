@@ -8,21 +8,20 @@ import {authAPI} from './axiosServer';
 import {notificationService} from './notificationService';
 
 /**
- * Authenticates a user using Google ID token with API-first approach and Firebase fallback.
+ * Authenticates a user using Google ID token with server-only approach.
  *
  * This function implements a robust authentication flow that:
  * 1. Checks network connectivity
  * 2. Creates Firebase Google credential from the provided token
  * 3. Signs in with Firebase to obtain ID token for server authentication
  * 4. Authenticates with the server API using Firebase ID token
- * 5. Falls back to Firebase-only authentication on network/server errors
- * 6. Stores authentication token locally and handles notification service login
+ * 5. Stores authentication token locally and handles notification service login
  *
  * @param googleIdToken - The Google ID token obtained from Google Sign-In
  * @returns Promise that resolves to authenticated User object with profile, quota, and statistics
  *
  * @throws {Error} When no internet connection is available
- * @throws {Error} When authentication fails on both server and Firebase fallback
+ * @throws {Error} When authentication fails
  * @throws {Error} With specialized errorType property for email restrictions and other specific errors
  *
  * @example
@@ -39,7 +38,7 @@ import {notificationService} from './notificationService';
  */
 const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
   if (__DEV__) {
-    console.log('Starting Google sign-in flow with API-first approach');
+    console.log('Starting Google sign-in flow with server authentication');
   }
 
   try {
@@ -49,7 +48,7 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
       throw new Error('No internet connection available');
     }
 
-    // 2. Create a Google credential with the token for Firebase backup
+    // 2. Create a Google credential with the token
     const googleCredential = auth.GoogleAuthProvider.credential(googleIdToken);
 
     // 3. Sign in with Firebase to get Firebase ID token (for server authentication)
@@ -62,8 +61,26 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
 
     // 4. Authenticate with our server using Firebase ID token
     const response = await authAPI.googleAuth(firebaseIdToken);
-
     if (response.data.success) {
+      // Check if this is a restriction-only response (no profile data)
+      if (response.data.emailRestrictionExpiresAt && !response.data.profile) {
+        // User is restricted, create and throw a restriction error
+        const restrictionError = new Error(
+          'This email cannot be used to create a new account due to a recent account deletion.',
+        );
+        (restrictionError as any).errorType = 'EMAIL_RESTRICTION';
+        (restrictionError as any).emailRestrictionExpiresAt = new Date(
+          response.data.emailRestrictionExpiresAt,
+        );
+        throw restrictionError;
+      }
+
+      // Ensure we have profile data for normal authentication
+      if (!response.data.profile) {
+        throw new Error('Invalid response: missing profile data');
+      }
+
+      // Normal successful authentication
       const apiUser = response.data.profile;
       const authenticatedUser: User = {
         uid: response.data.uid,
@@ -116,24 +133,6 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
   } catch (error: any) {
     console.error('Google auth error:', error);
 
-    // Check if this is a network or server error - provide fallback
-    if (
-      error.code === 'auth/network-request-failed' ||
-      error.message?.includes('Network Error')
-    ) {
-      // Fallback to Firebase-only authentication when server is unreachable
-      if (__DEV__) {
-        console.log('Network error, falling back to Firebase-only auth');
-      }
-
-      const user = await handleFailedGoogleSignIn();
-      if (!user) {
-        throw new Error('Failed to authenticate user');
-      }
-
-      return user;
-    }
-
     // Format the error message for better UX
     let errorMessage = 'Authentication failed';
     let errorType = 'GENERAL_ERROR';
@@ -146,6 +145,18 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
       errorMessage = error.message
         .replace('Firebase: ', '')
         .replace(/\(auth.*\)\.?/, '');
+    }
+
+    // Preserve existing error properties if available
+    if (error.errorType) {
+      errorType = error.errorType;
+    }
+    if (error.emailRestrictionExpiresAt) {
+      const authError = new Error(errorMessage);
+      (authError as any).errorType = errorType;
+      (authError as any).emailRestrictionExpiresAt =
+        error.emailRestrictionExpiresAt;
+      throw authError;
     }
 
     // Create a specialized error for email restrictions
@@ -214,62 +225,6 @@ const verifyToken = async (token: string): Promise<boolean> => {
   } catch (error) {
     console.error('Token verification failed:', error);
     return false;
-  }
-};
-
-/**
- * Handles failed Google sign-in attempts by attempting to retrieve the current Firebase user as a fallback.
- *
- * This function is called when the primary Google sign-in process fails, and it tries to create
- * a User object from the currently authenticated Firebase user if one exists. The returned user
- * will have default values for quota and statistics.
- *
- * @returns A Promise that resolves to a User object if a current Firebase user exists,
- *          or null if no user is found or an error occurs
- *
- * @example
- * ```typescript
- * const fallbackUser = await handleFailedGoogleSignIn();
- * if (fallbackUser) {
- *   console.log('Fallback user found:', fallbackUser.email);
- * } else {
- *   console.log('No fallback user available');
- * }
- * ```
- */
-const handleFailedGoogleSignIn = async (): Promise<User | null> => {
-  try {
-    // Try to get current Firebase user as fallback
-    const currentUser = auth().currentUser;
-    if (currentUser) {
-      return {
-        uid: currentUser.uid,
-        email: currentUser.email || '',
-        profile: {
-          username: currentUser.displayName || '',
-          avatar: currentUser.photoURL || '',
-          bio: '',
-        },
-        createdAt: new Date(
-          currentUser.metadata.creationTime || new Date().toISOString(),
-        ),
-        updatedAt: new Date(),
-        planType: 'free',
-        quota: {
-          imagesRemaining: 0,
-        },
-        statistics: {
-          lastLoginAt: new Date(),
-          totalLogins: 1,
-          imagesGenerated: 0,
-        },
-      };
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Failed to handle Google sign-in fallback:', error);
-    return null;
   }
 };
 
@@ -359,7 +314,6 @@ const authService = {
   signOut,
   getCurrentUserIdToken,
   verifyToken,
-  handleFailedGoogleSignIn,
 };
 
 export default authService;

@@ -196,6 +196,17 @@ export const ar = {
     tapCamera: 'انقر على أيقونة الكاميرا لرفع صورة شخصية',
     cancelAccountDelete: 'إلغاء حذف الحساب',
     confirmAccountDelete: 'تأكيد حذف الحساب',
+    deleteReasonTitle: 'لماذا تحذف حسابك؟',
+    deleteReasonSubtitle: 'ساعدنا في التحسن بإعلامنا سبب المغادرة',
+    deleteReasonOption1: 'لم أعد أستخدم التطبيق',
+    deleteReasonOption2: 'مخاوف الخصوصية',
+    deleteReasonOption3: 'وجدت بديلاً أفضل',
+    deleteReasonOption4: 'مشاكل تقنية',
+    deleteReasonOther: 'أخرى',
+    deleteReasonPlaceholder: 'يرجى إخبارنا المزيد...',
+    deleteReasonNext: 'التالي',
+    deleteReasonBack: 'رجوع',
+    selectReasonError: 'يرجى اختيار سبب أو تقديم تفاصيل',
   },
 
   advancedSettings: {
@@ -304,5 +315,20 @@ export const ar = {
     filterBy: 'تصفية حسب',
     tryAdjusting: 'حاول تعديل البحث أو المرشحات',
     clearFilters: 'مسح المرشحات',
+  },
+
+  emailRestriction: {
+    title: 'البريد الإلكتروني مقيد مؤقتاً',
+    message:
+      'لا يمكن استخدام هذا البريد الإلكتروني لإنشاء حساب جديد بسبب حذف حساب حديث. يرجى المحاولة مرة أخرى لاحقاً أو استخدام بريد إلكتروني مختلف.',
+    timeRemaining: 'الوقت المتبقي:',
+    days: 'يوم',
+    daysPlural: 'أيام',
+    hours: 'ساعة',
+    hoursPlural: 'ساعات',
+    minutes: 'دقيقة',
+    minutesPlural: 'دقائق',
+    seconds: 'ثانية',
+    secondsPlural: 'ثوان',
   },
 };

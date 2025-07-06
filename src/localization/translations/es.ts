@@ -205,6 +205,17 @@ export const es = {
     tapCamera: 'Toca el ícono de cámara para subir una foto de perfil',
     cancelAccountDelete: 'Cancelar Eliminación de Cuenta',
     confirmAccountDelete: 'Confirmar Eliminación de Cuenta',
+    deleteReasonTitle: '¿Por qué eliminas tu cuenta?',
+    deleteReasonSubtitle: 'Ayúdanos a mejorar contándonos por qué te vas',
+    deleteReasonOption1: 'Ya no uso la aplicación',
+    deleteReasonOption2: 'Problemas de privacidad',
+    deleteReasonOption3: 'Encontré una mejor alternativa',
+    deleteReasonOption4: 'Problemas técnicos',
+    deleteReasonOther: 'Otro',
+    deleteReasonPlaceholder: 'Por favor cuéntanos más...',
+    deleteReasonNext: 'Siguiente',
+    deleteReasonBack: 'Atrás',
+    selectReasonError: 'Por favor selecciona una razón o proporciona detalles',
   },
 
   advancedSettings: {
@@ -316,5 +327,20 @@ export const es = {
     medium: 'Mediano',
     large: 'Grande',
     more: 'más',
+  },
+
+  emailRestriction: {
+    title: 'Email Temporalmente Restringido',
+    message:
+      'Este email no puede ser usado para crear una nueva cuenta debido a una eliminación reciente de cuenta. Por favor intenta de nuevo más tarde o usa un email diferente.',
+    timeRemaining: 'Tiempo restante:',
+    days: 'día',
+    daysPlural: 'días',
+    hours: 'hora',
+    hoursPlural: 'horas',
+    minutes: 'minuto',
+    minutesPlural: 'minutos',
+    seconds: 'segundo',
+    secondsPlural: 'segundos',
   },
 };

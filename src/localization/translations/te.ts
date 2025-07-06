@@ -205,6 +205,18 @@ export const te = {
     tapCamera: 'ప్రొఫైల్ ఫోటోను అప్‌లోడ్ చేయడానికి కెమెరా చిహ్నాన్ని నొక్కండి',
     cancelAccountDelete: 'ఖాతా తొలగింపును రద్దు చేయండి',
     confirmAccountDelete: 'ఖాతా తొలగింపును నిర్ధారించండి',
+    deleteReasonTitle: 'మీరు మీ ఖాతాను ఎందుకు తొలగిస్తున్నారు?',
+    deleteReasonSubtitle:
+      'మీరు ఎందుకు వెళ్లిపోతున్నారో చెప్పి మాకు మెరుగుపడటంలో సహాయపడండి',
+    deleteReasonOption1: 'ఇకపై యాప్‌ను ఉపయోగించడం లేదు',
+    deleteReasonOption2: 'గోప్యతా ఆందోళనలు',
+    deleteReasonOption3: 'మెరుగైన ప్రత్యామ్నాయం దొరికింది',
+    deleteReasonOption4: 'సాంకేతిక సమస్యలు',
+    deleteReasonOther: 'ఇతర',
+    deleteReasonPlaceholder: 'దయచేసి మాకు మరింత చెప్పండి...',
+    deleteReasonNext: 'తదుపరి',
+    deleteReasonBack: 'వెనుకకు',
+    selectReasonError: 'దయచేసి ఒక కారణాన్ని ఎంచుకోండి లేదా వివరాలను అందించండి',
   },
 
   advancedSettings: {
@@ -321,5 +333,20 @@ export const te = {
     filterBy: 'ద్వారా ఫిల్టర్ చేయండి',
     tryAdjusting: 'మీ శోధన లేదా ఫిల్టర్లను సర్దుబాటు చేయడానికి ప్రయత్నించండి',
     clearFilters: 'ఫిల్టర్లను క్లియర్ చేయండి',
+  },
+
+  emailRestriction: {
+    title: 'ఇమెయిల్ తాత్కాలికంగా పరిమితం చేయబడింది',
+    message:
+      'ఇటీవలి ఖాతా తొలగింపు కారణంగా ఈ ఇమెయిల్ కొత్త ఖాతాను సృష్టించడానికి ఉపయోగించలేదు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి లేదా వేరే ఇమెయిల్ను ఉపయోగించండి.',
+    timeRemaining: 'మిగిలిన సమయం:',
+    days: 'రోజు',
+    daysPlural: 'రోజులు',
+    hours: 'గంట',
+    hoursPlural: 'గంటలు',
+    minutes: 'నిమిషం',
+    minutesPlural: 'నిమిషాలు',
+    seconds: 'సెకను',
+    secondsPlural: 'సెకన్లు',
   },
 };
