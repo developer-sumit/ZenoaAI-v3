@@ -265,7 +265,21 @@ export const de = {
         message:
           'Geben Sie an, was Sie NICHT in Ihrem Bild haben möchten. Dies hilft, unerwünschte Elemente wie zusätzliche Gliedmaßen, verzerrte Gesichter oder spezifische Objekte zu vermeiden, die sonst im generierten Bild erscheinen könnten.',
       },
+      privacy: {
+        title: 'Datenschutzeinstellungen',
+        message:
+          'Wenn aktiviert, sind Ihre generierten Bilder privat und nur für Sie sichtbar. Diese Funktion ist für Pro- und Enterprise-Benutzer verfügbar. Bilder von kostenlosen Plan-Benutzern sind immer öffentlich und werden mit der Community geteilt.',
+      },
     },
+    privacy: 'Datenschutzeinstellungen',
+    privateImages: 'Private Bilder',
+    upgradeToMakePrivate: 'Auf Pro upgraden, um Bilder privat zu machen',
+    imagesWillBePrivate:
+      'Neue Bilder werden privat sein und nicht mit der Community geteilt',
+    imagesWillBePublic:
+      'Neue Bilder werden standardmäßig mit der Community geteilt',
+    turnOnPrivateHint: 'Private Bilder standardmäßig aktivieren',
+    turnOffPrivateHint: 'Private Bilder standardmäßig deaktivieren',
   },
 
   common: {

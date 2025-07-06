@@ -28,6 +28,7 @@ import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
 import {useStrings} from '@src/hooks/useStrings';
 import {useTheme} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {ArtStyleType, ImageSize, AspectRatio} from '@src/types/image';
 import InfoDialog from '@src/components/InfoDialog';
@@ -63,8 +64,8 @@ interface AdvancedSettingsScreenProps {
       setSeed: (value: string) => void;
       negativePrompt: string;
       setNegativePrompt: (value: string) => void;
-      imagesPrivateByDefault?: boolean;
-      setImagesPrivateByDefault?: (value: boolean) => void;
+      isImagePrivate?: boolean;
+      setIsImagePrivate?: (value: boolean) => void;
       engine?: 'quantum' | 'nebula';
       setEngine?: (engine: 'quantum' | 'nebula') => void;
       guidance?: number;
@@ -406,6 +407,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const navigation = useNavigation();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
+  const {user} = useAuthStore();
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
@@ -424,6 +426,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [localSeed, setLocalSeed] = useState<string>(params.seed);
   const [localNegativePrompt, setLocalNegativePrompt] = useState<string>(
     params.negativePrompt,
+  );
+  const [localIsImagePrivate, setLocalIsImagePrivate] = useState<boolean>(
+    params.isImagePrivate !== undefined ? params.isImagePrivate : true,
   );
 
   // Add new local state for advanced settings
@@ -482,6 +487,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     setLocalSeed(params.seed);
     setLocalNegativePrompt(params.negativePrompt); // Sync new parameters
     setLocalEngine(params.engine || 'quantum');
+    setLocalIsImagePrivate(
+      params.isImagePrivate !== undefined ? params.isImagePrivate : true,
+    );
   }, [params]);
 
   // Split art styles into initial and selected that aren't in initial
@@ -676,56 +684,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 setArtStylesDialogVisible(true);
               }}
             />
-          </View>
-
-          {/* Quality Toggle */}
-          <View
-            className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: theme.surface}}>
-            <SectionHeader
-              title={strings.advancedSettings.featureInfo.quality.title}
-              showInfoDialog={() => showInfoDialog('quality')}
-              theme={theme}
-            />
-
-            <View className="flex-row justify-between items-center py-2">
-              <View>
-                <Text style={{color: theme.text}} className="text-lg">
-                  {strings.advancedSettings.premiumImages}
-                </Text>
-                <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {strings.advancedSettings.generateHigherQualityImages}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                className="w-14 h-8 rounded-full p-1.5"
-                style={{
-                  backgroundColor:
-                    localQuality === 50 ? theme.primary : '#cbd5e1',
-                }}
-                onPress={() => {
-                  triggerHaptic('selection');
-                  LayoutAnimation.spring();
-                  const newQuality = localQuality === 50 ? 25 : 50;
-                  setLocalQuality(newQuality);
-                  params.setQuality(newQuality);
-                }}
-                accessible={true}
-                accessibilityLabel={
-                  localQuality === 50
-                    ? strings.advancedSettings.turnOffPremiumHint
-                    : strings.advancedSettings.turnOnPremiumHint
-                }
-                accessibilityRole="switch"
-                accessibilityState={{checked: localQuality === 50}}>
-                <View
-                  className={`w-5 h-5 rounded-full bg-white ${
-                    localQuality === 50 ? 'ml-6' : 'ml-0'
-                  }`}
-                />
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Batch Count */}
@@ -943,6 +901,127 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   ),
                 )}
               </View>
+            </View>
+          </View>
+
+          {/* Privacy Settings */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: theme.surface}}>
+            <SectionHeader
+              title={strings.advancedSettings.privacy}
+              showInfoDialog={() => showInfoDialog('privacy')}
+              theme={theme}
+            />
+            <View className="flex-row justify-between items-center py-2">
+              <View className="flex-1 mr-4">
+                <View className="flex-row items-center">
+                  <Text style={{color: theme.text}} className="text-lg">
+                    {strings.advancedSettings.privateImages}
+                  </Text>
+                  {user?.planType === 'free' && (
+                    <View className="ml-2 bg-yellow-500 px-2 py-1 rounded-full">
+                      <Text className="text-yellow-900 text-xs font-medium">
+                        Pro Only
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{color: theme.secondaryText}} className="text-xs">
+                  {user?.planType === 'free'
+                    ? strings.advancedSettings.upgradeToMakePrivate
+                    : localIsImagePrivate
+                    ? strings.advancedSettings.imagesWillBePrivate
+                    : strings.advancedSettings.imagesWillBePublic}
+                </Text>
+              </View>
+              <TouchableOpacity
+                className="w-14 h-8 rounded-full p-1.5"
+                style={{
+                  backgroundColor:
+                    localIsImagePrivate && user?.planType !== 'free'
+                      ? theme.primary
+                      : '#cbd5e1',
+                }}
+                disabled={user?.planType === 'free'}
+                onPress={() => {
+                  if (user?.planType === 'free') {
+                    return;
+                  }
+                  triggerHaptic('selection');
+                  LayoutAnimation.spring();
+                  const newValue = !localIsImagePrivate;
+                  setLocalIsImagePrivate(newValue);
+                  if (params.setIsImagePrivate) {
+                    params.setIsImagePrivate(newValue);
+                  }
+                }}
+                accessible={true}
+                accessibilityLabel={
+                  localIsImagePrivate
+                    ? strings.advancedSettings.turnOffPrivateHint
+                    : strings.advancedSettings.turnOnPrivateHint
+                }
+                accessibilityRole="switch"
+                accessibilityState={{checked: localIsImagePrivate}}>
+                <View
+                  className={`w-5 h-5 rounded-full bg-white ${
+                    localIsImagePrivate && user?.planType !== 'free'
+                      ? 'ml-6'
+                      : 'ml-0'
+                  }`}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Quality Toggle */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: theme.surface}}>
+            <SectionHeader
+              title={strings.advancedSettings.featureInfo.quality.title}
+              showInfoDialog={() => showInfoDialog('quality')}
+              theme={theme}
+            />
+
+            <View className="flex-row justify-between items-center py-2">
+              <View>
+                <Text style={{color: theme.text}} className="text-lg">
+                  {strings.advancedSettings.premiumImages}
+                </Text>
+                <Text style={{color: theme.secondaryText}} className="text-xs">
+                  {strings.advancedSettings.generateHigherQualityImages}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                className="w-14 h-8 rounded-full p-1.5"
+                style={{
+                  backgroundColor:
+                    localQuality === 50 ? theme.primary : '#cbd5e1',
+                }}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  LayoutAnimation.spring();
+                  const newQuality = localQuality === 50 ? 25 : 50;
+                  setLocalQuality(newQuality);
+                  params.setQuality(newQuality);
+                }}
+                accessible={true}
+                accessibilityLabel={
+                  localQuality === 50
+                    ? strings.advancedSettings.turnOffPremiumHint
+                    : strings.advancedSettings.turnOnPremiumHint
+                }
+                accessibilityRole="switch"
+                accessibilityState={{checked: localQuality === 50}}>
+                <View
+                  className={`w-5 h-5 rounded-full bg-white ${
+                    localQuality === 50 ? 'ml-6' : 'ml-0'
+                  }`}
+                />
+              </TouchableOpacity>
             </View>
           </View>
 

@@ -263,7 +263,21 @@ export const pt = {
         message:
           'Especifique o que você NÃO quer na sua imagem. Isso ajuda a evitar elementos indesejados como membros extras, rostos distorcidos ou objetos específicos que poderiam aparecer na imagem gerada.',
       },
+      privacy: {
+        title: 'Configurações de Privacidade',
+        message:
+          'Quando ativado, suas imagens geradas serão privadas e visíveis apenas para você. Esta funcionalidade está disponível para usuários Pro e Enterprise. Imagens de usuários do plano gratuito são sempre públicas e compartilhadas com a comunidade.',
+      },
     },
+    privacy: 'Configurações de Privacidade',
+    privateImages: 'Imagens Privadas',
+    upgradeToMakePrivate: 'Atualize para Pro para tornar imagens privadas',
+    imagesWillBePrivate:
+      'Novas imagens serão privadas e não compartilhadas com a comunidade',
+    imagesWillBePublic:
+      'Novas imagens serão compartilhadas com a comunidade por padrão',
+    turnOnPrivateHint: 'Ativar imagens privadas por padrão',
+    turnOffPrivateHint: 'Desativar imagens privadas por padrão',
   },
 
   common: {

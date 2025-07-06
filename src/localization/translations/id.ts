@@ -264,7 +264,21 @@ export const id = {
         message:
           'Tentukan apa yang TIDAK Anda inginkan dalam gambar Anda. Ini membantu menghindari elemen yang tidak diinginkan seperti anggota tubuh ekstra, wajah terdistorsi, atau objek spesifik yang mungkin muncul dalam gambar yang dibuat.',
       },
+      privacy: {
+        title: 'Pengaturan Privasi',
+        message:
+          'Ketika diaktifkan, gambar yang Anda buat akan bersifat privat dan hanya dapat dilihat oleh Anda. Fitur ini tersedia untuk pengguna Pro dan Enterprise. Gambar pengguna paket gratis selalu bersifat publik dan dibagikan dengan komunitas.',
+      },
     },
+    privacy: 'Pengaturan Privasi',
+    privateImages: 'Gambar Privat',
+    upgradeToMakePrivate: 'Upgrade ke Pro untuk membuat gambar privat',
+    imagesWillBePrivate:
+      'Gambar baru akan bersifat privat dan tidak dibagikan dengan komunitas',
+    imagesWillBePublic:
+      'Gambar baru akan dibagikan dengan komunitas secara default',
+    turnOnPrivateHint: 'Aktifkan gambar privat secara default',
+    turnOffPrivateHint: 'Nonaktifkan gambar privat secara default',
   },
 
   common: {
