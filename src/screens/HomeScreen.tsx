@@ -79,6 +79,7 @@ const HomeScreen = () => {
   const [quality, setQuality] = React.useState(25);
   const [seed, setSeed] = React.useState('');
   const [negativePrompt, setNegativePrompt] = React.useState('');
+  const [isImagePrivate, setIsImagePrivate] = React.useState(false);
   const [selectedImage, setSelectedImage] =
     React.useState<GeneratedImage | null>(null);
 
@@ -208,7 +209,7 @@ const HomeScreen = () => {
         steps, // Use current steps setting
         seed: seed ? parseInt(seed, 10) : undefined,
         negativePrompt,
-        isPrivate: false,
+        isPrivate: isImagePrivate,
       };
 
       // Generate the batch using the store
@@ -781,6 +782,9 @@ const HomeScreen = () => {
                       negativePrompt,
                       setNegativePrompt: (value: string) =>
                         setNegativePrompt(value),
+                      isImagePrivate,
+                      setIsImagePrivate: (value: boolean) =>
+                        setIsImagePrivate(value),
                       // Add new parameters
                       engine,
                       setEngine: (eng: 'quantum' | 'nebula') => setEngine(eng),

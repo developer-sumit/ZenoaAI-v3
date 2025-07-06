@@ -265,9 +265,12 @@ export const hi = {
       },
     },
     privacy: 'गोपनीयता सेटिंग्स',
-    privateByDefault: 'डिफ़ॉल्ट रूप से निजी चित्र',
-    privateByDefaultDescription:
+    privateImages: 'निजी चित्र',
+    upgradeToMakePrivate: 'चित्रों को निजी बनाने के लिए Pro में अपग्रेड करें',
+    imagesWillBePrivate:
       'नए चित्र निजी होंगे और समुदाय में साझा नहीं किए जाएंगे',
+    imagesWillBePublic:
+      'नए चित्र डिफ़ॉल्ट रूप से समुदाय के साथ साझा किए जाएंगे',
     turnOnPrivateHint: 'डिफ़ॉल्ट रूप से निजी चित्र चालू करें',
     turnOffPrivateHint: 'डिफ़ॉल्ट रूप से निजी चित्र बंद करें',
   },

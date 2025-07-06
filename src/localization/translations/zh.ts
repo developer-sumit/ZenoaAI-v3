@@ -251,7 +251,19 @@ export const zh = {
         message:
           '指定您在图像中不想要的内容。这有助于避免不需要的元素，如多余的肢体、扭曲的面部或可能出现在生成图像中的特定物体。',
       },
+      privacy: {
+        title: '隐私设置',
+        message:
+          '启用后，您生成的图像将是私有的，只有您可以看到。此功能适用于Pro和Enterprise用户。免费计划用户的图像始终是公开的，并与社区分享。',
+      },
     },
+    privacy: '隐私设置',
+    privateImages: '私有图像',
+    upgradeToMakePrivate: '升级到Pro以使图像私有',
+    imagesWillBePrivate: '新图像将是私有的，不会与社区分享',
+    imagesWillBePublic: '新图像将默认与社区分享',
+    turnOnPrivateHint: '默认开启私有图像',
+    turnOffPrivateHint: '默认关闭私有图像',
   },
 
   common: {

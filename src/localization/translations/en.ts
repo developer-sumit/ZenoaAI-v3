@@ -259,11 +259,18 @@ export const en = {
         message:
           "Specify what you DON'T want in your image. This helps avoid unwanted elements like extra limbs, distorted faces, or specific objects that might otherwise appear in the generated image.",
       },
+      privacy: {
+        title: 'Privacy Settings',
+        message:
+          'When enabled, your generated images will be private and only visible to you. This feature is available for Pro and Enterprise users. Free plan users images are always public and shared with the community.',
+      },
     },
     privacy: 'Privacy Settings',
-    privateByDefault: 'Private Images by Default',
-    privateByDefaultDescription:
+    privateImages: 'Private Images',
+    upgradeToMakePrivate: 'Upgrade to Pro to make images private',
+    imagesWillBePrivate:
       'New images will be private and not shared to community',
+    imagesWillBePublic: 'New images will be shared to community by default',
     turnOnPrivateHint: 'Turn on private images by default',
     turnOffPrivateHint: 'Turn off private images by default',
   },

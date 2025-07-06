@@ -269,7 +269,21 @@ export const fr = {
         message:
           "Spécifiez ce que vous NE voulez PAS dans votre image. Cela aide à éviter les éléments indésirables comme les membres supplémentaires, les visages déformés, ou des objets spécifiques qui pourraient autrement apparaître dans l'image générée.",
       },
+      privacy: {
+        title: 'Paramètres de confidentialité',
+        message:
+          'Lorsque activé, vos images générées seront privées et visibles uniquement par vous. Cette fonctionnalité est disponible pour les utilisateurs Pro et Enterprise. Les images des utilisateurs du plan gratuit sont toujours publiques et partagées avec la communauté.',
+      },
     },
+    privacy: 'Paramètres de confidentialité',
+    privateImages: 'Images privées',
+    upgradeToMakePrivate: 'Passez à Pro pour rendre les images privées',
+    imagesWillBePrivate:
+      'Les nouvelles images seront privées et non partagées avec la communauté',
+    imagesWillBePublic:
+      'Les nouvelles images seront partagées avec la communauté par défaut',
+    turnOnPrivateHint: 'Activer les images privées par défaut',
+    turnOffPrivateHint: 'Désactiver les images privées par défaut',
   },
 
   community: {
