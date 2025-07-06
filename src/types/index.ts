@@ -134,6 +134,7 @@ export interface GeneratedImage {
   aspectRatio: string;
   negativePrompt?: string;
   isFavorite?: boolean;
+  favoriteCount?: number;
   isPrivate: boolean;
   createdAt: Date;
   userName: string;

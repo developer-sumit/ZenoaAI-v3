@@ -2,15 +2,20 @@ import React, {useEffect, useRef} from 'react';
 import {View, Text, Animated, Image} from 'react-native';
 
 import {useTheme} from '@src/store/themeStore';
+import {useHaptics} from '@src/hooks/useHaptics';
 import appConfig from '@src/config/app.config';
 
 const SplashScreen = () => {
   const {isDark, theme} = useTheme();
+  const {triggerHaptic} = useHaptics();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    // Trigger a subtle welcome haptic
+    triggerHaptic('light');
+
     // Staggered animation sequence
     Animated.sequence([
       Animated.parallel([
@@ -30,8 +35,11 @@ const SplashScreen = () => {
         duration: 600,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, []);
+    ]).start(() => {
+      // Success haptic when animation completes
+      triggerHaptic('success');
+    });
+  }, [fadeAnim, scaleAnim, slideAnim, triggerHaptic]);
 
   return (
     <View
@@ -110,7 +118,7 @@ const LoadingDots = ({color}: {color: string}) => {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
-
+  
   useEffect(() => {
     const animateDots = () => {
       const dotAnimation = (dot: Animated.Value, delay: number) =>
@@ -139,7 +147,7 @@ const LoadingDots = ({color}: {color: string}) => {
     };
 
     animateDots();
-  }, []);
+  }, [dot1, dot2, dot3]);
 
   return (
     <View className="flex-row items-center space-x-2">

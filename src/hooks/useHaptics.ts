@@ -1,4 +1,7 @@
-import {Platform, Vibration} from 'react-native';
+import {Platform} from 'react-native';
+import HapticFeedback, {
+  HapticFeedbackTypes,
+} from 'react-native-haptic-feedback';
 
 export type HapticFeedbackType =
   | 'light'
@@ -6,57 +9,89 @@ export type HapticFeedbackType =
   | 'heavy'
   | 'selection'
   | 'success'
-  | 'error';
+  | 'error'
+  | 'warning'
+  | 'rigid'
+  | 'soft';
 
 export const useHaptics = () => {
+  const hapticOptions = {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  };
+
   const triggerHaptic = (type: HapticFeedbackType = 'light') => {
-    if (Platform.OS === 'ios') {
+    try {
       switch (type) {
         case 'light':
-          Vibration.vibrate(20);
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.impactLight,
+            hapticOptions,
+          );
           break;
         case 'medium':
-          Vibration.vibrate(50);
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.impactMedium,
+            hapticOptions,
+          );
           break;
         case 'heavy':
-          Vibration.vibrate(100);
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.impactHeavy,
+            hapticOptions,
+          );
           break;
         case 'selection':
-          Vibration.vibrate(10);
+          HapticFeedback.trigger(HapticFeedbackTypes.selection, hapticOptions);
           break;
         case 'success':
-          Vibration.vibrate([0, 20, 50, 20]);
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.notificationSuccess,
+            hapticOptions,
+          );
           break;
         case 'error':
-          Vibration.vibrate([0, 50, 100, 50]);
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.notificationError,
+            hapticOptions,
+          );
+          break;
+        case 'warning':
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.notificationWarning,
+            hapticOptions,
+          );
+          break;
+        case 'rigid':
+          if (Platform.OS === 'ios') {
+            HapticFeedback.trigger(HapticFeedbackTypes.rigid, hapticOptions);
+          } else {
+            HapticFeedback.trigger(
+              HapticFeedbackTypes.impactHeavy,
+              hapticOptions,
+            );
+          }
+          break;
+        case 'soft':
+          if (Platform.OS === 'ios') {
+            HapticFeedback.trigger(HapticFeedbackTypes.soft, hapticOptions);
+          } else {
+            HapticFeedback.trigger(
+              HapticFeedbackTypes.impactLight,
+              hapticOptions,
+            );
+          }
           break;
         default:
-          Vibration.vibrate(20);
+          HapticFeedback.trigger(
+            HapticFeedbackTypes.impactLight,
+            hapticOptions,
+          );
+          break;
       }
-    } else {
-      // Android
-      switch (type) {
-        case 'light':
-          Vibration.vibrate(25);
-          break;
-        case 'medium':
-          Vibration.vibrate(50);
-          break;
-        case 'heavy':
-          Vibration.vibrate(100);
-          break;
-        case 'selection':
-          Vibration.vibrate(15);
-          break;
-        case 'success':
-          Vibration.vibrate([0, 30, 60, 30]);
-          break;
-        case 'error':
-          Vibration.vibrate([0, 60, 120, 60]);
-          break;
-        default:
-          Vibration.vibrate(25);
-      }
+    } catch (error) {
+      // Fallback for when haptic feedback is not available
+      console.warn('Haptic feedback not available:', error);
     }
   };
 

@@ -17,6 +17,8 @@ import {useTheme} from '@src/store/themeStore';
 import appConfig from '@src/config/app.config';
 import {useAuthStore} from '@src/store/authStore';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
 import LanguageSelector from '@src/components/LanguageSelector';
 import authService from '@src/services/authService';
 
@@ -30,29 +32,62 @@ const LoginScreen = () => {
   const {isDark, theme} = useTheme();
   const {login} = useAuthStore();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
   const [signingIn, setSigningIn] = React.useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const buttonScale = React.useRef(new Animated.Value(1)).current;
+  const logoScale = React.useRef(new Animated.Value(0.8)).current;
   const languageSelectorRef = React.useRef<{openModal: () => void}>(null);
 
   React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    // Logo entrance animation
+    Animated.sequence([
+      Animated.spring(logoScale, {
         toValue: 1,
-        duration: 1000,
+        tension: 100,
+        friction: 8,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim, logoScale]);
+
+  const handleLanguagePress = () => {
+    triggerHaptic('selection');
+    languageSelectorRef.current?.openModal();
+  };
+
+  const handleTermsPress = () => {
+    triggerHaptic('light');
+    Linking.openURL(urls.termsOfService);
+  };
+
+  const handlePrivacyPress = () => {
+    triggerHaptic('light');
+    Linking.openURL(urls.privacyPolicy);
+  };
 
   const handleGoogleSignIn = async () => {
     try {
+      triggerHaptic('light');
       setSigningIn(true);
+
+      // Button press animation
+      animatePress(buttonScale, 150);
 
       // Check if Play Services is available
       await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
@@ -61,6 +96,7 @@ const LoginScreen = () => {
       const {data} = await GoogleSignin.signIn();
 
       if (!data?.idToken) {
+        triggerHaptic('error');
         showToast(strings.auth.signInFailed, 'error');
         throw new Error('Failed to get ID token from Google Sign-In');
       }
@@ -74,12 +110,14 @@ const LoginScreen = () => {
       // Store the user data in your app state
       await login(userData);
 
+      triggerHaptic('success');
       showToast(strings.auth.signInSuccessful, 'success');
     } catch (error: any) {
       console.error('Sign-in error:', error);
 
       // Check for email restriction error first
       if ((error as any).errorType === 'EMAIL_RESTRICTION') {
+        triggerHaptic('error');
         showToast(
           error.message ||
             'This email cannot be used due to a recent account deletion.',
@@ -94,11 +132,13 @@ const LoginScreen = () => {
         error.message?.includes('Network Error') ||
         error.message?.includes('network request failed')
       ) {
+        triggerHaptic('warning');
         showToast(
           'Network connection issue. Please check your internet connection.',
           'error',
         );
       } else {
+        triggerHaptic('error');
         showToast(strings.auth.signInFailed, 'error');
       }
 
@@ -107,6 +147,7 @@ const LoginScreen = () => {
       if (fallbackUser) {
         console.log('Using fallback authentication method');
         await login(fallbackUser);
+        triggerHaptic('warning');
         showToast('Signed in with limited functionality', 'info');
       }
     } finally {
@@ -128,7 +169,7 @@ const LoginScreen = () => {
         className="absolute self-center mt-6 z-10 rounded-full px-1.5 pl-3"
         style={{backgroundColor: theme.surface}}>
         <TouchableOpacity
-          onPress={() => languageSelectorRef.current?.openModal()}
+          onPress={handleLanguagePress}
           className="flex-row rounded-full items-center justify-center"
           accessible={true}
           accessibilityLabel={strings.settings.language}
@@ -142,7 +183,9 @@ const LoginScreen = () => {
         className="flex-1 justify-center items-center p-8"
         style={{opacity: fadeAnim, transform: [{translateY: slideAnim}]}}>
         {/* App Logo/Title */}
-        <View className="items-center mb-16">
+        <Animated.View
+          className="items-center mb-16"
+          style={{transform: [{scale: logoScale}]}}>
           <SparklesIcon
             size={64}
             color={theme.primary}
@@ -158,34 +201,35 @@ const LoginScreen = () => {
             style={{color: theme.secondaryText}}>
             {strings.auth.createAmazingImages}
           </Text>
-        </View>
+        </Animated.View>
 
         {/* Sign In Options */}
         <View className="w-full max-w-[370px]">
           {/* Google Sign-In Button */}
-          <TouchableOpacity
-            onPress={handleGoogleSignIn}
-            disabled={signingIn}
-            style={{
-              backgroundColor: theme.surface,
-              opacity: signingIn ? 0.7 : 1,
-            }}
-            className="flex-row items-center justify-center p-4 rounded-2xl mb-4 shadow-xl"
-            accessible={true}
-            accessibilityLabel={strings.auth.continueWithGoogle}
-            accessibilityHint={strings.auth.continueWithGoogleHint}
-            accessibilityState={{disabled: signingIn}}>
-            {signingIn ? (
-              <ActivityIndicator size="small" color={theme.primary} />
-            ) : (
-              <>
-                <GoogleLogoIcon size={24} color={theme.text} />
-                <Text style={{color: theme.text}} className="ml-3 text-lg">
-                  {strings.auth.continueWithGoogle}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <Animated.View style={{transform: [{scale: buttonScale}]}}>
+            <TouchableOpacity
+              onPress={handleGoogleSignIn}
+              disabled={signingIn}
+              style={{backgroundColor: theme.surface}}
+              className={`flex-row items-center justify-center p-4 rounded-2xl mb-4 shadow-xl ${
+                signingIn ? 'opacity-70' : 'opacity-100'
+              }`}
+              accessible={true}
+              accessibilityLabel={strings.auth.continueWithGoogle}
+              accessibilityHint={strings.auth.continueWithGoogleHint}
+              accessibilityState={{disabled: signingIn}}>
+              {signingIn ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <>
+                  <GoogleLogoIcon size={24} color={theme.text} />
+                  <Text style={{color: theme.text}} className="ml-3 text-lg">
+                    {strings.auth.continueWithGoogle}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Switch Account Note */}
           <Text
@@ -201,7 +245,7 @@ const LoginScreen = () => {
           style={{color: theme.secondaryText}}>
           {strings.auth.agreeToTerms}&nbsp;
           <Text
-            onPress={() => Linking.openURL(urls.termsOfService)}
+            onPress={handleTermsPress}
             accessible={true}
             accessibilityLabel={strings.settings.termsOfServiceHint}
             style={{color: theme.primary}}>
@@ -209,7 +253,7 @@ const LoginScreen = () => {
           </Text>
           &nbsp;{strings.common.and}&nbsp;
           <Text
-            onPress={() => Linking.openURL(urls.privacyPolicy)}
+            onPress={handlePrivacyPress}
             accessible={true}
             accessibilityLabel={strings.settings.privacyPolicyHint}
             style={{color: theme.primary}}>

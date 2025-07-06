@@ -13,6 +13,7 @@ import FastImage from 'react-native-fast-image';
 import {GeneratedImage} from '@src/types';
 import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
 
 // Icons
 import SyncIcon from '@src/assets/icons/SyncIcon';
@@ -56,6 +57,7 @@ const SyncIndicator = ({color}: {color: string}) => {
 const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const strings = useStrings();
   const {theme} = useTheme();
+  const {triggerHaptic} = useHaptics();
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
 
@@ -89,7 +91,10 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      onPress={onPress}
+      onPress={() => {
+        triggerHaptic('light'); // Add haptic feedback for image tap
+        onPress();
+      }}
       className="rounded-2xl overflow-hidden bg-[#f0f0f0]"
       style={style}
       accessible={true}

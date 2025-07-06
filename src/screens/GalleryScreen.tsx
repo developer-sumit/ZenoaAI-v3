@@ -9,8 +9,6 @@ import {
   ScrollView,
   Animated,
   RefreshControl,
-  Vibration,
-  Platform,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
@@ -22,6 +20,7 @@ import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
 import ImageViewer from '@src/components/ImageViewer';
 
 // Icons
@@ -43,6 +42,7 @@ const GalleryScreen = () => {
   const {isDark, theme} = useTheme();
   const {user} = useAuthStore();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
   const {
     images,
     isLoading,
@@ -110,7 +110,7 @@ const GalleryScreen = () => {
     } else {
       setFilteredImages([]);
     }
-  }, [images, searchQuery, activeTab, selectedFilter]);
+  }, [images, searchQuery, activeTab]);
 
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMoreImages) {
@@ -146,11 +146,7 @@ const GalleryScreen = () => {
   const handleToggleFavorite = useCallback(
     async (image: GeneratedImage) => {
       // Haptic feedback for favorite action
-      if (Platform.OS === 'ios') {
-        Vibration.vibrate(50);
-      } else {
-        Vibration.vibrate(30);
-      }
+      triggerHaptic(image.isFavorite ? 'light' : 'medium');
 
       if (!user?.uid) {
         showToast('Please log in to favorite images', 'error');
@@ -181,18 +177,14 @@ const GalleryScreen = () => {
         showToast('Failed to update favorite', 'error');
       }
     },
-    [user?.uid, storeToggleFavorite, selectedImage, showToast],
+    [user?.uid, storeToggleFavorite, selectedImage],
   );
 
   // Switch between All and Favorites tabs
   const switchTab = useCallback(
     (tab: 'all' | 'favorites') => {
       // Haptic feedback for tab switch
-      if (Platform.OS === 'ios') {
-        Vibration.vibrate(30);
-      } else {
-        Vibration.vibrate(25);
-      }
+      triggerHaptic('selection');
 
       setActiveTab(tab);
       console.log(
@@ -335,26 +327,35 @@ const GalleryScreen = () => {
               </View>
             </View>
           </TouchableOpacity>
-
           {/* Favorite Button */}
-          <TouchableOpacity
-            onPress={() => handleToggleFavorite(item)}
-            className="absolute top-2 right-2 p-2.5 rounded-full"
-            style={{backgroundColor: 'rgba(0,0,0,0.4)'}}
-            hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
-            accessible={true}
-            accessibilityLabel={
-              item.isFavorite
-                ? strings.imageViewer.removeFavourite
-                : strings.imageViewer.addFavourite
-            }
-            accessibilityRole="button">
-            <HeartIcon
-              size={20}
-              color="white"
-              fill={item.isFavorite ? '#FF4B8C' : 'transparent'}
-            />
-          </TouchableOpacity>
+          <View className="absolute top-2 right-2 flex-row items-center">
+            {/* Favorite Count (if greater than 0) */}
+            {item.favoriteCount && item.favoriteCount > 0 && (
+              <View className="mr-1 px-2 py-1 rounded-full bg-black/60">
+                <Text className="text-white text-xs font-medium">
+                  {item.favoriteCount}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={() => handleToggleFavorite(item)}
+              className="p-2.5 rounded-full bg-black/40"
+              hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+              accessible={true}
+              accessibilityLabel={
+                item.isFavorite
+                  ? strings.imageViewer.removeFavourite
+                  : strings.imageViewer.addFavourite
+              }
+              accessibilityRole="button">
+              <HeartIcon
+                size={20}
+                color="white"
+                fill={item.isFavorite ? '#FF4B8C' : 'transparent'}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       );
     },

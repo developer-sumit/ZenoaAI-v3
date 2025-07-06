@@ -13,6 +13,7 @@ import {
   Vibration,
 } from 'react-native';
 import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
 
 // Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -82,6 +83,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   setVisible,
 }) => {
   const strings = useStrings();
+  const {triggerHaptic} = useHaptics();
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(
@@ -141,11 +143,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
 
   const handleSelectPrompt = (prompt: string) => {
     // Haptic feedback for prompt selection
-    if (Platform.OS === 'ios') {
-      Vibration.vibrate(50);
-    } else {
-      Vibration.vibrate(40);
-    }
+    triggerHaptic('selection');
 
     // Animate closing
     Animated.parallel([
