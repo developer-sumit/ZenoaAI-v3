@@ -440,7 +440,9 @@ const GalleryScreen = () => {
     <View className="flex-1" style={{backgroundColor: theme.background}}>
       {/* Header with persistent search */}
       <View className="pt-6 pb-2 px-6">
-        <Text className="text-2xl font-bold mb-4" style={{color: theme.text}}>
+        <Text
+          className="text-3xl font-bold text-center mb-4"
+          style={{color: theme.text}}>
           {strings.gallery.title}
         </Text>
 
@@ -601,6 +603,7 @@ const GalleryScreen = () => {
             paddingTop: SPACING,
             paddingHorizontal: SPACING,
           }}
+          className="rounded-t-3xl"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
