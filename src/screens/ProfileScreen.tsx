@@ -25,7 +25,6 @@ import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
-import {useAnimations} from '@src/hooks/useAnimations';
 import {useQuota} from '@src/hooks/useQuota';
 import urls from '@src/constants/urls';
 import {notificationService} from '@src/services/notificationService';
@@ -61,7 +60,6 @@ const ProfileScreen = () => {
   const {isDark, theme, toggleTheme} = useTheme();
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
-  const {animatePress, animateBounce} = useAnimations();
   const {quota, refetch, isLoading: quotaLoading} = useQuota();
   const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
@@ -78,17 +76,18 @@ const ProfileScreen = () => {
 
   // Check notification status on mount
   useEffect(() => {
+    const checkNotificationStatus = async () => {
+      try {
+        const enabled = await notificationService.areNotificationsEnabled();
+        setNotificationsEnabled(enabled);
+      } catch (error) {
+        console.error('Error checking notification status:', error);
+      }
+    };
+
     checkNotificationStatus();
   }, []);
 
-  const checkNotificationStatus = async () => {
-    try {
-      const enabled = await notificationService.areNotificationsEnabled();
-      setNotificationsEnabled(enabled);
-    } catch (error) {
-      console.error('Error checking notification status:', error);
-    }
-  };
   const handleToggleNotifications = async (value: boolean) => {
     setNotificationLoading(true);
 
@@ -148,7 +147,7 @@ const ProfileScreen = () => {
   // Refresh user data when component mounts
   useEffect(() => {
     refreshUserProfile();
-  }, [refreshUserProfile]);
+  }, []);
 
   useEffect(() => {
     if (user) {

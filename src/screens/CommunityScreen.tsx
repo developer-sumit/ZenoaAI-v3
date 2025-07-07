@@ -128,7 +128,7 @@ const CommunityScreen = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchPublicImages, activeFilter, triggerHaptic, showToast]);
+  }, [fetchPublicImages, activeFilter]);
 
   const handleLoadMore = useCallback(async () => {
     if (!isLoadingPublic && hasMore && publicImages.length > 0) {
@@ -161,7 +161,6 @@ const CommunityScreen = () => {
     currentPage,
     fetchPublicImages,
     activeFilter,
-    showToast,
   ]);
 
   // const handleFilterChange = useCallback(

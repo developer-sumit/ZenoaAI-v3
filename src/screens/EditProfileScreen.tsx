@@ -85,7 +85,7 @@ const EditProfileScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [user, fadeAnim, slideAnim]);
+  }, [user]);
 
   const handleBackPress = () => {
     triggerHaptic('selection');

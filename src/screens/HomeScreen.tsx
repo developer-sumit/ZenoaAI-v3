@@ -97,6 +97,9 @@ const HomeScreen = () => {
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
 
+  // Android Quick Actions
+  useAndroidQuickActions();
+
   // Combined function to update both quota and profile
   const updateQuotaAndProfile = async () => {
     await refetchQuota();
@@ -581,8 +584,7 @@ const HomeScreen = () => {
         </View>
       )}
     </View>
-  ); // Android Quick Actions
-  useAndroidQuickActions();
+  );
 
   return (
     <KeyboardAvoidingView

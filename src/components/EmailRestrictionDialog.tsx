@@ -113,6 +113,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
     triggerHaptic('light');
     onClose();
   };
+
   const formatTimeRemaining = () => {
     const days = timeRemaining.days;
     const hours = timeRemaining.hours;

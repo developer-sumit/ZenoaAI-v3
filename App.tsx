@@ -187,18 +187,6 @@ function App() {
     };
   }, [initialized, restoreSession, getIdToken, login, user]);
 
-  // Debug effect to log current auth state - helps identify auth issues
-  useEffect(() => {
-    console.log('Auth State Debug:', {
-      userExists: !!user,
-      userId: user?.uid, // Changed from user?.id to user?.uid
-      isLoading,
-      initialized,
-      currentFirebaseUser: !!auth().currentUser,
-      currentFirebaseUid: auth().currentUser?.uid,
-    });
-  }, [user, isLoading, initialized]);
-
   // Handle app state changes to ensure token freshness
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
