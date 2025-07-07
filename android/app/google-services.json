@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "289072868964-mn947k7mk22adkgc9vf2lb62hpuqh9lj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sumit.zenoaai",
+            "certificate_hash": "75ac0113b3becd0480a1c7f1aefec0c6aa1a0575"
+          }
+        },
+        {
           "client_id": "289072868964-lkq3tjrs7pracp06sf65do4tgb6gp3vt.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -40,7 +48,8 @@
             }
           ]
         }
-      }
+      },
+      "admob_app_id": "ca-app-pub-3895105347063692~6920414415"
     }
   ],
   "configuration_version": "1"
