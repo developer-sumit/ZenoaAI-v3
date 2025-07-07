@@ -1,6 +1,7 @@
 import {create} from 'zustand';
-import {User} from '@src/types';
 import auth from '@react-native-firebase/auth';
+
+import {User} from '@src/types';
 import userService from '@src/services/userService';
 import authService from '@src/services/authService';
 

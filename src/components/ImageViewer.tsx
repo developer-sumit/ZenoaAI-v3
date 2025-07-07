@@ -251,6 +251,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       showToast(strings.imageViewer.copied);
     }
   };
+
   // Calculate aspect ratio safely
   const getAspectRatio = () => {
     // Fallback to ratio from metadata

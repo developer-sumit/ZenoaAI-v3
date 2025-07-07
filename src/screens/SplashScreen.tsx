@@ -118,7 +118,7 @@ const LoadingDots = ({color}: {color: string}) => {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     const animateDots = () => {
       const dotAnimation = (dot: Animated.Value, delay: number) =>

@@ -1,6 +1,6 @@
 import {create} from 'zustand';
-import {persist, createJSONStorage, StateStorage} from 'zustand/middleware';
 import {MMKV} from 'react-native-mmkv';
+import {persist, createJSONStorage, StateStorage} from 'zustand/middleware';
 
 const storage = new MMKV();
 
