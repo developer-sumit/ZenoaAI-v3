@@ -22,6 +22,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {Toaster} from '@masumdev/rn-toast';
+import {SystemBars} from 'react-native-edge-to-edge';
 
 import {User} from '@src/types';
 import Routes from '@src/constants/routes';
@@ -91,6 +92,8 @@ function App() {
     login,
     logout,
   } = useAuthStore();
+
+  SystemBars.setHidden(true);
 
   // Set up auth state listener
   useEffect(() => {
