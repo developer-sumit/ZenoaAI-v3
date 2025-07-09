@@ -79,7 +79,8 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
       className="absolute bottom-0 flex-row shadow-lg rounded-t-3xl"
       style={{
         backgroundColor: theme.surface,
-        paddingVertical: Platform.OS === 'ios' ? insets.bottom : 7,
+        paddingTop: Platform.OS === 'ios' ? insets.bottom : 7,
+        paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
         shadowColor: theme.primary,
         shadowOffset: {width: 0, height: -2},
         shadowOpacity: 0.1,

@@ -204,7 +204,7 @@ const HomeScreen = () => {
       // Convert our settings to the API format (matching web)
       const apiSettings = {
         engine, // Use current engine setting
-        style: selectedStyles?.[0] || 'photorealistic',
+        style: selectedStyles?.[0] || '',
         aspectRatio: aspectRatio.ratio,
         imageSize: aspectRatio.size || 'medium',
         quality: 'standard' as const,
