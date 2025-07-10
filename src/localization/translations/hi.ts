@@ -175,6 +175,10 @@ export const hi = {
     notificationsUpdateFailed: 'सूचना सेटिंग्स अपडेट करने में विफल',
     somethingWentWrong: 'कुछ गलत हुआ',
     internalServerError: 'आंतरिक सर्वर त्रुटि',
+    rateApp: 'ऐप रेट करें',
+    rateAppHint: 'Google Play Store पर हमें रेट करें',
+    rateAppDesc: 'दूसरों को हमारा ऐप खोजने में मदद करें',
+    thankYouForRating: 'रेटिंग के लिए धन्यवाद!',
   },
 
   editProfile: {

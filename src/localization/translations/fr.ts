@@ -179,6 +179,10 @@ export const fr = {
       'Échec de la mise à jour des paramètres de notification',
     somethingWentWrong: 'Quelque chose a mal tourné',
     internalServerError: 'Erreur interne du serveur',
+    rateApp: "Évaluer l'App",
+    rateAppHint: 'Évaluez-nous sur Google Play Store',
+    rateAppDesc: 'Aidez les autres à découvrir notre app',
+    thankYouForRating: 'Merci de nous avoir évalués!',
   },
   editProfile: {
     title: 'Modifier le profil',

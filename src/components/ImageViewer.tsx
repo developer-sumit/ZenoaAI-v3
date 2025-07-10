@@ -105,6 +105,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   // Handle back button
   useEffect(() => {
+    if (!image) return;
+
     const backAction = () => {
       if (fullscreenMode) {
         console.log(
@@ -130,7 +132,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     );
 
     return () => backHandler.remove();
-  }, [image, onClose]);
+  }, [image, onClose, fullscreenMode, showDeleteDialog]);
 
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen mode, current mode:', fullscreenMode);

@@ -176,6 +176,10 @@ export const pa = {
     notificationsUpdateFailed: 'ਸੂਚਨਾ ਸੈਟਿੰਗਾਂ ਅਪਡੇਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ',
     somethingWentWrong: 'ਕੁਝ ਗਲਤ ਹੋਇਆ',
     internalServerError: 'ਅੰਦਰੂਨੀ ਸਰਵਰ ਗਲਤੀ',
+    rateApp: 'ਐਪ ਰੇਟ ਕਰੋ',
+    rateAppHint: 'Google Play Store ਤੇ ਸਾਨੂੰ ਰੇਟ ਕਰੋ',
+    rateAppDesc: 'ਦੂਜਿਆਂ ਨੂੰ ਸਾਡਾ ਐਪ ਲੱਭਣ ਵਿੱਚ ਮਦਦ ਕਰੋ',
+    thankYouForRating: 'ਰੇਟਿੰਗ ਲਈ ਧੰਨਵਾਦ!',
   },
 
   editProfile: {

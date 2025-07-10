@@ -176,6 +176,10 @@ export const de = {
       'Fehler beim Aktualisieren der Benachrichtigungseinstellungen',
     somethingWentWrong: 'Etwas ist schiefgelaufen',
     internalServerError: 'Interner Serverfehler',
+    rateApp: 'App bewerten',
+    rateAppHint: 'Bewerten Sie uns im Google Play Store',
+    rateAppDesc: 'Helfen Sie anderen, unsere App zu entdecken',
+    thankYouForRating: 'Vielen Dank für Ihre Bewertung!',
   },
   editProfile: {
     title: 'Profil bearbeiten',

@@ -185,6 +185,10 @@ export const ta = {
     notificationsUpdateFailed: 'அறிவிப்பு அமைப்புகளை புதுப்பிக்க முடியவில்லை',
     somethingWentWrong: 'ஏதோ தவறு நடந்தது',
     internalServerError: 'உள்ளக சேவையக பிழை',
+    rateApp: 'ஆப்பை மதிப்பிடுங்கள்',
+    rateAppHint: 'Google Play Store இல் எங்களை மதிப்பிடுங்கள்',
+    rateAppDesc: 'மற்றவர்களுக்கு எங்கள் ஆப்பைக் கண்டறிய உதவுங்கள்',
+    thankYouForRating: 'எங்களை மதிப்பிட்டதற்கு நன்றி!',
   },
 
   editProfile: {

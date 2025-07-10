@@ -14,6 +14,7 @@ import {
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
 import {Toaster, useToast} from '@masumdev/rn-toast';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
@@ -214,6 +215,20 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleRateApp = () => {
+    // Direct redirect to Google Play Store
+    triggerHaptic('light');
+
+    Linking.openURL(urls.playstore)
+      .then(() => {
+        showToast(strings.settings.thankYouForRating, 'success');
+      })
+      .catch(error => {
+        console.error('Error opening Play Store:', error);
+        showToast(strings.settings.somethingWentWrong, 'error');
+      });
+  };
+
   const currentProfile = getProfileData();
 
   const renderRatingStars = () => {
@@ -366,8 +381,8 @@ const ProfileScreen = () => {
                         quota && quota.imagesRemaining > 5
                           ? theme.primary
                           : quota && quota.imagesRemaining > 0
-                          ? '#f59e0b'
-                          : '#ef4444',
+                            ? '#f59e0b'
+                            : '#ef4444',
                       width: `${
                         quota && quota.planLimits?.totalImages
                           ? Math.min(
@@ -377,8 +392,8 @@ const ProfileScreen = () => {
                               100,
                             )
                           : quota?.imagesRemaining
-                          ? 100 // Show full bar if no limit is specified
-                          : 0
+                            ? 100 // Show full bar if no limit is specified
+                            : 0
                       }%`,
                     }}
                   />
@@ -579,7 +594,8 @@ const ProfileScreen = () => {
           </View>
 
           <TouchableOpacity
-            className="px-5 py-4 flex-row justify-between items-center"
+            className="px-5 py-4 flex-row justify-between items-center border-b"
+            style={{borderColor: theme.secondaryText + '20'}}
             onPress={() => {
               triggerHaptic('light');
               setShowFeedbackModal(true);
@@ -599,8 +615,36 @@ const ProfileScreen = () => {
             </View>
             <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
-        </View>
 
+          <TouchableOpacity
+            className="px-5 py-4 flex-row justify-between items-center"
+            onPress={() => {
+              triggerHaptic('light');
+              handleRateApp();
+            }}
+            accessible={true}
+            accessibilityLabel={strings.settings.rateApp}
+            accessibilityHint={strings.settings.rateAppHint}>
+            <View className="flex-row items-center flex-1">
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{backgroundColor: theme.primary + '15'}}>
+                <StarIcon size={20} color={theme.primary} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-base" style={{color: theme.text}}>
+                  {strings.settings.rateApp}
+                </Text>
+                <Text
+                  className="text-sm mt-1"
+                  style={{color: theme.secondaryText}}>
+                  {strings.settings.rateAppDesc}
+                </Text>
+              </View>
+            </View>
+            <ChevronRightIcon size={20} color={theme.secondaryText} />
+          </TouchableOpacity>
+        </View>
         {/* About Section */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
@@ -710,97 +754,104 @@ const ProfileScreen = () => {
           style={{flex: 1}}
           blurType={isDark ? 'dark' : 'light'}
           blurAmount={10}>
-          <View className="flex-1 justify-center items-center p-5">
-            <View
-              className="w-full max-w-md rounded-3xl overflow-hidden"
-              style={{
-                backgroundColor: theme.background,
-                shadowColor: '#000',
-                shadowOffset: {width: 0, height: 10},
-                shadowOpacity: 0.2,
-                shadowRadius: 20,
-                elevation: 15,
-              }}>
+          <KeyboardAwareScrollView
+            style={{flex: 1}}
+            contentContainerStyle={{flexGrow: 1}}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <View className="flex-1 justify-center items-center">
               <View
-                className="w-full h-1"
-                style={{backgroundColor: theme.primary}}
-              />
-              <View className="p-6">
-                <View className="flex-row justify-between items-center mb-4">
-                  <Text
-                    className="text-2xl font-semibold"
-                    style={{color: theme.text}}>
-                    {strings.settings.shareFeedback}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setShowFeedbackModal(false)}
-                    className="p-1 rounded-full"
-                    style={{backgroundColor: theme.surface}}
-                    accessible={true}
-                    accessibilityLabel={strings.settings.closeFeedback}
-                    accessibilityRole="button">
-                    <CloseIcon size={20} color={theme.text} />
-                  </TouchableOpacity>
-                </View>
-
-                <Text
-                  className="text-base mb-2"
-                  style={{color: theme.secondaryText}}>
-                  {strings.settings.rateExperience}
-                </Text>
-
-                {renderRatingStars()}
-
-                <Text
-                  className="text-base mb-2 mt-4"
-                  style={{color: theme.secondaryText}}>
-                  {strings.settings.whatToImprove}
-                </Text>
-
-                <TextInput
-                  value={feedbackText}
-                  onChangeText={setFeedbackText}
-                  multiline
-                  numberOfLines={5}
-                  className="p-4 rounded-xl mb-6 text-base"
-                  style={{
-                    backgroundColor: theme.surface,
-                    color: theme.text,
-                    height: 130,
-                    textAlignVertical: 'top',
-                  }}
-                  placeholder={strings.settings.feedbackPlaceholder}
-                  placeholderTextColor={theme.secondaryText}
-                  accessible={true}
-                  accessibilityLabel={strings.settings.feedbackPlaceholder}
-                  accessibilityHint={strings.settings.feedbackHint}
+                className="w-full max-w-md rounded-3xl overflow-hidden"
+                style={{
+                  backgroundColor: theme.background,
+                  shadowColor: '#000',
+                  shadowOffset: {width: 0, height: 10},
+                  shadowOpacity: 0.2,
+                  shadowRadius: 20,
+                  elevation: 15,
+                }}>
+                <View
+                  className="w-full h-1"
+                  style={{backgroundColor: theme.primary}}
                 />
 
-                <TouchableOpacity
-                  className="py-4 rounded-xl flex-row items-center justify-center"
-                  style={{backgroundColor: theme.primary}}
-                  onPress={handleSubmitFeedback}
-                  disabled={submittingFeedback}
-                  accessible={true}
-                  accessibilityLabel={strings.settings.submitFeedback}
-                  accessibilityState={{disabled: submittingFeedback}}
-                  accessibilityHint={strings.settings.submitFeedbackHint}>
-                  {submittingFeedback ? (
-                    <Text className="text-white font-medium text-base">
-                      {strings.settings.submitting}
+                <View className="p-6">
+                  <View className="flex-row justify-between items-center mb-4">
+                    <Text
+                      className="text-2xl font-semibold"
+                      style={{color: theme.text}}>
+                      {strings.settings.shareFeedback}
                     </Text>
-                  ) : (
-                    <>
-                      <Text className="text-white font-medium text-base mr-2">
-                        {strings.settings.submitFeedback}
+                    <TouchableOpacity
+                      onPress={() => setShowFeedbackModal(false)}
+                      className="p-1 rounded-full"
+                      style={{backgroundColor: theme.surface}}
+                      accessible={true}
+                      accessibilityLabel={strings.settings.closeFeedback}
+                      accessibilityRole="button">
+                      <CloseIcon size={20} color={theme.text} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text
+                    className="text-base mb-2"
+                    style={{color: theme.secondaryText}}>
+                    {strings.settings.rateExperience}
+                  </Text>
+
+                  {renderRatingStars()}
+
+                  <Text
+                    className="text-base mb-2 mt-4"
+                    style={{color: theme.secondaryText}}>
+                    {strings.settings.whatToImprove}
+                  </Text>
+
+                  <TextInput
+                    value={feedbackText}
+                    onChangeText={setFeedbackText}
+                    multiline
+                    numberOfLines={5}
+                    className="p-4 rounded-xl mb-6 text-base"
+                    style={{
+                      backgroundColor: theme.surface,
+                      color: theme.text,
+                      height: 130,
+                      textAlignVertical: 'top',
+                    }}
+                    placeholder={strings.settings.feedbackPlaceholder}
+                    placeholderTextColor={theme.secondaryText}
+                    accessible={true}
+                    accessibilityLabel={strings.settings.feedbackPlaceholder}
+                    accessibilityHint={strings.settings.feedbackHint}
+                  />
+
+                  <TouchableOpacity
+                    className="py-4 rounded-xl flex-row items-center justify-center"
+                    style={{backgroundColor: theme.primary}}
+                    onPress={handleSubmitFeedback}
+                    disabled={submittingFeedback}
+                    accessible={true}
+                    accessibilityLabel={strings.settings.submitFeedback}
+                    accessibilityState={{disabled: submittingFeedback}}
+                    accessibilityHint={strings.settings.submitFeedbackHint}>
+                    {submittingFeedback ? (
+                      <Text className="text-white font-medium text-base">
+                        {strings.settings.submitting}
                       </Text>
-                      <SendIcon size={18} color="white" />
-                    </>
-                  )}
-                </TouchableOpacity>
+                    ) : (
+                      <>
+                        <Text className="text-white font-medium text-base mr-2">
+                          {strings.settings.submitFeedback}
+                        </Text>
+                        <SendIcon size={18} color="white" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
+          </KeyboardAwareScrollView>
         </BlurView>
 
         <Toaster

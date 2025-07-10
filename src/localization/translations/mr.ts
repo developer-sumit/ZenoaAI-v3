@@ -171,6 +171,10 @@ export const mr = {
     notificationsUpdateFailed: 'सूचना सेटिंग्ज अपडेट करण्यात अयशस्वी',
     somethingWentWrong: 'काहीतरी चूक झाली',
     internalServerError: 'अंतर्गत सर्व्हर त्रुटी',
+    rateApp: 'अॅप रेट करा',
+    rateAppHint: 'Google Play Store वर आम्हाला रेट करा',
+    rateAppDesc: 'इतरांना आमचे अॅप शोधण्यात मदत करा',
+    thankYouForRating: 'रेटिंगसाठी धन्यवाद!',
   },
 
   editProfile: {

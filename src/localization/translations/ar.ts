@@ -167,6 +167,10 @@ export const ar = {
     notificationsUpdateFailed: 'فشل في تحديث إعدادات الإشعارات',
     somethingWentWrong: 'حدث خطأ ما',
     internalServerError: 'خطأ داخلي في الخادم',
+    rateApp: 'تقييم التطبيق',
+    rateAppHint: 'قيمنا على Google Play Store',
+    rateAppDesc: 'ساعد الآخرين في اكتشاف تطبيقنا',
+    thankYouForRating: 'شكرًا لك على التقييم!',
   },
 
   editProfile: {

@@ -176,6 +176,10 @@ export const te = {
       'నోటిఫికేషన్ సెట్టింగులను అప్‌డేట్ చేయడంలో విఫలమైంది',
     somethingWentWrong: 'ఏదో తప్పు జరిగింది',
     internalServerError: 'అంతర్గత సర్వర్ లోపం',
+    rateApp: 'యాప్‌ను రేట్ చేయండి',
+    rateAppHint: 'Google Play Store లో మాకు రేటింగ్ ఇవ్వండి',
+    rateAppDesc: 'మా యాప్‌ను కనుగొనడంలో ఇతరులకు సహాయం చేయండి',
+    thankYouForRating: 'రేటింగ్ ఇచ్చినందుకు ధన్యవాదాలు!',
   },
 
   editProfile: {
