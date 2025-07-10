@@ -40,10 +40,10 @@ jobs:
           chmod +x ./gradlew
 
       # Get the version from app.config.ts
-      - name: Extract version from app config
+      - name: Extract version from package.json
         id: extract_version
         run: |
-          VERSION=$(node -e "console.log(require('./src/config/app.config.js').default.version)")
+          VERSION=$(node -p "require('./package.json').version")
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION"
 
