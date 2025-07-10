@@ -165,6 +165,10 @@ export const zh = {
     notificationsUpdateFailed: '更新通知设置失败',
     somethingWentWrong: '出了些问题',
     internalServerError: '内部服务器错误',
+    rateApp: '评价应用',
+    rateAppHint: '在 Google Play 商店给我们评价',
+    rateAppDesc: '帮助其他人发现我们的应用',
+    thankYouForRating: '谢谢您的评价!',
   },
 
   editProfile: {

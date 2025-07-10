@@ -80,7 +80,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
       style={{
         backgroundColor: theme.surface,
         paddingTop: Platform.OS === 'ios' ? insets.bottom : 7,
-        paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+        paddingBottom: Platform.OS === 'ios' ? insets.bottom : 20,
         shadowColor: theme.primary,
         shadowOffset: {width: 0, height: -2},
         shadowOpacity: 0.1,

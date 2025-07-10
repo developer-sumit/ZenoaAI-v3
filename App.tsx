@@ -15,7 +15,7 @@ import './global.css';
 import React, {useEffect} from 'react';
 import Config from 'react-native-config';
 import auth from '@react-native-firebase/auth';
-import {StatusBar, AppState, AppStateStatus} from 'react-native';
+import {StatusBar, AppState, AppStateStatus, BackHandler} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
@@ -23,6 +23,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {Toaster} from '@masumdev/rn-toast';
 import {SystemBars} from 'react-native-edge-to-edge';
+import {KeyboardProvider} from 'react-native-keyboard-controller';
 
 import {User} from '@src/types';
 import Routes from '@src/constants/routes';
@@ -60,9 +61,22 @@ const Tab = createBottomTabNavigator();
 
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{headerShown: false}}>
-      <Stack.Screen name={Routes.SETTINGS} component={ProfileScreen} />
-      <Stack.Screen name={Routes.EDIT_PROFILE} component={EditProfileScreen} />
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        animationTypeForReplace: 'push',
+      }}>
+      <Stack.Screen
+        name={Routes.SETTINGS}
+        component={ProfileScreen}
+        options={{gestureEnabled: false}} // Disable swipe gesture on profile screen
+      />
+      <Stack.Screen
+        name={Routes.EDIT_PROFILE}
+        component={EditProfileScreen}
+        options={{gestureEnabled: true}}
+      />
     </Stack.Navigator>
   );
 }
@@ -71,7 +85,11 @@ function HomeTabs() {
   return (
     <Tab.Navigator
       tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{headerShown: false}}>
+      screenOptions={{
+        headerShown: false,
+        // Disable swipe gesture on tabs to prevent interference
+        tabBarHideOnKeyboard: true,
+      }}>
       <Tab.Screen name={Routes.HOME} component={HomeScreen} />
       <Tab.Screen name={Routes.GALLERY} component={GalleryScreen} />
       <Tab.Screen name={Routes.COMMUNITY} component={CommunityScreen} />
@@ -93,7 +111,37 @@ function App() {
     logout,
   } = useAuthStore();
 
+  // Navigation ref for programmatic navigation
+  const navigationRef = React.useRef<any>(null);
+
   SystemBars.setHidden(true);
+  // Handle Android back button
+  useEffect(() => {
+    const backAction = () => {
+      // Check if navigation ref is available and can go back
+      if (navigationRef.current?.canGoBack()) {
+        navigationRef.current.goBack();
+        return true; // Prevent default behavior (closing app)
+      }
+
+      // If at root screen and user is logged in, don't close app immediately
+      // This prevents accidental app closure
+      if (user && !isLoading) {
+        // You could show a "Press back again to exit" toast here
+        console.log('At root screen, allowing app to close');
+        return false; // Allow default behavior (close app)
+      }
+
+      return false; // Allow default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [user, isLoading]); // Add dependencies to re-register when state changes
 
   // Set up auth state listener
   useEffect(() => {
@@ -244,43 +292,81 @@ function App() {
   }, [language, user]);
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{backgroundColor: theme.background}}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
-      <NavigationContainer>
-        {isLoading ? (
-          <Stack.Navigator screenOptions={{headerShown: false}}>
-            <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
-          </Stack.Navigator>
-        ) : (
-          <Stack.Navigator screenOptions={{headerShown: false}}>
-            {user ? (
-              <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
-            ) : (
-              <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
-            )}
-            <Stack.Screen
-              name={Routes.ADVANCED_SETTINGS}
-              component={(props: any) => <AdvancedSettingsScreen {...props} />}
-              options={{headerShown: false}}
-            />
-          </Stack.Navigator>
-        )}
-      </NavigationContainer>
+    <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+      <SafeAreaView
+        className="flex-1"
+        style={{backgroundColor: theme.background}}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor="transparent"
+          translucent
+        />
 
-      <Toaster
-        customColors={{
-          success: {background: '#E7F5E9', text: '#256029'},
-          error: {background: '#FDECEA', text: '#B3261E'},
-          info: {background: '#E3F2FD', text: '#1E88E5'},
-        }}
-      />
-    </SafeAreaView>
+        <NavigationContainer
+          ref={navigationRef}
+          onStateChange={state => {
+            // Optional: Log navigation state changes for debugging
+            console.log('Navigation state changed:', state);
+          }}>
+          {isLoading ? (
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                animationTypeForReplace: 'pop',
+              }}>
+              <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
+            </Stack.Navigator>
+          ) : (
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                // Enable gestures for better navigation experience
+                gestureEnabled: true,
+              }}>
+              {user ? (
+                <Stack.Screen
+                  name={Routes.MAIN}
+                  component={HomeTabs}
+                  options={{
+                    // Prevent going back to login after successful login
+                    headerLeft: () => null,
+                    gestureEnabled: false,
+                  }}
+                />
+              ) : (
+                <Stack.Screen
+                  name={Routes.SIGN_IN}
+                  component={LoginScreen}
+                  options={{
+                    // Prevent going back on login screen
+                    headerLeft: () => null,
+                    gestureEnabled: false,
+                  }}
+                />
+              )}
+              <Stack.Screen
+                name={Routes.ADVANCED_SETTINGS}
+                component={(props: any) => (
+                  <AdvancedSettingsScreen {...props} />
+                )}
+                options={{
+                  headerShown: false,
+                  gestureEnabled: true,
+                }}
+              />
+            </Stack.Navigator>
+          )}
+        </NavigationContainer>
+
+        <Toaster
+          customColors={{
+            success: {background: '#E7F5E9', text: '#256029'},
+            error: {background: '#FDECEA', text: '#B3261E'},
+            info: {background: '#E3F2FD', text: '#1E88E5'},
+          }}
+        />
+      </SafeAreaView>
+    </KeyboardProvider>
   );
 }
 

@@ -177,6 +177,10 @@ export const es = {
       'Error al actualizar la configuración de notificaciones',
     somethingWentWrong: 'Algo salió mal',
     internalServerError: 'Error interno del servidor',
+    rateApp: 'Calificar App',
+    rateAppHint: 'Califícanos en Google Play Store',
+    rateAppDesc: 'Ayuda a otros a descubrir nuestra app',
+    thankYouForRating: '¡Gracias por calificarnos!',
   },
   editProfile: {
     title: 'Editar Perfil',

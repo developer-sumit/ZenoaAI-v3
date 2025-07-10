@@ -174,6 +174,10 @@ export const id = {
     notificationsUpdateFailed: 'Gagal memperbarui pengaturan notifikasi',
     somethingWentWrong: 'Terjadi kesalahan',
     internalServerError: 'Kesalahan server internal',
+    rateApp: 'Beri Rating App',
+    rateAppHint: 'Beri rating kami di Google Play Store',
+    rateAppDesc: 'Bantu orang lain menemukan app kami',
+    thankYouForRating: 'Terima kasih telah memberi rating!',
   },
 
   editProfile: {

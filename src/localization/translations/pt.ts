@@ -175,6 +175,10 @@ export const pt = {
       'Falha ao atualizar configurações de notificação',
     somethingWentWrong: 'Algo deu errado',
     internalServerError: 'Erro interno do servidor',
+    rateApp: 'Avaliar App',
+    rateAppHint: 'Avalie-nos no Google Play Store',
+    rateAppDesc: 'Ajude outros a descobrir nosso app',
+    thankYouForRating: 'Obrigado por nos avaliar!',
   },
 
   editProfile: {

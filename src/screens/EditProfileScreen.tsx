@@ -4,13 +4,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Modal,
   Animated,
   LayoutAnimation,
   Platform,
   UIManager,
 } from 'react-native';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
@@ -227,11 +227,12 @@ const EditProfileScreen = () => {
 
   return (
     <>
-      <ScrollView
-        className="flex-1"
-        style={{backgroundColor: theme.background}}
+      <KeyboardAwareScrollView
+        style={{flex: 1, backgroundColor: theme.background}}
         contentContainerStyle={{paddingBottom: 120}}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        bottomOffset={44}
+        enabled>
         {/* Header */}
         <View className="px-5 flex-row items-center justify-between py-5">
           <TouchableOpacity
@@ -458,7 +459,7 @@ const EditProfileScreen = () => {
             </View>
           </View>
         </Animated.View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Reason Selection Modal */}
       <Modal visible={showReasonModal} transparent animationType="fade">

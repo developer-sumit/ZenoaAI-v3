@@ -5,7 +5,6 @@ import {
   TextInput,
   ActivityIndicator,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   Keyboard,
   Dimensions,
@@ -15,6 +14,7 @@ import {
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
 import {useRoute} from '@react-navigation/native';
+import {KeyboardAvoidingView} from 'react-native-keyboard-controller';
 
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
@@ -588,9 +588,10 @@ const HomeScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
-      style={{backgroundColor: theme.background}}>
+      style={{flex: 1, backgroundColor: theme.background}}
+      contentContainerStyle={{flexGrow: 1}}
+      behavior="position"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
       <View className="flex-1">
         {/* Header with App Name, Version Badge and Help Icon */}
         <View className="flex-row justify-between items-center p-4">
@@ -661,7 +662,8 @@ const HomeScreen = () => {
           />
         </View>
 
-        <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
+        {/* Bottom Input Area */}
+        <View className="absolute bottom-28 left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
             style={{

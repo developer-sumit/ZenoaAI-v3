@@ -172,6 +172,10 @@ export const en = {
     notificationsUpdateFailed: 'Failed to update notification settings',
     somethingWentWrong: 'Something went wrong',
     internalServerError: 'Internal server error',
+    rateApp: 'Rate App',
+    rateAppHint: 'Rate us on Google Play Store',
+    rateAppDesc: 'Help others discover our app',
+    thankYouForRating: 'Thank you for rating us!',
   },
   editProfile: {
     title: 'Edit Profile',
