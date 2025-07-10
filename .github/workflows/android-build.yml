@@ -34,6 +34,12 @@ jobs:
         run: |
           npm install --force
 
+      - name: Generate native codegen (React Native)
+        run: |
+          npx react-native generate-specs
+          npx react-native-asset
+          npx react-native codegen
+
       - name: Make gradlew executable
         run: |
           cd android
