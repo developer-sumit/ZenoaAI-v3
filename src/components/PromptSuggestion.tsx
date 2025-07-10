@@ -10,7 +10,12 @@ import {
   Platform,
   UIManager,
   Pressable,
+  Vibration,
 } from 'react-native';
+import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
+
+// Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
@@ -25,7 +30,7 @@ if (
 
 interface PromptSuggestionsProps {
   onSelectPrompt: (prompt: string) => void;
-  colors: any;
+  theme: any;
   visible: boolean;
   setVisible: (visible: boolean) => void;
 }
@@ -73,10 +78,12 @@ const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   onSelectPrompt,
-  colors,
+  theme,
   visible,
   setVisible,
 }) => {
+  const strings = useStrings();
+  const {triggerHaptic} = useHaptics();
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(
@@ -123,11 +130,21 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   }
 
   const toggleCategory = (category: string) => {
+    // Haptic feedback for category expansion
+    if (Platform.OS === 'ios') {
+      Vibration.vibrate(30);
+    } else {
+      Vibration.vibrate(25);
+    }
+
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedCategory(expandedCategory === category ? null : category);
   };
 
   const handleSelectPrompt = (prompt: string) => {
+    // Haptic feedback for prompt selection
+    triggerHaptic('selection');
+
     // Animate closing
     Animated.parallel([
       Animated.timing(slideAnim, {
@@ -162,7 +179,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
       <Animated.View
         className="rounded-t-3xl max-h-[80%] pb-8"
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: theme.surface,
           transform: [{translateY: slideAnim}],
           shadowColor: '#000',
           shadowOffset: {width: 0, height: -4},
@@ -178,34 +195,34 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
         {/* Header */}
         <View className="flex-row justify-between items-center px-5 py-4">
           <View className="flex-row items-center">
-            <LightbulbOutlineIcon size={24} color={colors.primary} />
+            <LightbulbOutlineIcon size={24} color={theme.primary} />
             <Text
               className="text-xl font-bold ml-3"
-              style={{color: colors.text}}
+              style={{color: theme.text}}
               accessible={true}
               accessibilityRole="header">
-              Prompt Ideas
+              {strings.home.promptIdeas}
             </Text>
           </View>
           <TouchableOpacity
             onPress={() => setVisible(false)}
             className="p-2 rounded-full"
-            style={{backgroundColor: colors.background + '80'}}
+            style={{backgroundColor: theme.background + '80'}}
             accessible={true}
-            accessibilityLabel="Close prompt suggestions"
+            accessibilityLabel={strings.home.closePromptSuggestions}
             accessibilityRole="button"
-            accessibilityHint="Closes the prompt suggestions panel">
-            <CloseIcon size={20} color={colors.secondaryText} />
+            accessibilityHint={strings.home.closePromptSuggestions}>
+            <CloseIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
         </View>
 
         {/* Introduction text */}
         <Text
           className="text-base mx-5 mb-4"
-          style={{color: colors.secondaryText}}
+          style={{color: theme.secondaryText}}
           accessible={true}
           accessibilityRole="text">
-          Tap a category below to see ready-to-use prompts for stunning AI art
+          {strings.home.promptSuggestionsHint}
         </Text>
 
         {/* Categories */}
@@ -215,7 +232,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
           contentContainerStyle={{paddingBottom: 30}}>
           {samplePrompts.map((category, index) => (
             <View
-              key={index}
+              key={category.category}
               className={`mb-4 ${
                 index === samplePrompts.length - 1 ? 'mb-8' : ''
               }`}>
@@ -225,11 +242,11 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                 style={{
                   backgroundColor:
                     expandedCategory === category.category
-                      ? colors.primary + '15'
-                      : colors.background + '50',
+                      ? theme.primary + '15'
+                      : theme.background + '50',
                   borderColor:
                     expandedCategory === category.category
-                      ? colors.primary + '30'
+                      ? theme.primary + '30'
                       : 'transparent',
                 }}
                 onPress={() => toggleCategory(category.category)}
@@ -240,7 +257,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                     ? 'expanded'
                     : 'collapsed'
                 }`}
-                accessibilityHint="Double tap to expand or collapse this category">
+                accessibilityHint={strings.home.usePromptHint}>
                 <View className="flex-row items-center flex-1">
                   <Text className="text-2xl mr-3">
                     {category.category.split(' ')[0]}
@@ -248,20 +265,20 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                   <View className="flex-1">
                     <Text
                       className="text-base font-semibold"
-                      style={{color: colors.text}}>
+                      style={{color: theme.text}}>
                       {category.category.split(' ')[1]}
                     </Text>
                     <Text
                       className="text-sm mt-0.5"
-                      style={{color: colors.secondaryText}}>
+                      style={{color: theme.secondaryText}}>
                       {category.description}
                     </Text>
                   </View>
                 </View>
                 {expandedCategory === category.category ? (
-                  <ChevronDownIcon size={20} color={colors.primary} />
+                  <ChevronDownIcon size={20} color={theme.primary} />
                 ) : (
-                  <ChevronRightIcon size={20} color={colors.primary} />
+                  <ChevronRightIcon size={20} color={theme.primary} />
                 )}
               </TouchableOpacity>
 
@@ -270,29 +287,29 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                 <View className="mt-2 space-y-2">
                   {category.prompts.map((prompt, promptIndex) => (
                     <TouchableOpacity
-                      key={promptIndex}
+                      key={`${category.category}-${promptIndex}`}
                       onPress={() => handleSelectPrompt(prompt)}
                       className="p-4 rounded-xl flex-row items-center border-l-4 mb-1"
                       style={{
-                        backgroundColor: colors.background + '70',
-                        borderLeftColor: colors.primary,
+                        backgroundColor: theme.background + '70',
+                        borderLeftColor: theme.primary,
                       }}
                       accessible={true}
                       accessibilityRole="button"
-                      accessibilityLabel={`Use prompt: ${prompt}`}
-                      accessibilityHint="Double tap to use this prompt for your image generation">
+                      accessibilityLabel={`${strings.home.usePrompt}: ${prompt}`}
+                      accessibilityHint={strings.home.usePromptHint}>
                       <Text
                         className="text-base leading-6 flex-1"
-                        style={{color: colors.text}}>
+                        style={{color: theme.text}}>
                         {prompt}
                       </Text>
                       <Text
                         className="ml-2 px-2 py-1 rounded-md text-xs font-medium"
                         style={{
-                          backgroundColor: colors.primary + '20',
-                          color: colors.primary,
+                          backgroundColor: theme.primary + '20',
+                          color: theme.primary,
                         }}>
-                        Use
+                        {strings.home.usePrompt}
                       </Text>
                     </TouchableOpacity>
                   ))}

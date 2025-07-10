@@ -6,170 +6,335 @@ import {
   ActivityIndicator,
   StyleSheet,
   Animated,
+  Linking,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
-import {theme} from '@src/theme/Theme';
-import {useThemeStore} from '@src/store/themeStore';
-import appConfig from '@src/config/app.config';
 import {useToast} from '@masumdev/rn-toast';
+import auth from '@react-native-firebase/auth';
+
+import urls from '@src/constants/urls';
+import {useTheme} from '@src/store/themeStore';
+import appConfig from '@src/config/app.config';
+import {useAuthStore} from '@src/store/authStore';
+import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
+import LanguageSelector from '@src/components/LanguageSelector';
+import EmailRestrictionDialog from '@src/components/EmailRestrictionDialog';
+import authService from '@src/services/authService';
+import userService from '@src/services/userService';
+
+// Icons
+import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
-import {openPrivacyPolicy, openTermsOfService} from '@src/utils/linkHelper';
-import {useAuthStore} from '@src/store/authStore';
 
 const LoginScreen = () => {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const strings = useStrings();
+  const {isDark, theme} = useTheme();
   const {login} = useAuthStore();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
   const [signingIn, setSigningIn] = React.useState(false);
+  const [emailRestrictionVisible, setEmailRestrictionVisible] =
+    React.useState(false);
+  const [restrictionData, setRestrictionData] = React.useState<{
+    expiresAt?: Date;
+    daysRemaining?: number;
+    hoursRemaining?: number;
+    minutesRemaining?: number;
+  }>({});
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const buttonScale = React.useRef(new Animated.Value(1)).current;
+  const logoScale = React.useRef(new Animated.Value(0.8)).current;
+  const languageSelectorRef = React.useRef<{openModal: () => void}>(null);
 
   React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    // Logo entrance animation
+    Animated.sequence([
+      Animated.spring(logoScale, {
         toValue: 1,
-        duration: 1000,
+        tension: 100,
+        friction: 8,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim, logoScale]);
+
+  const handleLanguagePress = () => {
+    triggerHaptic('selection');
+    languageSelectorRef.current?.openModal();
+  };
+
+  const handleTermsPress = () => {
+    triggerHaptic('light');
+    Linking.openURL(urls.termsOfService);
+  };
+
+  const handlePrivacyPress = () => {
+    triggerHaptic('light');
+    Linking.openURL(urls.privacyPolicy);
+  };
 
   const handleGoogleSignIn = async () => {
     try {
+      triggerHaptic('light');
       setSigningIn(true);
 
-      // Check if Play Services is available
-      await GoogleSignin.hasPlayServices();
+      // Button press animation
+      animatePress(buttonScale, 150);
 
-      // Get the user ID token
+      // Check if Play Services is available
+      await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
+
+      // Get the user ID token from Google
       const {data} = await GoogleSignin.signIn();
 
-      // Create a Google credential with the token
-      const googleCredential = auth.GoogleAuthProvider.credential(
-        data?.idToken || '',
-      );
-      // Sign in with the credential
-      const res = await auth().signInWithCredential(googleCredential);
-      const userData = {
-        id: res.user.uid || '',
-        email: res.user.email || '',
-        name: data?.user?.name || '',
-        photo: data?.user?.photo || '',
-        createdAt: res.user.metadata.creationTime || new Date().toISOString(),
-        lastLogin: res.user.metadata.lastSignInTime || new Date().toISOString(),
-      };
-      console.log({userData});
+      if (!data?.idToken) {
+        triggerHaptic('error');
+        showToast(strings.auth.signInFailed, 'error');
+        throw new Error('Failed to get ID token from Google Sign-In');
+      }
+
+      // Extract email from the user data to check for restrictions
+      const currentUser = auth().currentUser;
+      const userEmail = currentUser?.email || data.user?.email; // Check for local email restrictions first
+      if (userEmail) {
+        const restriction = await userService.checkEmailRestriction(userEmail);
+        if (restriction.isRestricted) {
+          triggerHaptic('error');
+
+          // Sign out from Firebase and Google to allow user to select different account
+          try {
+            await auth().signOut();
+            await GoogleSignin.revokeAccess();
+            await GoogleSignin.signOut();
+          } catch (signOutError) {
+            console.warn(
+              'Failed to sign out after local restriction:',
+              signOutError,
+            );
+          }
+
+          setRestrictionData({
+            expiresAt: restriction.expiresAt,
+            daysRemaining: restriction.daysRemaining,
+            hoursRemaining: restriction.hoursRemaining,
+            minutesRemaining: restriction.minutesRemaining,
+          });
+          setEmailRestrictionVisible(true);
+          return; // Don't continue with sign-in
+        }
+      }
+
+      // Log token receipt for debugging
+      console.log('Google sign-in successful, proceeding with Firebase auth');
+
+      // Use authService to handle the complete sign-in flow
+      const userData = await authService.signInWithGoogle(data?.idToken);
+
+      // Store the user data in your app state
       await login(userData);
-      showToast('Sign-in successful', 'success');
-    } catch (error) {
+
+      triggerHaptic('success');
+      showToast(strings.auth.signInSuccessful, 'success');
+    } catch (error: any) {
       console.error('Sign-in error:', error);
-      showToast('Sign-in failed', 'error');
+
+      // Check for email restriction error first
+      if ((error as any).errorType === 'EMAIL_RESTRICTION') {
+        triggerHaptic('error');
+
+        // Sign out from Firebase and Google to allow user to select different account
+        try {
+          await auth().signOut();
+          await GoogleSignin.revokeAccess();
+          await GoogleSignin.signOut();
+        } catch (signOutError) {
+          console.warn('Failed to sign out after restriction:', signOutError);
+        }
+        // If we have emailRestrictionExpiresAt from the backend, use it to show the dialog
+        if (error.emailRestrictionExpiresAt) {
+          const expiresAt = new Date(error.emailRestrictionExpiresAt);
+          const now = new Date();
+          const timeDiff = expiresAt.getTime() - now.getTime();
+
+          const daysRemaining = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+          const hoursRemaining = Math.floor(
+            (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+          );
+          const minutesRemaining = Math.floor(
+            (timeDiff % (1000 * 60 * 60)) / (1000 * 60),
+          );
+
+          setRestrictionData({
+            expiresAt,
+            daysRemaining: Math.max(0, daysRemaining),
+            hoursRemaining: Math.max(0, hoursRemaining),
+            minutesRemaining: Math.max(0, minutesRemaining),
+          });
+          setEmailRestrictionVisible(true);
+        } else {
+          // Fallback to just showing the error message
+          showToast(
+            error.message ||
+              'This email cannot be used due to a recent account deletion.',
+            'error',
+            {duration: 8000}, // Show longer for this important message
+          );
+        }
+        return; // Don't proceed with fallback for email restrictions
+      }
+
+      // Check if this is a network error
+      if (
+        error.message?.includes('Network Error') ||
+        error.message?.includes('network request failed')
+      ) {
+        triggerHaptic('warning');
+        showToast(
+          'Network connection issue. Please check your internet connection.',
+          'error',
+        );
+      } else {
+        triggerHaptic('error');
+        showToast(strings.auth.signInFailed, 'error');
+      }
     } finally {
       setSigningIn(false);
     }
   };
 
   return (
-    <View style={{backgroundColor: colors.background}} className="flex-1">
+    <View style={{backgroundColor: theme.background}} className="flex-1">
+      {/* Rest of your component remains unchanged */}
       <BlurView
         style={StyleSheet.absoluteFill}
         blurType={isDark ? 'dark' : 'light'}
         blurAmount={20}
       />
 
-      {/* Animated Content Container */}
+      {/* Language Selector Button */}
+      <View
+        className="absolute self-center mt-6 z-10 rounded-full px-1.5 pl-3"
+        style={{backgroundColor: theme.surface}}>
+        <TouchableOpacity
+          onPress={handleLanguagePress}
+          className="flex-row rounded-full items-center justify-center"
+          accessible={true}
+          accessibilityLabel={strings.settings.language}
+          accessibilityHint={strings.settings.languageHint}>
+          <LanguageIcon size={22} color={theme.primary} />
+          <LanguageSelector ref={languageSelectorRef} />
+        </TouchableOpacity>
+      </View>
+
       <Animated.View
         className="flex-1 justify-center items-center p-8"
-        style={{
-          opacity: fadeAnim,
-          transform: [{translateY: slideAnim}],
-        }}>
+        style={{opacity: fadeAnim, transform: [{translateY: slideAnim}]}}>
         {/* App Logo/Title */}
-        <View className="items-center mb-16">
-          <SparklesIcon
-            size={64}
-            color={colors.primary}
-            style={{marginBottom: 16}}
-          />
+        <Animated.View
+          className="items-center mb-16"
+          style={{transform: [{scale: logoScale}]}}>
+          <View className="mb-4">
+            <SparklesIcon size={64} color={theme.primary} />
+          </View>
           <Text
             className="text-4xl font-bold text-center mb-4"
-            style={{color: colors.text}}>
+            style={{color: theme.text}}>
             {appConfig.name}
           </Text>
           <Text
             className="text-lg font-bold text-center mt-2"
-            style={{color: colors.secondaryText}}>
-            Create Amazing AI Art
+            style={{color: theme.secondaryText}}>
+            {strings.auth.createAmazingImages}
           </Text>
-        </View>
+        </Animated.View>
 
         {/* Sign In Options */}
         <View className="w-full max-w-[370px]">
           {/* Google Sign-In Button */}
-          <TouchableOpacity
-            onPress={handleGoogleSignIn}
-            disabled={signingIn}
-            style={{
-              backgroundColor: colors.surface,
-              opacity: signingIn ? 0.7 : 1,
-            }}
-            className="flex-row items-center justify-center p-4 rounded-2xl mb-4"
-            accessible={true}
-            accessibilityLabel="Continue with Google"
-            accessibilityHint="Sign in using your Google account"
-            accessibilityState={{disabled: signingIn}}>
-            {signingIn ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <>
-                <GoogleLogoIcon size={24} color={colors.text} />
-                <Text style={{color: colors.text}} className="ml-3 text-lg">
-                  Continue with Google
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <Animated.View style={{transform: [{scale: buttonScale}]}}>
+            <TouchableOpacity
+              onPress={handleGoogleSignIn}
+              disabled={signingIn}
+              style={{backgroundColor: theme.surface}}
+              className={`flex-row items-center justify-center p-4 rounded-2xl mb-4 shadow-xl ${
+                signingIn ? 'opacity-70' : 'opacity-100'
+              }`}
+              accessible={true}
+              accessibilityLabel={strings.auth.continueWithGoogle}
+              accessibilityHint={strings.auth.continueWithGoogleHint}
+              accessibilityState={{disabled: signingIn}}>
+              {signingIn ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <>
+                  <GoogleLogoIcon size={24} color={theme.text} />
+                  <Text style={{color: theme.text}} className="ml-3 text-lg">
+                    {strings.auth.continueWithGoogle}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Switch Account Note */}
           <Text
-            style={{color: colors.secondaryText}}
+            style={{color: theme.secondaryText}}
             className="text-center text-sm mt-4">
-            You can tap the button above to sign in with a different Google
-            account
+            {strings.auth.switchAccount}
           </Text>
         </View>
 
         {/* Privacy Notice */}
         <Text
           className="text-center text-base px-8 mt-8"
-          style={{color: colors.secondaryText}}>
-          By continuing, you agree to our{' '}
+          style={{color: theme.secondaryText}}>
+          {strings.auth.agreeToTerms}&nbsp;
           <Text
-            onPress={openTermsOfService}
+            onPress={handleTermsPress}
             accessible={true}
-            accessibilityLabel="View Terms of Service"
-            style={{color: colors.primary}}>
-            Terms of Service
-          </Text>{' '}
-          and{' '}
+            accessibilityLabel={strings.settings.termsOfServiceHint}
+            style={{color: theme.primary}}>
+            {strings.settings.termsOfService}
+          </Text>
+          &nbsp;{strings.common.and}&nbsp;
           <Text
-            onPress={openPrivacyPolicy}
+            onPress={handlePrivacyPress}
             accessible={true}
-            accessibilityLabel="View Privacy Policy"
-            style={{color: colors.primary}}>
-            Privacy Policy
+            accessibilityLabel={strings.settings.privacyPolicyHint}
+            style={{color: theme.primary}}>
+            {strings.settings.privacyPolicy}
           </Text>
         </Text>
       </Animated.View>
+
+      {/* Email Restriction Dialog */}
+      <EmailRestrictionDialog
+        visible={emailRestrictionVisible}
+        onClose={() => setEmailRestrictionVisible(false)}
+        expiresAt={restrictionData.expiresAt}
+        daysRemaining={restrictionData.daysRemaining}
+        hoursRemaining={restrictionData.hoursRemaining}
+        minutesRemaining={restrictionData.minutesRemaining}
+      />
     </View>
   );
 };

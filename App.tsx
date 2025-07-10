@@ -1,6 +1,6 @@
 /**
  * App Name: Zenoa AI
- * Version: 2.0.0
+ * Version: 3.0.0
  * Company Name: Zenoa
  * Owner & Developer: Sumit Singh Rathore
  * Released on Indus App Store: 30 April 2025
@@ -13,30 +13,42 @@
 
 import './global.css';
 import React, {useEffect} from 'react';
-import {StatusBar, AppState, AppStateStatus} from 'react-native';
+import Config from 'react-native-config';
+import auth from '@react-native-firebase/auth';
+import {StatusBar, AppState, AppStateStatus, BackHandler} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import auth from '@react-native-firebase/auth';
-import CustomTabBar from '@src/components/CustomTabBar';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import {Toaster} from '@masumdev/rn-toast';
+import {SystemBars} from 'react-native-edge-to-edge';
+import {KeyboardProvider} from 'react-native-keyboard-controller';
+
+import {User} from '@src/types';
 import Routes from '@src/constants/routes';
-import {useThemeStore} from '@src/store/themeStore';
-import {theme} from '@src/theme/Theme';
+import CustomTabBar from '@src/components/CustomTabBar';
+
+// Stores
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
+import {useLanguageStore} from '@src/store/languageStore';
+
+// Services
+import userService from '@src/services/userService';
+import {analyticsService} from '@src/services/analyticsService';
+import {crashlyticsService} from '@src/services/crashlyticsService';
+import {notificationService} from '@src/services/notificationService';
+
+// Screens
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
 import ProfileScreen from '@src/screens/ProfileScreen';
 import GalleryScreen from '@src/screens/GalleryScreen';
+import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import Config from 'react-native-config';
-import {Toaster} from '@masumdev/rn-toast';
-import {analyticsService} from '@src/services/analyticsService';
-import {crashlyticsService} from '@src/services/crashlyticsService';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
-import {userService} from '@src/services/userService';
 
 GoogleSignin.configure({
   webClientId: Config.GOOGLE_WEB_CLIENT_ID,
@@ -49,9 +61,22 @@ const Tab = createBottomTabNavigator();
 
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{headerShown: false}}>
-      <Stack.Screen name={Routes.SETTINGS} component={ProfileScreen} />
-      <Stack.Screen name={Routes.EDIT_PROFILE} component={EditProfileScreen} />
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        animationTypeForReplace: 'push',
+      }}>
+      <Stack.Screen
+        name={Routes.SETTINGS}
+        component={ProfileScreen}
+        options={{gestureEnabled: false}} // Disable swipe gesture on profile screen
+      />
+      <Stack.Screen
+        name={Routes.EDIT_PROFILE}
+        component={EditProfileScreen}
+        options={{gestureEnabled: true}}
+      />
     </Stack.Navigator>
   );
 }
@@ -60,26 +85,63 @@ function HomeTabs() {
   return (
     <Tab.Navigator
       tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{headerShown: false}}>
+      screenOptions={{
+        headerShown: false,
+        // Disable swipe gesture on tabs to prevent interference
+        tabBarHideOnKeyboard: true,
+      }}>
       <Tab.Screen name={Routes.HOME} component={HomeScreen} />
       <Tab.Screen name={Routes.GALLERY} component={GalleryScreen} />
+      <Tab.Screen name={Routes.COMMUNITY} component={CommunityScreen} />
       <Tab.Screen name={Routes.SETTINGS} component={ProfileStack} />
     </Tab.Navigator>
   );
 }
 
 function App() {
-  const {isDark} = useThemeStore();
+  const {isDark, theme} = useTheme();
+  const {language} = useLanguageStore();
   const {
     user,
     isLoading,
     initialized,
     restoreSession,
-    firebaseUser,
     getIdToken,
     login,
     logout,
   } = useAuthStore();
+
+  // Navigation ref for programmatic navigation
+  const navigationRef = React.useRef<any>(null);
+
+  SystemBars.setHidden(true);
+  // Handle Android back button
+  useEffect(() => {
+    const backAction = () => {
+      // Check if navigation ref is available and can go back
+      if (navigationRef.current?.canGoBack()) {
+        navigationRef.current.goBack();
+        return true; // Prevent default behavior (closing app)
+      }
+
+      // If at root screen and user is logged in, don't close app immediately
+      // This prevents accidental app closure
+      if (user && !isLoading) {
+        // You could show a "Press back again to exit" toast here
+        console.log('At root screen, allowing app to close');
+        return false; // Allow default behavior (close app)
+      }
+
+      return false; // Allow default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [user, isLoading]); // Add dependencies to re-register when state changes
 
   // Set up auth state listener
   useEffect(() => {
@@ -89,17 +151,21 @@ function App() {
 
     console.log('Setting up auth state listeners...');
 
-    // Wait for Firebase auth to initialize first
-    const initializeAuth = async () => {
+    // Initialize notification service
+    const initializeServices = async () => {
       try {
-        // First restore any existing session
+        // Initialize Firebase Auth first
         await restoreSession();
+
+        // Then initialize notification service
+        await notificationService.initialize();
+        console.log('All services initialized successfully');
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error initializing services:', error);
       }
     };
 
-    initializeAuth();
+    initializeServices();
 
     // Listen for auth state changes
     const unsubscribeAuthState = auth().onAuthStateChanged(async authUser => {
@@ -111,22 +177,35 @@ function App() {
       if (authUser) {
         // User just signed in or session was restored
         try {
-          // Get user data
+          // Get user data using the updated User interface
           let userData = await userService.getUser(authUser.uid);
 
           if (!userData) {
-            // Create a new user profile
-            userData = {
-              id: authUser.uid,
+            // Create a new user profile using the updated User interface
+            const newUser: User = {
+              uid: authUser.uid,
               email: authUser.email || '',
-              name: authUser.displayName || '',
-              photo: authUser.photoURL || '',
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
+              profile: {
+                username: authUser.displayName || '',
+                avatar: authUser.photoURL || '',
+                bio: '',
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              planType: 'free',
+              statistics: {
+                imagesGenerated: 0,
+                lastLoginAt: new Date(),
+                totalLogins: 1,
+              },
+              quota: {
+                imagesRemaining: 40,
+                lastRefreshedAt: new Date(),
+              },
             };
 
             // Save the new user
-            await login(userData);
+            await login(newUser);
           } else {
             // Update existing user with fresh info
             await login(userData);
@@ -142,12 +221,10 @@ function App() {
           await logout();
         }
       }
-      // We DON'T need an else case to handle sign-out
-      // as that's handled by the logout() function when called explicitly
     });
 
     // Set up token change listener
-    const unsubscribeTokenChange = auth().onIdTokenChanged(async user => {
+    const unsubscribeTokenChange = auth().onIdTokenChanged(async _authUser => {
       if (user) {
         console.log('ID token changed for user:', user.uid);
         // Get fresh token - this lets Firebase handle the refresh automatically
@@ -159,21 +236,7 @@ function App() {
       unsubscribeAuthState();
       unsubscribeTokenChange();
     };
-  }, [initialized, restoreSession, firebaseUser, getIdToken, login, user]);
-
-  // Debug effect to log current auth state - helps identify auth issues
-  useEffect(() => {
-    console.log('Auth State Debug:', {
-      userExists: !!user,
-      userId: user?.id,
-      firebaseUserExists: !!firebaseUser,
-      firebaseUid: firebaseUser?.uid,
-      isLoading,
-      initialized,
-      currentFirebaseUser: !!auth().currentUser,
-      currentFirebaseUid: auth().currentUser?.uid,
-    });
-  }, [user, firebaseUser, isLoading, initialized]);
+  }, [initialized, restoreSession, getIdToken, login, user]);
 
   // Handle app state changes to ensure token freshness
   useEffect(() => {
@@ -218,48 +281,92 @@ function App() {
     }
   }, [user]);
 
-  return (
-    <SafeAreaView
-      className="flex-1"
-      style={{
-        backgroundColor: isDark
-          ? theme.dark.background
-          : theme.light.background,
-      }}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
-      <NavigationContainer>
-        {isLoading ? (
-          <Stack.Navigator screenOptions={{headerShown: false}}>
-            <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
-          </Stack.Navigator>
-        ) : (
-          <Stack.Navigator screenOptions={{headerShown: false}}>
-            {user ? (
-              <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
-            ) : (
-              <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
-            )}
-            <Stack.Screen
-              name={Routes.ADVANCED_SETTINGS}
-              component={(props: any) => <AdvancedSettingsScreen {...props} />}
-              options={{headerShown: false}}
-            />
-          </Stack.Navigator>
-        )}
-      </NavigationContainer>
+  // Effect to track language changes
+  useEffect(() => {
+    if (user) {
+      analyticsService.logEvent('language_changed', {
+        language,
+        userId: user.uid,
+      });
+    }
+  }, [language, user]);
 
-      <Toaster
-        customColors={{
-          success: {background: '#E7F5E9', text: '#256029'},
-          error: {background: '#FDECEA', text: '#B3261E'},
-          info: {background: '#E3F2FD', text: '#1E88E5'},
-        }}
-      />
-    </SafeAreaView>
+  return (
+    <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+      <SafeAreaView
+        className="flex-1"
+        style={{backgroundColor: theme.background}}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor="transparent"
+          translucent
+        />
+
+        <NavigationContainer
+          ref={navigationRef}
+          onStateChange={state => {
+            // Optional: Log navigation state changes for debugging
+            console.log('Navigation state changed:', state);
+          }}>
+          {isLoading ? (
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                animationTypeForReplace: 'pop',
+              }}>
+              <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
+            </Stack.Navigator>
+          ) : (
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                // Enable gestures for better navigation experience
+                gestureEnabled: true,
+              }}>
+              {user ? (
+                <Stack.Screen
+                  name={Routes.MAIN}
+                  component={HomeTabs}
+                  options={{
+                    // Prevent going back to login after successful login
+                    headerLeft: () => null,
+                    gestureEnabled: false,
+                  }}
+                />
+              ) : (
+                <Stack.Screen
+                  name={Routes.SIGN_IN}
+                  component={LoginScreen}
+                  options={{
+                    // Prevent going back on login screen
+                    headerLeft: () => null,
+                    gestureEnabled: false,
+                  }}
+                />
+              )}
+              <Stack.Screen
+                name={Routes.ADVANCED_SETTINGS}
+                component={(props: any) => (
+                  <AdvancedSettingsScreen {...props} />
+                )}
+                options={{
+                  headerShown: false,
+                  gestureEnabled: true,
+                }}
+              />
+            </Stack.Navigator>
+          )}
+        </NavigationContainer>
+
+        <Toaster
+          customColors={{
+            success: {background: '#E7F5E9', text: '#256029'},
+            error: {background: '#FDECEA', text: '#B3261E'},
+            info: {background: '#E3F2FD', text: '#1E88E5'},
+          }}
+        />
+      </SafeAreaView>
+    </KeyboardProvider>
   );
 }
 

@@ -1,6 +1,6 @@
-import {AspectRatioType} from '@src/types';
+import {AspectRatio} from '@src/types/image';
 
-export const aspectRatios: AspectRatioType[] = [
+export const aspectRatios: AspectRatio[] = [
   {
     ratio: '1:1',
     sizes: {small: '512x512', medium: '1024x1024', large: '1536x1536'},

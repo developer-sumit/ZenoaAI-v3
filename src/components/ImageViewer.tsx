@@ -2,8 +2,6 @@ import React, {useState, useEffect, useRef} from 'react';
 import RNFS from 'react-native-fs';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
-import {GeneratedImage} from '@src/types';
-import {theme} from '@src/theme/Theme';
 import {
   ActivityIndicator,
   BackHandler,
@@ -16,12 +14,18 @@ import {
   StatusBar,
   ToastAndroid,
 } from 'react-native';
-import {useThemeStore} from '@src/store/themeStore';
-import {useAuthStore} from '@src/store/authStore';
-import appConfig from '@src/config/app.config';
-import {imageService} from '@src/services/imageService';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Toaster, useToast} from '@masumdev/rn-toast';
+import {useNavigation} from '@react-navigation/native';
+
+import {GeneratedImage} from '@src/types';
+import {useTheme} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
+import {useImageStore} from '@src/store/imageStore';
+import {useStrings} from '@src/hooks/useStrings';
+import {useHaptics} from '@src/hooks/useHaptics';
+import Routes from '@src/constants/routes';
+import appConfig from '@src/config/app.config';
 
 // Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -37,8 +41,16 @@ import TuneIcon from '@src/assets/icons/TuneIcon';
 import AspectRatioIcon from '@src/assets/icons/AspectRatioIcon';
 import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
+import PrivacyIcon from '@src/assets/icons/PrivacyIcon';
+import RefreshIcon from '@src/assets/icons/RefreshIcon';
 
-type IconName = 'seed' | 'tune' | 'aspect-ratio' | 'chart-donut';
+type IconName =
+  | 'seed'
+  | 'tune'
+  | 'aspect-ratio'
+  | 'chart-donut'
+  | 'privacy'
+  | 'dimensions';
 
 interface ImageViewerProps {
   image: GeneratedImage | null;
@@ -53,11 +65,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onImageDeleted,
   onToggleFavorite,
 }) => {
-  const {isDark} = useThemeStore();
+  const strings = useStrings();
+  const {isDark, theme} = useTheme();
   const {showToast} = useToast();
+  const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
-  const colors = isDark ? theme.dark : theme.light;
-  const imageUri = image?.uri || '';
+  const {deleteImage: storeDeleteImage} = useImageStore();
+  const navigation = useNavigation();
+  const imageUri = image?.imageUrl || '';
 
   // Track if component is mounted to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -67,9 +82,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const [expandedPrompt, setExpandedPrompt] = useState(false);
   const [fullscreenMode, setFullscreenMode] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  // Add state to track if image failed to load
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [expandedStyles, setExpandedStyles] = useState(false);
 
   // Cleanup when component unmounts
   useEffect(() => {
@@ -90,6 +105,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   // Handle back button
   useEffect(() => {
+    if (!image) return;
+
     const backAction = () => {
       if (fullscreenMode) {
         console.log(
@@ -123,16 +140,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDownloadPress = () => {
-    if (!image || !image?.uri) {
+    if (!image || !imageUri) {
       console.log('No image to download');
       return;
     }
 
     try {
       setDownloading(true);
-      downloadImage(image);
+      downloadImage();
     } catch (error) {
-      showToast('Failed to download image', 'error');
+      showToast(strings.imageViewer.failedToDownload, 'error');
       setDownloading(false);
     }
   };
@@ -145,27 +162,30 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     setExpandedPrompt(!expandedPrompt);
   };
 
-  const deleteImage = async (img: GeneratedImage) => {
-    if (!user?.id || !img.timestamp || !img.seed) {
+  const deleteImage = async () => {
+    if (!user?.uid || !image?.id) {
       return;
     }
 
     try {
       setDeleting(true);
-      const imageId = `${img.timestamp}_${img.seed}`;
 
-      // Instead of fully deleting, just mark as deleted
-      await imageService.markImageAsDeleted(user.id, imageId);
+      // Use the image store to delete the image
+      const success = await storeDeleteImage(image.id);
 
-      showToast('Image deleted', 'success');
+      if (success) {
+        showToast(strings.imageViewer.imageDeleted, 'success');
 
-      if (onImageDeleted) {
-        onImageDeleted();
+        if (onImageDeleted) {
+          onImageDeleted();
+        }
+        onClose?.();
+      } else {
+        showToast(strings.imageViewer.failedToDelete, 'error');
       }
-      onClose?.();
     } catch (error) {
       console.error('Error deleting image:', error);
-      showToast('Failed to delete image', 'error');
+      showToast(strings.imageViewer.failedToDelete, 'error');
     } finally {
       if (isMounted.current) {
         setDeleting(false);
@@ -185,11 +205,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     });
   };
 
-  const downloadImage = async (img: GeneratedImage) => {
-    console.log('Downloading image:', img.uri);
+  const downloadImage = async () => {
+    console.log('Downloading image:', imageUri);
     try {
       // Only fetch base64 when downloading
-      const response = await fetch(img.uri);
+      const response = await fetch(imageUri);
       const blob = await response.blob();
       const base64 = await blobToBase64(blob);
 
@@ -214,10 +234,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         await RNFS.scanFile(filePath);
       }
 
-      showToast('Image downloaded', 'success');
+      showToast(strings.imageViewer.imageDownloaded, 'success');
     } catch (error) {
       console.error('Download error:', error);
-      showToast('Failed to download image', 'error');
+      showToast(strings.imageViewer.failedToDownload, 'error');
     } finally {
       if (isMounted.current) {
         setDownloading(false);
@@ -228,18 +248,18 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const copyToClipboard = (text: string) => {
     Clipboard.setString(text);
     if (Platform.OS === 'android') {
-      ToastAndroid.show('Copied to clipboard', ToastAndroid.SHORT);
+      ToastAndroid.show(strings.imageViewer.copied, ToastAndroid.SHORT);
     } else {
-      showToast('Copied to clipboard');
+      showToast(strings.imageViewer.copied);
     }
   };
 
   // Calculate aspect ratio safely
   const getAspectRatio = () => {
     // Fallback to ratio from metadata
-    if (image?.aspectRatio?.ratio) {
+    if (image?.aspectRatio && typeof image.aspectRatio === 'string') {
       try {
-        const parts = image.aspectRatio.ratio.split(':');
+        const parts = image.aspectRatio.split(':');
         if (parts.length === 2) {
           const width = parseFloat(parts[0]);
           const height = parseFloat(parts[1]);
@@ -255,6 +275,29 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Default fallback
     return 1;
+  };
+
+  const handleRemix = () => {
+    if (!image) {
+      return;
+    }
+
+    // Close the image viewer first    onClose?.();
+
+    // Navigate to home screen with a slight delay to ensure modal is closed
+    setTimeout(() => {
+      (navigation as any).navigate(Routes.HOME, {
+        remixData: {
+          prompt: image.prompt,
+          negativePrompt: image.negativePrompt,
+          engine: image.engineType,
+          styles: image.styles,
+          width: image.width,
+          height: image.height,
+          aspectRatio: image.aspectRatio,
+        },
+      });
+    }, 100);
   };
 
   return (
@@ -297,10 +340,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               <TouchableOpacity
                 onPress={onClose}
                 className="p-2.5 rounded-full"
-                style={{backgroundColor: colors.surface}}
+                style={{backgroundColor: theme.surface}}
                 accessible={true}
-                accessibilityLabel="Close image viewer">
-                <CloseIcon size={24} color={colors.text} />
+                accessibilityLabel={strings.imageViewer.closeHint}>
+                <CloseIcon size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
           )}
@@ -308,14 +351,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {/* Image Display - takes full screen in fullscreen mode */}
           <View
             className={`${
-              fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4 bg-black/5'
+              fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4'
             } justify-center overflow-hidden`}
-            style={[
-              !fullscreenMode && expandedPrompt ? {flex: 0.7} : {},
-              !fullscreenMode
-                ? {borderWidth: 1, borderColor: colors.background}
-                : {},
-            ]}>
+            style={[!fullscreenMode && expandedPrompt ? {flex: 0.7} : {}]}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={toggleFullscreen}
@@ -324,7 +362,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               accessibilityLabel={`Image of ${
                 image?.prompt || 'generated content'
               }`}
-              accessibilityHint="Double tap to toggle fullscreen view">
+              accessibilityHint="">
               <FastImage
                 source={{
                   uri: imageUri,
@@ -357,11 +395,45 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   setImageLoaded(false);
                 }}
               />
-
-              {/* Fullscreen icon overlay - only in normal mode */}
+              {/* Overlay buttons - only in normal mode */}
               {imageLoaded && !fullscreenMode && (
-                <View className="absolute top-2.5 right-2.5 bg-black/40 rounded-3xl p-2">
-                  <FullscreenIcon size={24} color="white" />
+                <View className="absolute top-2.5 right-2.5 flex-row gap-2">
+                  {/* Favorite Button */}
+                  <View className="items-center">
+                    <TouchableOpacity
+                      onPress={() => {
+                        triggerHaptic('light');
+                        if (onToggleFavorite) {
+                          onToggleFavorite();
+                        }
+                      }}
+                      className="bg-black/40 rounded-3xl p-2"
+                      accessible={true}
+                      accessibilityLabel={
+                        image?.isFavorite
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }>
+                      <HeartIcon
+                        size={24}
+                        color={image?.isFavorite ? '#FF4B8C' : 'white'}
+                        fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Favorite Count */}
+                    {image?.favoriteCount && image.favoriteCount > 0 && (
+                      <View className="mt-1 px-2 py-0.5 bg-black/40 rounded-full">
+                        <Text className="text-white text-xs font-medium">
+                          {image.favoriteCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {/* Fullscreen Button */}
+                  <View className="bg-black/40 rounded-3xl p-2">
+                    <FullscreenIcon size={24} color="white" />
+                  </View>
                 </View>
               )}
             </TouchableOpacity>
@@ -370,13 +442,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             {!imageLoaded && !imageLoadFailed && (
               <View className="absolute inset-0 justify-center items-center">
                 <ActivityIndicator
-                  color={fullscreenMode ? 'white' : colors.primary}
+                  color={fullscreenMode ? 'white' : theme.primary}
                   size="large"
                 />
                 <Text
                   className="mt-3 text-base"
-                  style={{color: fullscreenMode ? 'white' : colors.text}}>
-                  Loading image...
+                  style={{color: fullscreenMode ? 'white' : theme.text}}>
+                  {strings.imageViewer.loading}
                 </Text>
               </View>
             )}
@@ -385,12 +457,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             {imageLoadFailed && (
               <View className="absolute inset-0 justify-center items-center">
                 <Text
-                  style={{color: fullscreenMode ? 'white' : colors.text}}
+                  style={{color: fullscreenMode ? 'white' : theme.text}}
                   className="text-base mb-3">
-                  Failed to load image
+                  {strings.imageViewer.loadingError}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
+                    triggerHaptic('light');
                     setImageLoadFailed(false);
                     setImageLoaded(false);
                     // Force reload
@@ -405,11 +478,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   style={{
                     backgroundColor: fullscreenMode
                       ? 'white/20'
-                      : colors.primary + '40',
+                      : theme.primary + '40',
                   }}>
                   <Text
-                    style={{color: fullscreenMode ? 'white' : colors.primary}}>
-                    Retry
+                    style={{color: fullscreenMode ? 'white' : theme.primary}}>
+                    {strings.common.retry}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -419,11 +492,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {/* Exit fullscreen button - only in fullscreen mode */}
           {fullscreenMode && (
             <TouchableOpacity
-              onPress={() => setFullscreenMode(false)}
+              onPress={() => {
+                triggerHaptic('selection');
+                setFullscreenMode(false);
+              }}
               className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
               style={{top: StatusBar.currentHeight || 40}}
               accessible={true}
-              accessibilityLabel="Exit fullscreen view"
+              accessibilityLabel={strings.imageViewer.exitFullscreen}
               accessibilityRole="button">
               <CloseIcon size={28} color="white" />
             </TouchableOpacity>
@@ -433,19 +509,19 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           {!fullscreenMode && (
             <View
               className="rounded-3xl p-4 mb-4"
-              style={{backgroundColor: colors.background}}>
+              style={{backgroundColor: theme.background}}>
               {/* Prompt with expansion toggle */}
               <View className="flex-row justify-between items-start mb-4">
                 <Text
                   className={`text-base font-semibold flex-1 ${
                     !expandedPrompt ? 'max-h-[66px]' : ''
                   }`}
-                  style={{color: colors.primary}}
+                  style={{color: theme.primary}}
                   numberOfLines={expandedPrompt ? undefined : 3}
                   onPress={togglePromptExpansion}
                   accessible={true}
                   accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
-                  accessibilityHint="Double tap to expand or collapse prompt">
+                  accessibilityHint={strings.imageViewer.promptHint}>
                   {image?.prompt || ''}
                 </Text>
                 <View className="flex-row items-center">
@@ -457,120 +533,188 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
                     }>
                     {expandedPrompt ? (
-                      <ChevronUpIcon size={18} color={colors.secondaryText} />
+                      <ChevronUpIcon size={18} color={theme.secondaryText} />
                     ) : (
-                      <ChevronDownIcon size={18} color={colors.secondaryText} />
+                      <ChevronDownIcon size={18} color={theme.secondaryText} />
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => copyToClipboard(image?.prompt || '')}
                     className="p-1 ml-2"
                     accessible={true}
-                    accessibilityLabel="Copy prompt to clipboard">
-                    <ContentCopyIcon size={18} color={colors.secondaryText} />
+                    accessibilityLabel={strings.imageViewer.copyPrompt}>
+                    <ContentCopyIcon size={18} color={theme.secondaryText} />
                   </TouchableOpacity>
                 </View>
               </View>
-
               {/* Metadata Grid */}
               <View className="flex-row flex-wrap gap-3">
+                {/* Engine - Top priority */}
+                <MetadataItem
+                  icon="tune"
+                  label="Engine"
+                  value={image?.engineType ? `${image.engineType}` : 'Quantum'}
+                />
+                {/* Image Dimensions - Top priority */}
+                <MetadataItem
+                  icon="dimensions"
+                  label="Dimensions"
+                  value={`${image?.width || 0} x ${image?.height || 0}`}
+                />
+                {/* Privacy Status */}
+                <MetadataItem
+                  icon="privacy"
+                  label="Visibility"
+                  value={image?.isPrivate ? 'Private' : 'Public'}
+                />
+                {/* Seed */}
                 <MetadataItem
                   icon="seed"
-                  label="Seed"
+                  label={strings.advancedSettings.featureInfo.seed.title}
                   value={image?.seed.toString() || ''}
                   onCopy={() => copyToClipboard(image?.seed.toString() || '')}
                 />
-                <MetadataItem
-                  icon="tune"
-                  label="Sampler"
-                  value={image?.sampler || ''}
-                />
+                {/* Aspect Ratio */}
                 <MetadataItem
                   icon="aspect-ratio"
                   label="Aspect Ratio"
-                  value={image?.aspectRatio.ratio || ''}
+                  value={image?.aspectRatio || '1:1'}
                 />
-                <MetadataItem
-                  icon="chart-donut"
-                  label="Quality"
-                  value={`${image?.quality} steps`}
-                />
+                {/* Created At */}
+                {image?.createdAt && (
+                  <MetadataItem
+                    icon="privacy"
+                    label="Created"
+                    value={new Date(image.createdAt).toLocaleDateString()}
+                  />
+                )}
               </View>
 
-              {/* Style Chips */}
-              <View className="flex-row flex-wrap gap-2 mt-4">
-                {image?.styles.map((style, index) => (
+              {/* Negative Prompt Section */}
+              {image?.negativePrompt && image.negativePrompt.trim() && (
+                <View className="mt-4">
+                  <Text
+                    className="text-sm font-medium mb-2"
+                    style={{color: theme.text}}>
+                    Negative Prompt
+                  </Text>
                   <View
-                    key={index}
-                    className="flex-row items-center rounded-full px-3 py-1.5"
-                    style={{backgroundColor: colors.primary + '20'}}>
-                    <PaletteIcon size={14} color={colors.primary} />
+                    className="rounded-2xl p-3"
+                    style={{backgroundColor: theme.surface}}>
                     <Text
-                      className="ml-1 text-sm"
-                      style={{color: colors.primary}}>
-                      {style}
+                      className="text-sm leading-5"
+                      style={{color: theme.secondaryText}}>
+                      {image.negativePrompt}
                     </Text>
                   </View>
-                ))}
-              </View>
+                </View>
+              )}
+
+              {/* Style Chips */}
+              {image?.styles && image.styles.length > 0 && (
+                <View className="mt-4">
+                  {/* Header with expand/collapse toggle */}
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text
+                      className="text-sm font-medium"
+                      style={{color: theme.text}}>
+                      {strings.advancedSettings.featureInfo.artStyles.title} (
+                      {image.styles.length})
+                    </Text>
+                    {image.styles.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setExpandedStyles(!expandedStyles)}
+                        className="p-1"
+                        accessible={true}
+                        accessibilityLabel={
+                          expandedStyles ? 'Collapse styles' : 'Expand styles'
+                        }>
+                        {expandedStyles ? (
+                          <ChevronUpIcon
+                            size={18}
+                            color={theme.secondaryText}
+                          />
+                        ) : (
+                          <ChevronDownIcon
+                            size={18}
+                            color={theme.secondaryText}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Style chips */}
+                  <View className="flex-row flex-wrap gap-2">
+                    {image.styles
+                      .slice(0, expandedStyles ? image.styles.length : 3)
+                      .map(style => (
+                        <View
+                          key={style}
+                          className="flex-row items-center rounded-full px-3 py-1.5"
+                          style={{backgroundColor: theme.primary + '20'}}>
+                          <PaletteIcon size={14} color={theme.primary} />
+                          <Text
+                            className="ml-1 text-sm"
+                            style={{color: theme.primary}}>
+                            {style}
+                          </Text>
+                        </View>
+                      ))}
+                    {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
+                    {!expandedStyles && image.styles.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setExpandedStyles(true)}
+                        className="flex-row items-center rounded-full px-3 py-1.5"
+                        style={{backgroundColor: theme.secondaryText + '20'}}>
+                        <Text
+                          className="text-sm"
+                          style={{color: theme.secondaryText}}>
+                          +{image.styles.length - 3} {strings.common.more}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
 
               {/* Action Buttons */}
               <View className="flex-row justify-between mt-5 gap-1.5">
-                {/* Delete Button */}
-                <TouchableOpacity
-                  onPress={handleDeletePress}
-                  disabled={deleting}
-                  className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: colors.surface}}
-                  accessible={true}
-                  accessibilityLabel="Delete image"
-                  accessibilityState={{disabled: deleting}}
-                  accessibilityHint="Will open a dialog to confirm image deletion">
-                  {deleting ? (
-                    <ActivityIndicator color="#ef4444" size="small" />
-                  ) : (
-                    <>
-                      <DeleteOutlineIcon size={22} color="#ef4444" />
-                      <Text className="font-bold" style={{color: '#ef4444'}}>
-                        Delete
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                {/* Delete Button - Only show if image belongs to current user */}
+                {user?.uid && image?.userId === user.uid && (
+                  <TouchableOpacity
+                    onPress={handleDeletePress}
+                    disabled={deleting}
+                    className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                    style={{backgroundColor: theme.surface}}
+                    accessible={true}
+                    accessibilityLabel={strings.imageViewer.deleteImage}
+                    accessibilityState={{disabled: deleting}}
+                    accessibilityHint={strings.imageViewer.deleteImageHint}>
+                    {deleting ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
+                    ) : (
+                      <>
+                        <DeleteOutlineIcon size={22} color="#ef4444" />
+                        <Text className="font-bold" style={{color: '#ef4444'}}>
+                          {strings.imageViewer.delete}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
 
-                {/* Favorite Button */}
+                {/* Remix Button */}
                 <TouchableOpacity
-                  onPress={() => {
-                    if (onToggleFavorite) {
-                      onToggleFavorite();
-                    } else {
-                      console.warn('No onToggleFavorite handler provided');
-                    }
-                  }}
+                  onPress={handleRemix}
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: colors.surface}}
+                  style={{backgroundColor: theme.surface}}
                   accessible={true}
-                  accessibilityLabel={
-                    image?.isFavorite
-                      ? 'Remove from favorites'
-                      : 'Add to favorites'
-                  }
-                  accessibilityHint={
-                    image?.isFavorite
-                      ? 'Removes this image from your favorites'
-                      : 'Adds this image to your favorites'
-                  }>
-                  <HeartIcon
-                    size={22}
-                    color={image?.isFavorite ? '#FF4B8C' : colors.text}
-                    fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
-                  />
-                  <Text
-                    className="font-bold"
-                    style={{
-                      color: image?.isFavorite ? '#FF4B8C' : colors.text,
-                    }}>
-                    {image?.isFavorite ? 'Favorited' : 'Favorite'}
+                  accessibilityLabel="Remix this image"
+                  accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
+                  <RefreshIcon size={22} color={theme.text} />
+                  <Text className="font-bold" style={{color: theme.text}}>
+                    Remix
                   </Text>
                 </TouchableOpacity>
 
@@ -579,17 +723,19 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   onPress={handleDownloadPress}
                   disabled={downloading}
                   className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: colors.primary}}
+                  style={{backgroundColor: theme.primary}}
                   accessible={true}
-                  accessibilityLabel="Download image"
+                  accessibilityLabel={strings.imageViewer.downloadImage}
                   accessibilityState={{disabled: downloading}}
-                  accessibilityHint="Saves image to your device">
+                  accessibilityHint={strings.imageViewer.downloadImageHint}>
                   {downloading ? (
                     <ActivityIndicator color="white" />
                   ) : (
                     <>
                       <DownloadIcon size={22} color="white" />
-                      <Text className="text-white font-bold">Download</Text>
+                      <Text className="text-white font-bold">
+                        {strings.imageViewer.download}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -617,7 +763,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
             <View
               className="w-full max-w-md rounded-3xl overflow-hidden"
               style={{
-                backgroundColor: colors.background,
+                backgroundColor: theme.background,
                 shadowColor: '#000',
                 shadowOffset: {width: 0, height: 10},
                 shadowOpacity: 0.2,
@@ -631,38 +777,39 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               <View className="p-6">
                 <Text
                   className="text-2xl font-semibold mb-3 text-center"
-                  style={{color: colors.text}}>
-                  Delete Image?
+                  style={{color: theme.text}}>
+                  {strings.imageViewer.deleteImage}
                 </Text>
                 <Text
                   className="text-base mb-8 text-center leading-6"
-                  style={{color: colors.secondaryText}}>
-                  This image will be permanently removed. This action cannot be
-                  undone.
+                  style={{color: theme.secondaryText}}>
+                  {strings.imageViewer.deleteConfirmation}
                 </Text>
 
                 <View className="flex-row justify-between">
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
-                    style={{backgroundColor: colors.surface}}
+                    style={{backgroundColor: theme.surface}}
                     onPress={() => setShowDeleteDialog(false)}
                     accessible={true}
-                    accessibilityLabel="Cancel image deletion">
+                    accessibilityLabel={
+                      strings.imageViewer.cancelImageDeletion
+                    }>
                     <Text
                       className="text-center font-medium"
-                      style={{color: colors.text}}>
-                      Cancel
+                      style={{color: theme.text}}>
+                      {strings.imageViewer.cancel}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1"
                     style={{backgroundColor: '#ef4444'}}
-                    onPress={() => deleteImage(image!)}
+                    onPress={deleteImage}
                     accessible={true}
-                    accessibilityLabel="Confirm image deletion"
-                    accessibilityHint="Permanently deletes this image">
+                    accessibilityLabel={strings.imageViewer.confirmDelete}
+                    accessibilityHint={strings.imageViewer.confirmDeleteHint}>
                     <Text className="text-white font-medium text-center">
-                      Delete
+                      {strings.imageViewer.confirmDelete}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -686,19 +833,22 @@ const MetadataItem = ({
   value: string;
   onCopy?: () => void;
 }) => {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {theme} = useTheme();
 
   const renderIcon = () => {
     switch (icon) {
       case 'seed':
-        return <SeedIcon size={16} color={colors.text} />;
+        return <SeedIcon size={16} color={theme.text} />;
       case 'tune':
-        return <TuneIcon size={16} color={colors.text} />;
+        return <TuneIcon size={16} color={theme.text} />;
       case 'aspect-ratio':
-        return <AspectRatioIcon size={16} color={colors.text} />;
+        return <AspectRatioIcon size={16} color={theme.text} />;
       case 'chart-donut':
-        return <ChartDonutIcon size={16} color={colors.text} />;
+        return <ChartDonutIcon size={16} color={theme.text} />;
+      case 'privacy':
+        return <PrivacyIcon size={16} color={theme.text} />;
+      case 'dimensions':
+        return <AspectRatioIcon size={16} color={theme.text} />;
       default:
         return null;
     }
@@ -707,19 +857,19 @@ const MetadataItem = ({
   return (
     <View
       className="flex-row items-center gap-2 rounded-2xl p-2.5 flex-1 min-w-[45%]"
-      style={{backgroundColor: colors.surface}}>
+      style={{backgroundColor: theme.surface}}>
       {renderIcon()}
       <View className="flex-1">
-        <Text className="text-xs" style={{color: colors.secondaryText}}>
+        <Text className="text-xs" style={{color: theme.secondaryText}}>
           {label}
         </Text>
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm" style={{color: colors.text}}>
+          <Text className="text-sm" style={{color: theme.text}}>
             {value}
           </Text>
           {onCopy && (
             <TouchableOpacity onPress={onCopy} className="p-1">
-              <ContentCopyIcon size={14} color={colors.text} />
+              <ContentCopyIcon size={14} color={theme.text} />
             </TouchableOpacity>
           )}
         </View>
