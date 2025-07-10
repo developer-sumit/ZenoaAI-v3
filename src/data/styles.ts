@@ -1,284 +1,340 @@
-import {ArtStyleType} from '@src/types';
+import {ArtStyleType} from '@src/types/image';
 
 export const artStyles: ArtStyleType[] = [
   {
     id: '1',
     name: 'Realistic',
-    image: require('@src/assets/art-styles/realistic.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658074/realistic_gjw6sn.jpg',
   },
   {
     id: '2',
     name: 'Cyberpunk',
-    image: require('@src/assets/art-styles/cyberpunk.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658011/cyberpunk_ufnoav.jpg',
   },
   {
     id: '3',
     name: 'Anime',
-    image: require('@src/assets/art-styles/anime.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658145/anime_gkkapz.jpg',
   },
   {
     id: '4',
     name: 'Sticker',
-    image: require('@src/assets/art-styles/sticker.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658095/sticker_nztcyy.jpg',
   },
   {
     id: '5',
     name: 'Studio Ghibli',
-    image: require('@src/assets/art-styles/studio-ghibli.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658097/studio-ghibli_ymiekz.jpg',
   },
   {
     id: '6',
     name: 'Surrealism',
-    image: require('@src/assets/art-styles/surrealism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658105/surrealism_itcrr0.jpg',
   },
   {
     id: '7',
     name: 'Minimalist',
-    image: require('@src/assets/art-styles/minimalist.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658052/minimalist_u0xmbj.jpg',
   },
   {
     id: '8',
     name: 'Abstract',
-    image: require('@src/assets/art-styles/abstract.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658143/abstract_xdyxsr.jpg',
   },
   {
     id: '9',
     name: 'Pixel Art',
-    image: require('@src/assets/art-styles/pixel-art.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658067/pixel-art_f9odsa.jpg',
   },
   {
     id: '10',
     name: 'Steampunk',
-    image: require('@src/assets/art-styles/steampunk.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658084/steampunk_yc0hvi.jpg',
   },
   {
     id: '11',
     name: 'Cinematic',
-    image: require('@src/assets/art-styles/cinematic.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658008/cinematic_tmnlrp.jpg',
   },
   {
     id: '12',
     name: 'Pop Art',
-    image: require('@src/assets/art-styles/pop-art.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658070/pop-art_t2wzmm.jpg',
   },
   {
     id: '13',
     name: 'Cyber Gothic',
-    image: require('@src/assets/art-styles/cyber-gothic.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658010/cyber-gothic_nn8bbo.jpg',
   },
   {
     id: '14',
     name: 'Low Poly',
-    image: require('@src/assets/art-styles/low-poly.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658034/low-poly_yssgrt.jpg',
   },
   {
     id: '15',
     name: '3D Figurine',
-    image: require('@src/assets/art-styles/3d-figurine.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658139/3d-figurine_dbreoi.jpg',
   },
   {
     id: '16',
     name: 'Charcoal Sketch',
-    image: require('@src/assets/art-styles/charcoal.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658174/charcoal_u6fylp.jpg',
   },
   {
     id: '17',
     name: 'Digital Glitch',
-    image: require('@src/assets/art-styles/digital-glitch.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658018/digital-glitch_xoqbga.jpg',
   },
   {
     id: '18',
     name: 'Sci-Fi Futuristic',
-    image: require('@src/assets/art-styles/sci-fi-futuristic.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658082/sci-fi-futuristic_pwrfpb.jpg',
   },
   {
     id: '19',
     name: 'Cartoon',
-    image: require('@src/assets/art-styles/cartoon.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658172/cartoon_hodlme.jpg',
   },
   {
     id: '20',
     name: 'Claymation',
-    image: require('@src/assets/art-styles/claymation.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658008/claymation_pvapow.jpg',
   },
   {
     id: '21',
     name: 'Origami Paper',
-    image: require('@src/assets/art-styles/origami.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658063/origami_f3d4ec.jpg',
   },
   {
     id: '22',
     name: 'Retro Art',
-    image: require('@src/assets/art-styles/retro-art.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658078/retro-art_kprqjq.jpg',
   },
   {
     id: '23',
     name: 'Manga',
-    image: require('@src/assets/art-styles/manga.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658040/manga_tzuvuz.jpg',
   },
   {
     id: '24',
     name: 'Game Art',
-    image: require('@src/assets/art-styles/game-art.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658027/game-art_egpv7d.jpg',
   },
   {
     id: '25',
     name: 'Pokemon',
-    image: require('@src/assets/art-styles/pokemon.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658068/pokemon_rpq2os.jpg',
   },
   {
     id: '26',
     name: 'Impressionism',
-    image: require('@src/assets/art-styles/impressionism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658032/impressionism_ejtxgd.jpg',
   },
   {
     id: '27',
     name: 'Cubism',
-    image: require('@src/assets/art-styles/cubism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658009/cubism_thmlgq.jpg',
   },
   {
     id: '28',
     name: 'Art Nouveau',
-    image: require('@src/assets/art-styles/art-nouveau.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658151/art-nouveau_gwcuzq.jpg',
   },
   {
     id: '29',
     name: 'Art Deco',
-    image: require('@src/assets/art-styles/art-deco.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658150/art-deco_lgq604.jpg',
   },
   {
     id: '30',
     name: 'Renaissance',
-    image: require('@src/assets/art-styles/renaissance.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658076/renaissance_zjyoqd.jpg',
   },
   {
     id: '31',
     name: 'Baroque',
-    image: require('@src/assets/art-styles/baroque.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658154/baroque_hluq6e.jpg',
   },
   {
     id: '32',
     name: 'Ukiyo-e',
-    image: require('@src/assets/art-styles/ukiyo-e-japanese.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658126/ukiyo-e-japanese_f1uuk3.jpg',
   },
   {
     id: '33',
     name: 'Bauhaus',
-    image: require('@src/assets/art-styles/bauhaus.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658157/bauhaus_l8tou9.jpg',
   },
   {
     id: '34',
     name: 'Gothic',
-    image: require('@src/assets/art-styles/gothic.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658030/gothic_d5dzna.jpg',
   },
   {
     id: '35',
     name: 'Expressionism',
-    image: require('@src/assets/art-styles/expressionism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658022/expressionism_aucsoj.jpg',
   },
   {
     id: '36',
     name: 'Fauvism',
-    image: require('@src/assets/art-styles/fauvism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658024/fauvism_iaek5b.jpg',
   },
   {
     id: '37',
     name: 'Vaporwave',
-    image: require('@src/assets/art-styles/vaporwave.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658133/vaporwave_dj3ugs.jpg',
   },
   {
     id: '38',
     name: 'Rococo',
-    image: require('@src/assets/art-styles/rococo.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658081/rococo_tumqay.jpg',
   },
   {
     id: '39',
     name: 'Dadaism',
-    image: require('@src/assets/art-styles/dadaism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658015/dadaism_odrh4q.jpg',
   },
   {
     id: '40',
     name: 'De Stijl',
-    image: require('@src/assets/art-styles/de-stijl.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658016/de-stijl_pku3as.jpg',
   },
   {
     id: '41',
     name: 'Optical Illusion',
-    image: require('@src/assets/art-styles/optical-illusion.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658059/optical-illusion_cksuw6.jpg',
   },
   {
     id: '42',
     name: 'Memphis Design',
-    image: require('@src/assets/art-styles/memphis-design.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658041/memphis-design_ulh07t.jpg',
   },
   {
     id: '43',
     name: 'Brutalism',
-    image: require('@src/assets/art-styles/brutalism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658168/brutalism_o6atvf.jpg',
   },
   {
     id: '44',
     name: 'Suprematism',
-    image: require('@src/assets/art-styles/suprematism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658100/suprematism_kmospx.jpg',
   },
   {
     id: '45',
     name: 'Constructivism',
-    image: require('@src/assets/art-styles/constructivism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658009/constructivism_j0zar7.jpg',
   },
   {
     id: '46',
     name: 'Art Brut',
-    image: require('@src/assets/art-styles/art-brut.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658147/art-brut_rxrmrq.jpg',
   },
   {
     id: '47',
     name: 'Neoclassicism',
-    image: require('@src/assets/art-styles/neoclassicism.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658054/neoclassicism_hgcvmn.jpg',
   },
   {
     id: '48',
     name: 'Watercolor',
-    image: require('@src/assets/art-styles/watercolor.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658134/watercolor_ossm0h.jpg',
   },
   {
     id: '49',
     name: 'Disney Animation',
-    image: require('@src/assets/art-styles/disney-animation.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658020/disney-animation_szgj7o.jpg',
   },
   {
     id: '50',
     name: 'Synthwave',
-    image: require('@src/assets/art-styles/synthwave.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658107/synthwave_tqpdzn.jpg',
   },
   {
     id: '51',
     name: 'Film Noir',
-    image: require('@src/assets/art-styles/film-noir.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658025/film-noir_dkoaxk.jpg',
   },
   {
     id: '52',
     name: 'Art of Diablo',
-    image: require('@src/assets/art-styles/art-of-diablo.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658153/art-of-diablo_fbtmyl.jpg',
   },
   {
     id: '53',
     name: 'Wes Anderson',
-    image: require('@src/assets/art-styles/wes-anderson.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658135/wes-anderson_mjcv3x.jpg',
   },
   {
     id: '54',
     name: 'Tim Burton',
-    image: require('@src/assets/art-styles/tim-burton.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658124/tim-burton_v1p0xg.jpg',
   },
   {
     id: '55',
     name: 'Minecraft',
-    image: require('@src/assets/art-styles/minecraft.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658052/minecraft_clsmai.jpg',
   },
   {
     id: '56',
     name: 'Borderlands Cel Shaded',
-    image: require('@src/assets/art-styles/borderlands.jpg'),
+    image:
+      'https://res.cloudinary.com/dqqomj8qa/image/upload/v1751658162/borderlands_urfu6e.jpg',
   },
 ];

@@ -1,120 +1,151 @@
 import React from 'react';
-import {BlurView} from '@react-native-community/blur';
-import {Text, TouchableOpacity, View} from 'react-native';
+import {View, TouchableOpacity, Text, Platform, Animated} from 'react-native';
+import {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {theme} from '@src/theme/Theme';
-import Routes from '@src/constants/routes';
-import {useThemeStore} from '@src/store/themeStore';
+import {useStrings} from '@src/hooks/useStrings';
+import {useTheme} from '@src/store/themeStore';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
 
-import RobotIcon from '@src/assets/icons/RobotIcon';
-import RobotOutlineIcon from '@src/assets/icons/RobotOutlineIcon';
-import ImageMultipleIcon from '@src/assets/icons/ImageMultipleIcon';
-import ImageMultipleOutlineIcon from '@src/assets/icons/ImageMultipleOutlineIcon';
-import AccountIcon from '@src/assets/icons/AccountIcon';
-import AccountOutlineIcon from '@src/assets/icons/AccountOutlineIcon';
+// Icons
+import HomeIcon from '@src/assets/icons/HomeIcon';
+import SettingsIcon from '@src/assets/icons/SettingsIcon';
+import CommunityIcon from '@src/assets/icons/CommunityIcon';
+import GalleryIcon from '@src/assets/icons/GalleryIcon';
 
-const getIcon = (
-  routeName: string,
-  focused: boolean,
-  size: number,
-  color: string,
-) => {
-  switch (routeName) {
-    case Routes.HOME:
-      return focused ? (
-        <RobotIcon size={size} color={color} />
-      ) : (
-        <RobotOutlineIcon size={size} color={color} />
-      );
-    case Routes.GALLERY:
-      return focused ? (
-        <ImageMultipleIcon size={size} color={color} />
-      ) : (
-        <ImageMultipleOutlineIcon size={size} color={color} />
-      );
-    case Routes.SETTINGS:
-      return focused ? (
-        <AccountIcon size={size} color={color} />
-      ) : (
-        <AccountOutlineIcon size={size} color={color} />
-      );
-    default:
-      return null;
-  }
-};
+const CustomTabBar: React.FC<BottomTabBarProps> = ({
+  state,
+  descriptors,
+  navigation,
+}) => {
+  const strings = useStrings();
+  const {theme} = useTheme();
+  const insets = useSafeAreaInsets();
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
 
-export default function CustomTabBar({state, navigation}: any) {
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  // Animation values for each tab
+  const tabAnimations = React.useRef(
+    state.routes.map(() => new Animated.Value(1)),
+  ).current;
+
+  const getTabIcon = (routeName: string, isFocused: boolean) => {
+    const iconColor = isFocused ? theme.primary : theme.secondaryText + 'bb';
+    const size = 24;
+
+    switch (routeName) {
+      case 'Home':
+        return <HomeIcon size={size} color={iconColor} />;
+      case 'Gallery':
+        return <GalleryIcon size={size} color={iconColor} />;
+      case 'Community':
+        return <CommunityIcon size={size} color={iconColor} />;
+      case 'Settings':
+        return <SettingsIcon size={size} color={iconColor} />;
+      default:
+        return null;
+    }
+  };
+
+  const getTabLabel = (routeName: string) => {
+    switch (routeName) {
+      case 'Home':
+        return strings.home.title;
+      case 'Gallery':
+        return strings.gallery.title;
+      case 'Community':
+        return strings.community.title;
+      case 'Settings':
+        return strings.settings.title;
+      default:
+        return routeName;
+    }
+  };
+
+  const handleTabPress = (index: number, onPress: () => void) => {
+    // Haptic feedback
+    triggerHaptic('selection');
+
+    // Micro animation - scale effect
+    animatePress(tabAnimations[index], 200);
+
+    // Execute the original onPress
+    onPress();
+  };
 
   return (
     <View
-      className="absolute bottom-0 w-full overflow-hidden"
+      className="absolute bottom-0 flex-row shadow-lg rounded-t-3xl"
       style={{
-        backgroundColor: colors.surface,
-        shadowColor: '#000',
+        backgroundColor: theme.surface,
+        paddingTop: Platform.OS === 'ios' ? insets.bottom : 7,
+        paddingBottom: Platform.OS === 'ios' ? insets.bottom : 20,
+        shadowColor: theme.primary,
         shadowOffset: {width: 0, height: -2},
         shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 10,
+        shadowRadius: 8,
+        elevation: 15,
       }}>
-      <BlurView
-        style={{position: 'absolute', height: '100%', width: '100%'}}
-        blurType={isDark ? 'dark' : 'light'}
-        blurAmount={20}
-        overlayColor="transparent"
-      />
+      {state.routes.map((route, index) => {
+        const {options} = descriptors[route.key];
+        const isFocused = state.index === index;
 
-      <View className="flex-row w-full py-2">
-        {state.routes.map((route: any, index: number) => {
-          const isFocused = state.index === index;
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
 
-          return (
+        const onLongPress = () => {
+          navigation.emit({type: 'tabLongPress', target: route.key});
+        };
+        return (
+          <Animated.View
+            key={route.key}
+            style={{
+              flex: 1,
+              transform: [{scale: tabAnimations[index]}],
+            }}>
             <TouchableOpacity
-              key={route.name}
-              onPress={onPress}
-              className="flex-1 items-center justify-center"
-              activeOpacity={0.7}
-              accessible={true}
-              accessibilityLabel={route.name}
-              accessibilityRole="tab"
-              accessibilityState={{selected: isFocused}}
-              accessibilityHint={`Go to ${route.name} screen`}>
+              accessibilityRole="button"
+              accessibilityState={isFocused ? {selected: true} : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              onPress={() => handleTabPress(index, onPress)}
+              onLongPress={onLongPress}
+              className="flex-1 items-center justify-center py-3"
+              style={{
+                backgroundColor: isFocused
+                  ? theme.primary + '10'
+                  : 'transparent',
+                borderRadius: 16,
+                marginHorizontal: 4,
+              }}>
               <View
-                className="w-14 h-14 rounded-full items-center justify-center overflow-hidden"
-                style={{
-                  backgroundColor: isFocused
-                    ? colors.primary + '15'
-                    : 'transparent',
-                }}>
-                {getIcon(
-                  route.name,
-                  isFocused,
-                  28,
-                  isFocused ? colors.primary : '#64748b',
-                )}
+                style={{transform: [{scale: isFocused ? 1.1 : 1}]}}
+                className="transition-transform duration-200">
+                {getTabIcon(route.name, isFocused)}
               </View>
-
               <Text
-                className="text-xs mt-1 font-medium"
-                style={{color: colors.text}}>
-                {route.name}
+                className="mt-1 text-xs font-medium"
+                style={{
+                  color: isFocused ? theme.primary : theme.secondaryText + 'bb',
+                  fontWeight: isFocused ? '600' : '400',
+                }}>
+                {getTabLabel(route.name)}
               </Text>
             </TouchableOpacity>
-          );
-        })}
-      </View>
+          </Animated.View>
+        );
+      })}
     </View>
   );
-}
+};
+
+export default CustomTabBar;

@@ -9,13 +9,14 @@ export const analyticsService = {
     try {
       if (user) {
         // Set user ID for analytics
-        await analytics().setUserId(user.id);
+        await analytics().setUserId(user.uid); // Changed from user.id to user.uid
 
         // Set some basic user properties
         await analytics().setUserProperties({
           email: user.email || '',
-          name: user.name || '',
-          createdAt: user.createdAt || '',
+          username: user.profile.username || '', // Updated to use new structure
+          createdAt: user.createdAt.toISOString() || '',
+          planType: user.planType || 'free',
         });
 
         console.log('Analytics user properties set successfully');

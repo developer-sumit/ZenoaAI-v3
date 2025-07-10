@@ -5,32 +5,36 @@ import {
   TextInput,
   ActivityIndicator,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   Keyboard,
   Dimensions,
   ToastAndroid,
+  Animated,
 } from 'react-native';
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
-import NetInfo from '@react-native-community/netinfo';
+import {useRoute} from '@react-navigation/native';
+import {KeyboardAvoidingView} from 'react-native-keyboard-controller';
 
-import {theme} from '@src/theme/Theme';
 import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
-import {useThemeStore} from '@src/store/themeStore';
+import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
-import {generateImage} from '@src/config/api.config';
-import {imageService} from '@src/services/imageService';
-import {AspectRatioType, GeneratedImage} from '../types';
-import LoadingAnimation from '@src/components/LoadingAnimation';
+import {useImageStore} from '@src/store/imageStore';
+import {useQuota} from '@src/hooks/useQuota';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {useAnimations} from '@src/hooks/useAnimations';
+import {GeneratedImage} from '../types';
+import {AspectRatio} from '../types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
-import {getStylePrompt} from '@src/data/stylePrompts';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
+import {contentFilter} from '@src/utils/contentFilter';
+import {useStrings} from '@src/hooks/useStrings';
+import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
 
 // Icons
 import TipIcon from '@src/assets/icons/TipIcon';
@@ -39,26 +43,34 @@ import TuneIcon from '@src/assets/icons/TuneIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
-import ErrorOutlineIcon from '@src/assets/icons/ErrorOutlineIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
 const HomeScreen = () => {
-  const {isDark} = useThemeStore();
+  const strings = useStrings();
+  const {theme} = useTheme();
   const {showToast} = useToast();
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
-  const colors = isDark ? theme.dark : theme.light;
-  const [isLoadingImages, setIsLoadingImages] = React.useState(true);
+  const route = useRoute();
+  const {
+    images: generatedImages,
+    currentGenerationBatch,
+    isLoading: imageLoading,
+    fetchImages,
+    generateBatch,
+  } = useImageStore();
+  const {hasImageQuota, refetch: refetchQuota} = useQuota();
+
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
-  const [loading, setLoading] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
   const [selectedStyles, setSelectedStyles] = React.useState<string[]>([]);
-  const [aspectRatio, setAspectRatio] = React.useState<AspectRatioType>({
+  const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>({
     ratio: aspectRatios[0].ratio,
     sizes: aspectRatios[0].sizes,
     size: 'medium',
@@ -66,70 +78,79 @@ const HomeScreen = () => {
   const [numberOfImages, setNumberOfImages] = React.useState(1);
   const [quality, setQuality] = React.useState(25);
   const [seed, setSeed] = React.useState('');
-  const [sampler, setSampler] = React.useState('k_euler_ancestral');
   const [negativePrompt, setNegativePrompt] = React.useState('');
-  const [generatedImages, setGeneratedImages] = React.useState<
-    GeneratedImage[]
-  >([]);
+  const [isImagePrivate, setIsImagePrivate] = React.useState(false);
   const [selectedImage, setSelectedImage] =
     React.useState<GeneratedImage | null>(null);
 
-  const flashListRef = useRef(null);
+  // New advanced settings
+  const [engine, setEngine] = React.useState<'quantum' | 'nebula'>('quantum');
+  const [guidance, setGuidance] = React.useState<number>(7.5);
+  const [steps, setSteps] = React.useState<number>(30);
+  const flashListRef = useRef<FlashList<any>>(null);
 
-  const samplers = ['k_euler_ancestral', 'k_lms', 'k_heun', 'k_dpm_2'];
-
-  // Add state for tutorial visibility
   const [showOnboarding, setShowOnboarding] = React.useState(false);
+  // Animation values for micro interactions
+  const generateButtonScale = useRef(new Animated.Value(1)).current;
+  const promptSuggestionsButtonScale = useRef(new Animated.Value(1)).current;
+
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
+
+  // Android Quick Actions
+  useAndroidQuickActions();
+
+  // Combined function to update both quota and profile
+  const updateQuotaAndProfile = async () => {
+    await refetchQuota();
+  };
 
   // Load user's images when component mounts
   useEffect(() => {
-    if (user?.id) {
-      // Set loading to true before fetching
-      setIsLoadingImages(true);
-      loadUserImages();
-    } else {
-      // If no user, we're not loading anything
-      setIsLoadingImages(false);
+    if (user?.uid) {
+      fetchImages(1, 20, true); // Load first page
     }
-  }, [user?.id]);
+  }, [user?.uid, fetchImages]);
 
-  const loadUserImages = async () => {
-    if (!user?.id) {
-      setIsLoadingImages(false);
-      return;
-    }
+  // Handle remix data from navigation params
+  useEffect(() => {
+    const params = route.params as any;
+    if (params?.remixData) {
+      const remix = params.remixData; // Apply the remix settings
+      setPrompt(remix.prompt || '');
+      setNegativePrompt(remix.negativePrompt || '');
+      setEngine(remix.engine || 'quantum');
+      setGuidance(remix.guidance || 7.5);
+      setSelectedStyles(remix.styles || []);
 
-    try {
-      const images = await imageService.getUserImages(user.id);
-      const typedImages = images as unknown as Partial<GeneratedImage>[];
-      const validImages = typedImages.filter(
-        (img): img is GeneratedImage =>
-          !!img.uri &&
-          !!img.prompt &&
-          !!img.styles &&
-          !!img.aspectRatio &&
-          img.quality !== undefined &&
-          img.timestamp !== undefined &&
-          !img.isDeleted,
-      );
-      setGeneratedImages(validImages);
-    } catch (error) {
-      console.error('Failed to load images:', error);
-      showToast('Error fetching images', 'error');
-    } finally {
-      // Set loading to false when done, regardless of success or failure
-      setIsLoadingImages(false);
+      // Set aspect ratio based on dimensions
+      if (remix.width && remix.height) {
+        const ratio = `${remix.width}:${remix.height}`;
+        const foundRatio = aspectRatios.find(ar => ar.ratio === ratio);
+        if (foundRatio) {
+          setAspectRatio({
+            ratio: foundRatio.ratio,
+            sizes: foundRatio.sizes,
+            size: 'medium',
+          });
+        }
+      }
+      showToast('Settings applied from remixed image!', 'success');
     }
-  };
+  }, [route.params]);
 
   const getAspectRatio = (image: GeneratedImage): number => {
-    // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio?.ratio) {
-      return 1;
+    // Use actual image dimensions if available
+    if (image.width && image.height) {
+      return image.width / image.height;
+    } // Fall back to aspectRatio if dimensions not available
+    if (image?.aspectRatio) {
+      const [width, height] = image.aspectRatio.split(':').map(Number);
+      return width / height;
     }
 
-    const [width, height] = image.aspectRatio.ratio.split(':').map(Number);
-    return width / height;
+    // Default to 1:1 if nothing available
+    return 1;
   };
 
   // Get the height for an image based on its aspect ratio
@@ -139,218 +160,86 @@ const HomeScreen = () => {
   };
 
   const handleSelectPrompt = (selectedPrompt: string) => {
+    triggerHaptic('selection'); // Add haptic feedback for prompt selection
     setPrompt(selectedPrompt);
   };
 
   const handleImageGeneration = async () => {
+    // Haptic feedback for generation start
+    triggerHaptic('medium');
+
     if (!prompt.trim()) {
-      showToast('Please enter a description', 'error');
+      showToast(strings.home.enterDescription, 'error');
       return;
     }
 
-    if (!user?.id) {
-      showToast('Sign In Required', 'error');
+    // Check for inappropriate content
+    if (!contentFilter.isClean(prompt)) {
+      showToast(contentFilter.getErrorMessage(), 'error');
       return;
     }
 
-    setLoading(true);
-    const generationTimestamp = Date.now();
-    const baseSeed = seed
-      ? parseInt(seed, 10)
-      : Math.floor(Math.random() * 1000000);
-    const tempImages: GeneratedImage[] = [];
+    // Also check negative prompt if provided
+    if (negativePrompt && !contentFilter.isClean(negativePrompt)) {
+      showToast(
+        'Negative prompt contains inappropriate content. Please revise and try again.',
+        'error',
+      );
+      return;
+    }
 
-    const determineConcurrency = async () => {
-      // Check network type/speed
-      const connectionInfo = await NetInfo.fetch();
+    if (!user?.uid) {
+      showToast(strings.home.signInRequired, 'error');
+      return;
+    }
 
-      // Base concurrency on connection type and memory
-      if (connectionInfo.type === 'wifi') {
-        return Math.min(8, numberOfImages); // Higher on WiFi
-      } else if (connectionInfo.type === 'cellular') {
-        return connectionInfo.details.isConnectionExpensive ? 3 : 5;
-      }
-      return 4; // Default fallback
-    };
-
-    // Create a connection pool for better request management
-    const connectionPool = new Set();
-    const MAX_CONCURRENT_REQUESTS = await determineConcurrency();
-
+    // Check quota
+    if (!hasImageQuota) {
+      showToast('Image generation quota exceeded', 'error');
+      return;
+    }
     try {
-      // Step 1: Create placeholder images for all generations
-      for (let i = 0; i < numberOfImages; i++) {
-        const currentSeed = baseSeed + i;
-        const stylePrompts = selectedStyles
-          .map(style => getStylePrompt(style))
-          .join(', ');
-        const userPrompt = prompt.trim();
-        const fullPrompt = `${userPrompt}${
-          stylePrompts ? ', ' + stylePrompts : ''
-        }`;
+      console.log('Generating with:', {prompt, selectedStyles, aspectRatio});
 
-        tempImages.push({
-          uri: 'placeholder',
-          prompt: userPrompt,
-          fullPrompt: fullPrompt,
-          styles: selectedStyles,
-          aspectRatio,
-          quality,
-          sampler,
-          seed: currentSeed,
-          timestamp: generationTimestamp,
-          loading: true,
-          index: i,
-        });
-      }
-
-      // Step 2: Add placeholders to state immediately
-      setGeneratedImages(prev => [...tempImages, ...prev]);
-
-      // Step 3: Generate images with controlled concurrency
-      const generateWithControl = async () => {
-        const results: (GeneratedImage | Error)[] = new Array(
-          tempImages.length,
-        );
-        let completedCount = 0;
-
-        // Create a queue of indexes to process
-        const queue = tempImages.map((_, index) => index);
-
-        // Process function that takes items from the queue
-        const processQueue = async () => {
-          while (queue.length > 0) {
-            const index = queue.shift()!;
-            const tempImage = tempImages[index];
-
-            try {
-              // Track this connection in the pool
-              const connectionId = `connection_${index}_${Date.now()}`;
-              connectionPool.add(connectionId);
-
-              // Configure request with timeout
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-
-              // Prepare generation parameters
-              const fullPrompt = tempImage.fullPrompt || '';
-              const currentSeed = tempImage.seed;
-
-              console.time(`image_gen_${index}`);
-
-              // Generate image via API with better error handling
-              try {
-                const response = await generateImage({
-                  prompt: fullPrompt,
-                  width: aspectRatio.sizes[aspectRatio.size!].split('x')[0],
-                  height: aspectRatio.sizes[aspectRatio.size!].split('x')[1],
-                  negativePrompt,
-                  quality,
-                  sampler,
-                  seed: currentSeed,
-                });
-
-                console.timeEnd(`image_gen_${index}`);
-                clearTimeout(timeoutId);
-
-                // Create final image object with API response
-                const generatedImage: GeneratedImage = {
-                  ...tempImage,
-                  uri: response.url,
-                  loading: false,
-                };
-
-                // Update UI immediately with this specific image
-                setGeneratedImages(prev =>
-                  prev.map(img =>
-                    img.timestamp === generationTimestamp && img.index === index
-                      ? generatedImage
-                      : img,
-                  ),
-                );
-
-                // Save image in background without waiting
-                if (user?.id) {
-                  // Fire and forget with error handling
-                  imageService
-                    .saveImage(user.id, generatedImage)
-                    .catch(err =>
-                      console.error(`Error saving image ${index}:`, err),
-                    );
-                }
-
-                // Store result
-                results[index] = generatedImage;
-              } catch (error) {
-                // Handle API errors
-                console.error(`Error generating image ${index}:`, error);
-
-                // Update the error state for this image
-                setGeneratedImages(prev =>
-                  prev.map(img =>
-                    img.timestamp === generationTimestamp && img.index === index
-                      ? {...img, loading: false, error: true}
-                      : img,
-                  ),
-                );
-
-                // Store error
-                results[index] =
-                  error instanceof Error ? error : new Error(String(error));
-              } finally {
-                // Always remove from connection pool
-                connectionPool.delete(connectionId);
-                completedCount++;
-              }
-            } catch (error) {
-              console.error(`Unexpected error for image ${index}:`, error);
-              results[index] =
-                error instanceof Error ? error : new Error(String(error));
-              completedCount++;
-            }
-          }
-        };
-
-        // Start multiple processors based on MAX_CONCURRENT_REQUESTS
-        const processors = Array(
-          Math.min(MAX_CONCURRENT_REQUESTS, tempImages.length),
-        )
-          .fill(0)
-          .map(() => processQueue());
-
-        // Wait for all processors to complete
-        await Promise.all(processors);
-
-        return results;
+      // Convert our settings to the API format (matching web)
+      const apiSettings = {
+        engine, // Use current engine setting
+        style: selectedStyles?.[0] || '',
+        aspectRatio: aspectRatio.ratio,
+        imageSize: aspectRatio.size || 'medium',
+        quality: 'standard' as const,
+        guidance, // Use current guidance setting
+        steps, // Use current steps setting
+        seed: seed ? parseInt(seed, 10) : undefined,
+        negativePrompt,
+        isPrivate: isImagePrivate,
       };
 
-      // Execute the controlled generation
-      const results = await generateWithControl();
+      // Generate the batch using the store
+      const success = await generateBatch(
+        prompt,
+        apiSettings,
+        numberOfImages,
+        updateQuotaAndProfile,
+      );
 
-      // Show appropriate toast based on results
-      const successCount = results.filter(r => !(r instanceof Error)).length;
-      if (successCount > 0) {
-        showToast(
-          `${successCount} image${successCount > 1 ? 's' : ''} generated`,
-          'success',
-        );
+      if (success) {
+        console.log('Image generated successfully!');
+        triggerHaptic('success'); // Add success haptic feedback
+        // Scroll to top if needed
+        if (flashListRef.current) {
+          // @ts-ignore
+          flashListRef.current.scrollToOffset({offset: 0, animated: true});
+        }
       } else {
-        showToast('Generation Failed', 'error');
+        console.error('Image generation failed');
+        triggerHaptic('error'); // Add error haptic feedback
+        showToast('Failed to generate image', 'error');
       }
     } catch (error) {
-      console.error('Generation error:', error);
-      showToast('Generation Failed', 'error');
-
-      // Clean up placeholders if overall process fails
-      setGeneratedImages(prev =>
-        prev.filter(
-          img => !tempImages.some(temp => temp.timestamp === img.timestamp),
-        ),
-      );
-    } finally {
-      // Clean up any remaining connections
-      connectionPool.clear();
-      setLoading(false);
+      console.error('Generation failed:', error);
+      triggerHaptic('error'); // Add error haptic feedback
+      showToast('Failed to generate image', 'error');
     }
   };
 
@@ -358,12 +247,17 @@ const HomeScreen = () => {
     parameters: {
       prompt: string;
       styles: string[];
-      aspectRatio: AspectRatioType;
+      aspectRatio: string;
     };
   }) => {
     setPrompt(item.parameters.prompt);
     setSelectedStyles(item.parameters.styles);
-    setAspectRatio(item.parameters.aspectRatio);
+
+    // Find the matching AspectRatio object from aspectRatios
+    const aspectRatioObj =
+      aspectRatios.find(ar => ar.ratio === item.parameters.aspectRatio) ||
+      aspectRatios[0];
+    setAspectRatio(aspectRatioObj);
 
     // Auto scroll to input
     setTimeout(() => {
@@ -373,23 +267,76 @@ const HomeScreen = () => {
     }, 300);
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('Prompt and settings applied', ToastAndroid.SHORT);
+      ToastAndroid.show(strings.home.promptApplied, ToastAndroid.SHORT);
     } else {
-      showToast('Prompt and settings applied', 'success');
+      showToast(strings.home.promptApplied, 'success');
     }
+  };
+
+  const getCombinedImages = () => {
+    // Filter out placeholder images from currentGenerationBatch if corresponding real images exist
+    const filteredBatch = currentGenerationBatch.filter(batchImage => {
+      // If this is a placeholder image, check if a real image exists
+      const isPlaceholder =
+        !batchImage.imageUrl ||
+        batchImage.imageUrl === 'placeholder' ||
+        batchImage.id?.startsWith('placeholder-');
+
+      if (isPlaceholder) {
+        // Look for a corresponding real image with the same exact batchTimestamp and prompt
+        const hasRealImage = generatedImages.some(
+          realImage =>
+            realImage.prompt === batchImage.prompt &&
+            realImage.batchTimestamp &&
+            batchImage.batchTimestamp &&
+            Math.abs(
+              realImage.batchTimestamp.getTime() -
+                batchImage.batchTimestamp.getTime(),
+            ) < 5000 && // Within 5 seconds
+            realImage.imageUrl &&
+            realImage.imageUrl !== 'placeholder' &&
+            !realImage.id?.startsWith('placeholder-'),
+        );
+        return !hasRealImage; // Only keep placeholder if no real image exists
+      }
+      return true; // Keep non-placeholder images
+    });
+
+    // Combine filtered placeholders with real generated images
+    const combinedImages = [...filteredBatch, ...generatedImages];
+    return combinedImages;
   };
 
   const groupImagesByParameters = (images: GeneratedImage[]) => {
     const groups: {[key: string]: GeneratedImage[]} = {};
 
     images.forEach(image => {
-      // Group by timestamp to keep generation batches separate
+      // Group batch images by their exact batchTimestamp (for images generated together)
+      // or by a time window for images from different sessions
+      let groupingIdentifier;
+
+      if (image.batchTimestamp) {
+        // For batch images, use the exact batchTimestamp (they should all have the same timestamp)
+        // But also include prompt to separate different batches with same timestamp
+        groupingIdentifier = `${image.batchTimestamp.getTime()}-${
+          image.prompt || ''
+        }`;
+      } else if (image.createdAt) {
+        // For server images, use a 30-second window
+        const createdTime = new Date(image.createdAt).getTime();
+        const timeWindow = Math.floor(createdTime / 30000) * 30000;
+        groupingIdentifier = `${timeWindow}-${image.prompt || ''}`;
+      } else {
+        // Fallback
+        groupingIdentifier = `${Date.now()}-${image.prompt || ''}`;
+      }
+
+      // Create grouping key based on prompt and basic generation settings
       const groupKey = [
-        image.prompt,
-        image.styles.join(','),
-        image.aspectRatio.ratio,
-        image.quality,
-        image.timestamp,
+        image.prompt || '',
+        (image.styles || []).sort().join(','),
+        image.engineType || 'quantum',
+        groupingIdentifier,
       ].join('|');
 
       if (!groups[groupKey]) {
@@ -398,61 +345,43 @@ const HomeScreen = () => {
       groups[groupKey].push(image);
     });
 
-    return Object.entries(groups).map(([key, items]) => ({
-      key,
-      items,
-      parameters: {
-        prompt: items[0].prompt,
-        styles: items[0].styles,
-        aspectRatio: items[0].aspectRatio,
-        quality: items[0].quality,
-        timestamp: items[0].timestamp,
-      },
-    }));
+    return Object.entries(groups)
+      .map(([key, items]) => ({
+        key,
+        items: items.sort((a, b) => {
+          // Sort by batchTimestamp or createdAt, newest first
+          const timeA = a.batchTimestamp
+            ? a.batchTimestamp.getTime()
+            : new Date(a.createdAt).getTime() || 0;
+          const timeB = b.batchTimestamp
+            ? b.batchTimestamp.getTime()
+            : new Date(b.createdAt).getTime() || 0;
+          return timeB - timeA;
+        }),
+        parameters: {
+          prompt: items[0].prompt || '',
+          styles: items[0].styles || [],
+          aspectRatio: items[0].aspectRatio || '1:1',
+          timestamp: items[0].batchTimestamp
+            ? items[0].batchTimestamp.getTime()
+            : new Date(items[0].createdAt).getTime(),
+        },
+      }))
+      .sort((a, b) => b.parameters.timestamp - a.parameters.timestamp); // Sort groups by timestamp, newest first
   };
 
-  // Render a placeholder or loading image
+  // Render image content using ImageCard (which handles skeleton internally)
   const renderImageContent = (image: GeneratedImage) => {
     const imageHeight = getImageHeight(image);
+    const imageWidth = COLUMN_WIDTH - 12; // Account for padding (p-1.5 = 6px on each side)
 
-    if (image.loading) {
-      return (
-        <View
-          className="rounded-2xl overflow-hidden items-center justify-center"
-          style={{
-            backgroundColor: colors.surface,
-            width: '100%',
-            height: imageHeight,
-          }}>
-          <LoadingAnimation color={colors.primary} />
-        </View>
-      );
-    } else if (image.error) {
-      return (
-        <View
-          className="rounded-2xl overflow-hidden items-center justify-center"
-          style={{
-            backgroundColor: colors.surface,
-            width: '100%',
-            height: imageHeight,
-          }}
-          accessible={true}
-          accessibilityLabel="Image generation failed">
-          <ErrorOutlineIcon size={40} color="#ef4444" />
-          <Text style={{color: colors.secondaryText}} className="text-xs mt-2">
-            Generation failed
-          </Text>
-        </View>
-      );
-    } else {
-      return (
-        <ImageCard
-          image={image}
-          onPress={() => setSelectedImage(image)}
-          style={{width: '100%', height: imageHeight}}
-        />
-      );
-    }
+    return (
+      <ImageCard
+        image={image}
+        onPress={() => setSelectedImage(image)}
+        style={{width: imageWidth, height: imageHeight}}
+      />
+    );
   };
 
   const renderGroup = ({
@@ -464,65 +393,68 @@ const HomeScreen = () => {
       {/* Header with Prompt Info and Action Buttons */}
       <View className="px-4">
         <View className="flex-row items-center justify-between gap-3">
-          <Text
-            style={{color: colors.text}}
-            className="text-lg font-semibold mb-2 flex-1"
-            numberOfLines={1}
-            ellipsizeMode="tail">
-            {item.parameters.prompt}
-          </Text>
+          <View className="flex-1">
+            <Text
+              style={{color: theme.text}}
+              className="text-lg font-semibold mb-1"
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {item.parameters.prompt}
+            </Text>
+            {item.items.length > 1 && (
+              <Text style={{color: theme.secondaryText}} className="text-xs">
+                {item.items.length} images generated
+              </Text>
+            )}
+          </View>
 
           <TouchableOpacity
             onPress={() => reusePromptAndSettings(item)}
             className="py-2 px-3 rounded-lg flex-row items-center"
-            style={{backgroundColor: colors.surface}}
+            style={{backgroundColor: theme.surface}}
             accessible={true}
-            accessibilityLabel="Reuse this prompt and settings"
-            accessibilityHint="Applies this prompt and style settings to generate new images">
-            <RefreshIcon size={16} color={colors.primary} />
+            accessibilityLabel={strings.home.reusePrompt}
+            accessibilityHint={strings.home.reusePromptHint}>
+            <RefreshIcon size={16} color={theme.primary} />
             <Text
               style={{
-                color: colors.primary,
+                color: theme.primary,
                 marginLeft: 4,
                 fontWeight: '500',
                 fontSize: 13,
               }}>
-              Reuse
+              {strings.home.reuse}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Tags/Styles */}
         {item.parameters.styles.length > 0 && (
-          <View className="flex-row flex-wrap gap-1.5 mb-1.5">
+          <View className="flex-row flex-wrap gap-1.5 my-2">
             {item.parameters.styles.map(style => (
               <TouchableOpacity
                 key={style}
-                style={{backgroundColor: colors.primary + '15'}}
+                style={{backgroundColor: theme.primary + '15'}}
                 onPress={() =>
                   setSelectedStyles(styles => styles.filter(s => s !== style))
                 }
                 className="py-1 px-3 rounded-full flex-row items-center"
                 accessible={true}
                 accessibilityLabel={`Remove ${style} style`}>
-                <Text style={{color: colors.primary}} className="text-xs">
+                <Text style={{color: theme.primary}} className="text-xs">
                   {style}
                 </Text>
-                <View className="ml-1.5">
-                  <CloseIcon size={12} color={colors.primary} />
-                </View>
               </TouchableOpacity>
             ))}
           </View>
         )}
       </View>
-
       {/* Grid Layout with proper aspect ratio */}
       <View className="px-4">
         <View className="flex-row flex-wrap">
-          {item.items.map(image => (
+          {item.items.map((image, index) => (
             <View
-              key={`${image.uri}_${image.index}_${image.timestamp}`}
+              key={`${image.id || 'temp'}-${index}-${item.key}`}
               className="w-1/2 p-1.5">
               {renderImageContent(image)}
             </View>
@@ -533,6 +465,7 @@ const HomeScreen = () => {
   );
 
   const clearInputs = () => {
+    triggerHaptic('light');
     setPrompt('');
     setSelectedStyles([]);
     // Optionally reset other settings to defaults
@@ -545,9 +478,9 @@ const HomeScreen = () => {
     setNegativePrompt('');
 
     if (Platform.OS === 'android') {
-      ToastAndroid.show('All cleared', ToastAndroid.SHORT);
+      ToastAndroid.show(strings.home.allCleared, ToastAndroid.SHORT);
     } else {
-      showToast('All cleared');
+      showToast(strings.home.allCleared);
     }
   };
 
@@ -556,7 +489,7 @@ const HomeScreen = () => {
     <View
       className="px-4 py-2 mb-2"
       accessible={true}
-      accessibilityLabel="Getting started guide">
+      accessibilityLabel={strings.home.gettingStartedGuide}>
       {/* Collapsible header */}
       <TouchableOpacity
         onPress={() => setShowOnboarding(!showOnboarding)}
@@ -564,17 +497,17 @@ const HomeScreen = () => {
         accessible={true}
         accessibilityRole="button"
         accessibilityLabel={`${
-          showOnboarding ? 'Hide' : 'Show'
-        } getting started guide`}
-        accessibilityHint="Toggles the visibility of the tutorial section">
+          showOnboarding ? strings.home.hide : strings.home.show
+        } ${strings.home.gettingStartedGuide}`}
+        accessibilityHint={strings.home.toggleGettingStartedHint}>
         <View className="flex-row items-center">
-          <TipIcon size={20} color={colors.primary} />
-          <Text className="text-lg font-bold ml-2" style={{color: colors.text}}>
-            Getting Started with {appConfig.name}
+          <TipIcon size={20} color={theme.primary} />
+          <Text className="text-lg font-bold ml-2" style={{color: theme.text}}>
+            {strings.home.gettingStartedGuide}
           </Text>
         </View>
-        <Text style={{color: colors.secondaryText, fontSize: 13}}>
-          {showOnboarding ? 'Hide' : 'Show'}
+        <Text style={{color: theme.secondaryText, fontSize: 13}}>
+          {showOnboarding ? strings.home.hide : strings.home.show}
         </Text>
       </TouchableOpacity>
 
@@ -582,70 +515,70 @@ const HomeScreen = () => {
       {showOnboarding && (
         <View
           className="rounded-3xl p-5 mb-2"
-          style={{backgroundColor: colors.surface}}>
+          style={{backgroundColor: theme.surface}}>
           <Text
             className="text-base mb-4"
-            style={{color: colors.text, lineHeight: 22}}
+            style={{color: theme.text, lineHeight: 22}}
             accessible={true}
             accessibilityRole="text">
-            Create stunning AI-generated images in 3 simple steps:
+            {strings.home.createStunningImages}
           </Text>
 
           <View
             className="flex-row items-center mb-3"
             accessible={true}
-            accessibilityLabel="Step 1: Describe what you want to see in the text box below">
+            accessibilityLabel={`${strings.home.step} 1: ${strings.home.step1}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               importantForAccessibility="no">
               <Text className="text-white font-bold">1</Text>
             </View>
-            <Text style={{color: colors.text, flex: 1}}>
-              Describe what you want to see in the text box below
+            <Text style={{color: theme.text, flex: 1}}>
+              {strings.home.step1}
             </Text>
           </View>
 
           <View
             className="flex-row items-center mb-3"
             accessible={true}
-            accessibilityLabel="Step 2: Add art styles or customize with advanced settings">
+            accessibilityLabel={`${strings.home.step} 1: ${strings.home.step2}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               importantForAccessibility="no">
               <Text className="text-white font-bold">2</Text>
             </View>
-            <Text style={{color: colors.text, flex: 1}}>
-              Add art styles or customize with advanced settings
+            <Text style={{color: theme.text, flex: 1}}>
+              {strings.home.step2}
             </Text>
           </View>
 
           <View
             className="flex-row items-center mb-4"
             accessible={true}
-            accessibilityLabel="Step 3: Tap Generate and watch your ideas come to life">
+            accessibilityLabel={`${strings.home.step} 1: ${strings.home.step3}`}>
             <View
               className="w-8 h-8 rounded-full items-center justify-center mr-3"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               importantForAccessibility="no">
               <Text className="text-white font-bold">3</Text>
             </View>
-            <Text style={{color: colors.text, flex: 1}}>
-              Tap "Generate" and watch your ideas come to life!
+            <Text style={{color: theme.text, flex: 1}}>
+              {strings.home.step3}
             </Text>
           </View>
 
           <TouchableOpacity
             onPress={() => setShowPromptSuggestions(true)}
             className="py-3 rounded-xl items-center"
-            style={{backgroundColor: colors.primary + '20'}}
+            style={{backgroundColor: theme.primary + '20'}}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Browse prompt suggestions"
-            accessibilityHint="Opens a list of example prompts to help you get started">
-            <Text style={{color: colors.primary, fontWeight: '600'}}>
-              Need ideas? Browse prompt suggestions
+            accessibilityLabel={strings.home.promptSuggestions}
+            accessibilityHint={strings.home.promptSuggestionsHint}>
+            <Text style={{color: theme.primary, fontWeight: '600'}}>
+              {strings.home.needIdeas}
             </Text>
           </TouchableOpacity>
         </View>
@@ -653,26 +586,18 @@ const HomeScreen = () => {
     </View>
   );
 
-  const renderLoading = () => (
-    <View className="flex-1 justify-center items-center">
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text className="text-base mt-4" style={{color: colors.text}}>
-        Loading your images...
-      </Text>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
-      style={{backgroundColor: colors.background}}>
+      style={{flex: 1, backgroundColor: theme.background}}
+      contentContainerStyle={{flexGrow: 1}}
+      behavior="position"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
       <View className="flex-1">
         {/* Header with App Name, Version Badge and Help Icon */}
         <View className="flex-row justify-between items-center p-4">
           <Text
             className="text-3xl font-bold"
-            style={{color: colors.text}}
+            style={{color: theme.text}}
             accessibilityRole="header">
             {appConfig.name}
           </Text>
@@ -681,7 +606,7 @@ const HomeScreen = () => {
             {/* Version badge */}
             <View
               className="py-1 px-3 rounded-full"
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               accessible={true}
               accessibilityLabel={`Version ${appConfig.version}`}>
               <Text className="text-xs font-medium text-white">
@@ -693,50 +618,56 @@ const HomeScreen = () => {
             <TouchableOpacity
               onPress={() => setShowOnboarding(!showOnboarding)}
               className="p-2 rounded-full"
-              style={{backgroundColor: colors.surface}}
+              style={{backgroundColor: theme.surface}}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={
                 showOnboarding
-                  ? 'Hide getting started guide'
-                  : 'Show getting started guide'
+                  ? strings.home.hide + strings.home.gettingStartedGuide
+                  : strings.home.show + strings.home.gettingStartedGuide
               }
-              accessibilityHint="Toggles the visibility of the tutorial">
-              <InfoIcon size={20} color={colors.primary} />
+              accessibilityHint={strings.home.toggleGettingStartedHint}>
+              <InfoIcon size={20} color={theme.primary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Generated Images Grid with optional Getting Started for new users */}
         <View className="flex-1 pb-5">
-          {isLoadingImages ? (
-            renderLoading()
-          ) : (
-            <FlashList
-              ref={flashListRef}
-              data={groupImagesByParameters(generatedImages)}
-              estimatedItemSize={300}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{paddingBottom: 200}}
-              renderItem={renderGroup}
-              ListEmptyComponent={<EmptyState colors={colors} />}
-              ListHeaderComponent={
-                generatedImages.length > 0 && showOnboarding
-                  ? renderGettingStarted()
-                  : null
-              }
-              keyboardShouldPersistTaps="handled"
-              onScrollBeginDrag={Keyboard.dismiss}
-            />
-          )}
+          <FlashList
+            ref={flashListRef}
+            data={groupImagesByParameters(getCombinedImages())}
+            keyExtractor={(item, index) => `home-group-${item.key}-${index}`}
+            estimatedItemSize={300}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{paddingBottom: 200}}
+            renderItem={renderGroup}
+            ListEmptyComponent={
+              <View style={{minHeight: SCREEN_HEIGHT - 150}}>
+                {showOnboarding && renderGettingStarted()}
+                <EmptyState
+                  icon={<MagicWand size={48} color={theme.primary} />}
+                  title="No images yet"
+                  description="Start creating your first AI-generated image"
+                />
+              </View>
+            }
+            ListHeaderComponent={
+              getCombinedImages().length > 0 && showOnboarding
+                ? renderGettingStarted()
+                : null
+            }
+            keyboardShouldPersistTaps="handled"
+            onScrollBeginDrag={Keyboard.dismiss}
+          />
         </View>
 
-        {/* Enhanced Bottom Input Area with visual prompt assistance */}
-        <View className="absolute bottom-[85px] left-0 right-0 px-4 py-2 z-10">
+        {/* Bottom Input Area */}
+        <View className="absolute bottom-28 left-0 right-0 px-4 py-2 z-10">
           <View
             className="rounded-3xl shadow-md"
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: theme.surface,
               shadowColor: '#000',
               shadowOffset: {width: 0, height: 2},
               shadowOpacity: 0.1,
@@ -747,30 +678,38 @@ const HomeScreen = () => {
               <TextInput
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder="Describe your vision..."
+                placeholder={strings.home.generatePrompt}
                 placeholderTextColor="#94a3b8"
                 className="text-lg p-4 max-h-[120px] flex-1"
-                style={{color: colors.text}}
+                style={{color: theme.text}}
                 multiline
                 numberOfLines={3}
                 accessible={true}
-                accessibilityLabel="Image description input"
-                accessibilityHint="Enter a description of the image you want to generate"
+                accessibilityLabel={strings.home.imageDescription}
+                accessibilityHint={strings.home.imageDescriptionHint}
               />
-              <TouchableOpacity
-                onPress={() => setShowPromptSuggestions(true)}
-                className="pr-4"
-                accessible={true}
-                accessibilityLabel="Prompt suggestions"
-                accessibilityHint="Opens a list of prompt suggestions to help you get started"
-                accessibilityRole="button">
-                <LightbulbOutlineIcon
-                  size={24}
-                  color={
-                    prompt.length === 0 ? colors.primary : colors.secondaryText
-                  }
-                />
-              </TouchableOpacity>
+              <Animated.View
+                style={{transform: [{scale: promptSuggestionsButtonScale}]}}>
+                <TouchableOpacity
+                  onPress={() => {
+                    // Haptic feedback
+                    triggerHaptic('light');
+                    animatePress(promptSuggestionsButtonScale);
+                    setShowPromptSuggestions(true);
+                  }}
+                  className="pr-4"
+                  accessible={true}
+                  accessibilityLabel={strings.home.promptSuggestions}
+                  accessibilityHint={strings.home.promptSuggestionsHint}
+                  accessibilityRole="button">
+                  <LightbulbOutlineIcon
+                    size={24}
+                    color={
+                      prompt.length === 0 ? theme.primary : theme.secondaryText
+                    }
+                  />
+                </TouchableOpacity>
+              </Animated.View>
             </View>
 
             {/* Selected Styles Pills */}
@@ -779,7 +718,7 @@ const HomeScreen = () => {
                 {selectedStyles.map(style => (
                   <TouchableOpacity
                     key={style}
-                    style={{backgroundColor: colors.primary + '15'}}
+                    style={{backgroundColor: theme.primary + '15'}}
                     onPress={() =>
                       setSelectedStyles(styles =>
                         styles.filter(s => s !== style),
@@ -790,11 +729,11 @@ const HomeScreen = () => {
                     accessibilityLabel={`Remove ${style} style`}
                     accessibilityRole="button"
                     accessibilityHint={`Tap to remove the ${style} style`}>
-                    <Text style={{color: colors.primary}} className="text-xs">
+                    <Text style={{color: theme.primary}} className="text-xs">
                       {style}
                     </Text>
                     <View className="ml-1.5">
-                      <CloseIcon size={12} color={colors.primary} />
+                      <CloseIcon size={12} color={theme.primary} />
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -803,31 +742,31 @@ const HomeScreen = () => {
 
             <View
               className="flex-row justify-end p-2 border-t gap-2"
-              style={{borderColor: colors.surface}}>
+              style={{borderColor: theme.surface}}>
               <TouchableOpacity
                 onPress={clearInputs}
-                disabled={loading || prompt.trim().length === 0}
+                disabled={imageLoading || prompt.trim().length === 0}
                 style={{
-                  opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
-                  backgroundColor: colors.surface,
+                  opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
+                  backgroundColor: theme.surface,
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
                 accessible={true}
-                accessibilityLabel="Clear all inputs"
+                accessibilityLabel={strings.home.clearInputs}
                 accessibilityState={{
-                  disabled: loading || prompt.trim().length === 0,
+                  disabled: imageLoading || prompt.trim().length === 0,
                 }}
                 accessibilityRole="button"
-                accessibilityHint="Resets the prompt and all selected styles">
-                <RefreshIcon size={20} color={colors.text} />
-                <Text style={{color: colors.text}} className="ml-2 font-medium">
-                  Clear
+                accessibilityHint={strings.home.clearInputsHint}>
+                <RefreshIcon size={20} color={theme.text} />
+                <Text style={{color: theme.text}} className="ml-2 font-medium">
+                  {strings.common.clear}
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() =>
+                onPress={() => {
+                  triggerHaptic('light'); // Add haptic feedback for navigation
                   navigator.navigate({
                     route: Routes.ADVANCED_SETTINGS,
                     params: {
@@ -835,7 +774,7 @@ const HomeScreen = () => {
                       setSelectedStyles: (styles: string[]) =>
                         setSelectedStyles(styles),
                       aspectRatio,
-                      setAspectRatio: (ratio: AspectRatioType) =>
+                      setAspectRatio: (ratio: AspectRatio) =>
                         setAspectRatio(ratio),
                       numberOfImages,
                       setNumberOfImages: (count: number) =>
@@ -844,55 +783,65 @@ const HomeScreen = () => {
                       setQuality: (value: number) => setQuality(value),
                       seed,
                       setSeed: (value: string) => setSeed(value),
-                      sampler,
-                      setSampler: (value: string) => setSampler(value),
                       negativePrompt,
                       setNegativePrompt: (value: string) =>
                         setNegativePrompt(value),
-                      samplers,
+                      isImagePrivate,
+                      setIsImagePrivate: (value: boolean) =>
+                        setIsImagePrivate(value),
+                      // Add new parameters
+                      engine,
+                      setEngine: (eng: 'quantum' | 'nebula') => setEngine(eng),
+                      guidance,
+                      setGuidance: (g: number) => setGuidance(g),
+                      steps,
+                      setSteps: (s: number) => setSteps(s),
                     },
-                  })
-                }
+                  });
+                }}
                 className="p-3 rounded-2xl"
-                style={{backgroundColor: colors.primary + '20'}}
+                style={{backgroundColor: theme.primary + '20'}}
                 accessible={true}
-                accessibilityLabel="Advanced settings"
+                accessibilityLabel={strings.advancedSettings.title}
                 accessibilityRole="button"
-                accessibilityHint="Opens advanced settings for image generation">
-                <TuneIcon size={24} color={colors.primary} />
-                {/* <View
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full"
-                  style={{backgroundColor: colors.primary}}
-                  accessibilityLabel="New feature"></View> */}
+                accessibilityHint={strings.advancedSettings.title}>
+                <TuneIcon size={24} color={theme.primary} />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleImageGeneration}
-                disabled={loading || prompt.trim().length === 0}
-                style={{
-                  opacity: loading || prompt.trim().length === 0 ? 0.5 : 1,
-                  backgroundColor: colors.primary,
-                }}
-                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
-                accessible={true}
-                accessibilityLabel="Generate image"
-                accessibilityRole="button"
-                accessibilityState={{
-                  disabled: loading || prompt.trim().length === 0,
-                  busy: loading,
-                }}
-                accessibilityHint="Generates images based on your description and selected settings">
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <Text className="text-white mr-2 font-medium">
-                      Generate
-                    </Text>
-                    <MagicWand color="white" />
-                  </>
-                )}
-              </TouchableOpacity>
+              <Animated.View
+                className="flex-1"
+                style={{transform: [{scale: generateButtonScale}]}}>
+                <TouchableOpacity
+                  onPress={() => {
+                    animatePress(generateButtonScale);
+                    handleImageGeneration();
+                  }}
+                  disabled={imageLoading || prompt.trim().length === 0}
+                  style={{
+                    opacity:
+                      imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
+                    backgroundColor: theme.primary,
+                  }}
+                  className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
+                  accessible={true}
+                  accessibilityLabel={strings.home.generateImage}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    disabled: imageLoading || prompt.trim().length === 0,
+                    busy: imageLoading,
+                  }}
+                  accessibilityHint={strings.home.generateImageHint}>
+                  {imageLoading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text className="text-white mr-2 font-medium">
+                        {strings.home.generate}
+                      </Text>
+                      <MagicWand color="white" />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </View>
         </View>
@@ -901,14 +850,13 @@ const HomeScreen = () => {
           visible={showPromptSuggestions}
           setVisible={setShowPromptSuggestions}
           onSelectPrompt={handleSelectPrompt}
-          colors={colors}
+          theme={theme}
         />
-
         {selectedImage && (
           <ImageViewer
             image={selectedImage}
             onClose={() => setSelectedImage(null)}
-            onImageDeleted={loadUserImages}
+            onImageDeleted={fetchImages}
           />
         )}
       </View>

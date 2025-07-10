@@ -1,11 +1,14 @@
 const appConfig = {
   name: 'Zenoa AI',
-  version: '2.0.0',
+  longName: 'Zenoa AI - Image Generator',
+  version: '3.1.0',
+  darkFavicon: require('../assets/favicon-dark.png'),
+  lightFavicon: require('../assets/favicon-light.png'),
   author: {
     name: 'Sumit Singh Rathore',
     avatar: 'https://github.com/developer-sumit.png',
   },
-  website: 'https://zenoa-ai.web.app/',
+  description: 'Imagine. Type. Generate.',
 };
 
 export default appConfig;

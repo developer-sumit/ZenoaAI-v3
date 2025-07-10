@@ -22,14 +22,16 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {FlashList} from '@shopify/flash-list';
+import FastImage from 'react-native-fast-image';
 
-import {theme} from '@src/theme/Theme';
 import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
-import {ArtStyleType, AspectRatioSizeType, AspectRatioType} from '@src/types';
-import {useThemeStore} from '@src/store/themeStore';
+import {useStrings} from '@src/hooks/useStrings';
+import {useTheme} from '@src/store/themeStore';
+import {useAuthStore} from '@src/store/authStore';
+import {useHaptics} from '@src/hooks/useHaptics';
+import {ArtStyleType, ImageSize, AspectRatio} from '@src/types/image';
 import InfoDialog from '@src/components/InfoDialog';
-import FastImage from 'react-native-fast-image';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -38,6 +40,7 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
+import clsx from 'clsx';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -46,67 +49,29 @@ if (Platform.OS === 'android') {
   }
 }
 
-const featureInfo = {
-  artStyles: {
-    title: 'Art Styles',
-    message:
-      'Art styles define the visual aesthetic of your generated image. Select multiple styles to combine effects, or choose just one for a focused look. Some styles work well together, while others are better alone.',
-  },
-  quality: {
-    title: 'Image Quality',
-    message:
-      'Premium quality uses 50 inference steps instead of 25, resulting in more detailed and higher quality images.',
-  },
-  batchCount: {
-    title: 'Batch Count',
-    message:
-      'Generate multiple images at once with the same prompt. This helps you explore variations without entering the same prompt repeatedly.',
-  },
-  aspectRatio: {
-    title: 'Aspect Ratio',
-    message:
-      'Choose the proportions of your generated image. Different ratios work better for different use cases: 1:1 for profile pictures, 16:9 for landscapes, 9:16 for mobile wallpapers, etc.',
-  },
-  imageSize: {
-    title: 'Image Size',
-    message:
-      'Determines the resolution of your generated image. Larger sizes show more detail but take longer to generate.',
-  },
-  sampler: {
-    title: 'Sampler',
-    message:
-      'The sampler algorithm determines how the AI builds up your image. Different samplers have varying strengths - some are better for photorealistic images while others excel at artistic styles.',
-  },
-  seed: {
-    title: 'Seed Value',
-    message:
-      'A seed is a number that determines the initial randomness in image generation. Using the same seed with identical settings will produce similar results, which is useful if you want to make small adjustments to a previous image.',
-  },
-  negativePrompt: {
-    title: 'Negative Prompt',
-    message:
-      "Specify what you DON'T want in your image. This helps avoid unwanted elements like extra limbs, distorted faces, or specific objects that might otherwise appear in the generated image.",
-  },
-};
-
 interface AdvancedSettingsScreenProps {
   route: {
     params: {
       selectedStyles: string[];
       setSelectedStyles: (styles: string[]) => void;
-      aspectRatio: AspectRatioType;
-      setAspectRatio: (ratio: AspectRatioType) => void;
+      aspectRatio: AspectRatio;
+      setAspectRatio: (ratio: AspectRatio) => void;
       numberOfImages: number;
       setNumberOfImages: (count: number) => void;
       quality: number;
       setQuality: (value: number) => void;
       seed: string;
       setSeed: (value: string) => void;
-      sampler: string;
-      setSampler: (value: string) => void;
       negativePrompt: string;
       setNegativePrompt: (value: string) => void;
-      samplers: string[];
+      isImagePrivate?: boolean;
+      setIsImagePrivate?: (value: boolean) => void;
+      engine?: 'quantum' | 'nebula';
+      setEngine?: (engine: 'quantum' | 'nebula') => void;
+      guidance?: number;
+      setGuidance?: (guidance: number) => void;
+      steps?: number;
+      setSteps?: (steps: number) => void;
     };
   };
 }
@@ -118,12 +83,12 @@ const StyleItem = memo(
     item,
     isSelected,
     onToggle,
-    colors,
+    theme,
   }: {
     item: ArtStyleType;
     isSelected: boolean;
     onToggle: () => void;
-    colors: any;
+    theme: any;
     isDark: boolean;
   }) => (
     <TouchableOpacity
@@ -135,9 +100,7 @@ const StyleItem = memo(
           className="w-full h-full rounded-2xl overflow-hidden"
           style={{
             borderWidth: isSelected ? 3 : 0,
-            borderColor: colors.primary,
-            shadowColor: colors.primary,
-            elevation: isSelected ? 8 : 0,
+            borderColor: theme.primary,
           }}>
           <FastImage
             style={{
@@ -145,7 +108,7 @@ const StyleItem = memo(
               height: '100%',
               borderRadius: isSelected ? 14 : 16,
             }}
-            source={item.image}
+            source={{uri: item.image, cache: FastImage.cacheControl.immutable}}
             className="w-full h-full"
             resizeMode="cover"
           />
@@ -153,7 +116,7 @@ const StyleItem = memo(
         {isSelected && (
           <View className="h-full w-full bg-black/30 absolute rounded-2xl items-center justify-center overflow-hidden">
             <View
-              style={{backgroundColor: colors.primary}}
+              style={{backgroundColor: theme.primary}}
               className="rounded-full p-3">
               <CheckmarkIcon size={40} color="white" />
             </View>
@@ -162,7 +125,7 @@ const StyleItem = memo(
       </View>
       <Text
         className="font-medium mt-1 text-center text-base"
-        style={{color: colors.text}}>
+        style={{color: theme.text}}>
         {item.name}
       </Text>
     </TouchableOpacity>
@@ -172,7 +135,7 @@ const StyleItem = memo(
     return (
       prevProps.item === nextProps.item &&
       prevProps.isSelected === nextProps.isSelected &&
-      prevProps.colors === nextProps.colors &&
+      prevProps.theme === nextProps.theme &&
       prevProps.isDark === nextProps.isDark
     );
   },
@@ -181,32 +144,30 @@ const StyleItem = memo(
 const SectionHeader = memo(
   ({
     title,
-    feature,
     subtitle,
     showInfoDialog,
-    colors,
+    theme,
   }: {
     title: string;
-    feature: keyof typeof featureInfo;
     subtitle?: string;
-    showInfoDialog: (feature: keyof typeof featureInfo) => void;
-    colors: any;
+    showInfoDialog: (title: string) => void;
+    theme: any;
   }) => (
     <>
       <View className="flex-row items-center mb-2">
         <Text
-          style={{color: colors.secondaryText}}
+          style={{color: theme.secondaryText}}
           className="text-lg font-medium mr-2">
           {title}
         </Text>
         <TouchableOpacity
-          onPress={() => showInfoDialog(feature)}
+          onPress={() => showInfoDialog(title)}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <InfoIcon size={18} color={colors.secondaryText} />
+          <InfoIcon size={18} color={theme.secondaryText} />
         </TouchableOpacity>
       </View>
       {subtitle && (
-        <Text style={{color: colors.secondaryText}} className="text-sm mb-3">
+        <Text style={{color: theme.secondaryText}} className="text-sm mb-3">
           {subtitle}
         </Text>
       )}
@@ -219,7 +180,7 @@ const StylesGrid = memo(
     data,
     selectedStyles,
     toggleStyle,
-    colors,
+    theme,
     isDark,
     showButton = false,
     onShowAllPress = () => {},
@@ -229,13 +190,15 @@ const StylesGrid = memo(
     data: ArtStyleType[];
     selectedStyles: string[];
     toggleStyle: (name: string) => void;
-    colors: any;
+    theme: any;
     isDark: boolean;
     showButton?: boolean;
     onShowAllPress?: () => void;
     numColumns?: number;
     scrollEnabled?: boolean;
   }) => {
+    const strings = useStrings();
+
     // Memoize the render item function to prevent recreations
     const renderItem = useCallback(
       ({item}: {item: ArtStyleType}) => (
@@ -243,11 +206,11 @@ const StylesGrid = memo(
           item={item}
           isSelected={selectedStyles.includes(item.name)}
           onToggle={() => toggleStyle(item.name)}
-          colors={colors}
+          theme={theme}
           isDark={isDark}
         />
       ),
-      [data, selectedStyles, toggleStyle, colors, isDark],
+      [selectedStyles, toggleStyle, theme, isDark],
     );
 
     const keyExtractor = useCallback((item: ArtStyleType) => item.id, []);
@@ -273,14 +236,14 @@ const StylesGrid = memo(
         {showButton && (
           <TouchableOpacity
             onPress={onShowAllPress}
-            style={{backgroundColor: colors.background}}
+            style={{backgroundColor: theme.background}}
             className="p-3 mt-2 rounded-2xl flex-row justify-center items-center">
             <Text
-              style={{color: colors.primary}}
+              style={{color: theme.primary}}
               className="font-bold text-base">
-              View All Art Styles
+              {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
             </Text>
-            <ChevronDownIcon size={16} color={colors.primary} />
+            <ChevronDownIcon size={16} color={theme.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -290,7 +253,7 @@ const StylesGrid = memo(
     return (
       prevProps.data === nextProps.data &&
       prevProps.selectedStyles === nextProps.selectedStyles &&
-      prevProps.colors === nextProps.colors &&
+      prevProps.theme === nextProps.theme &&
       prevProps.isDark === nextProps.isDark &&
       prevProps.showButton === nextProps.showButton
     );
@@ -301,18 +264,20 @@ const ArtStylesDialog = memo(
   ({
     visible,
     onClose,
-    colors,
+    theme,
     isDark,
     selectedStyles,
     toggleStyle,
   }: {
     visible: boolean;
     onClose: () => void;
-    colors: typeof theme.light | typeof theme.dark;
+    theme: any;
     isDark: boolean;
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
   }) => {
+    const strings = useStrings();
+    const {triggerHaptic} = useHaptics();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredStyles = useMemo(() => {
@@ -324,7 +289,7 @@ const ArtStylesDialog = memo(
       return artStyles.filter(style =>
         style.name.toLowerCase().includes(query),
       );
-    }, [searchQuery, artStyles]);
+    }, [searchQuery]);
 
     return (
       <Modal
@@ -335,17 +300,20 @@ const ArtStylesDialog = memo(
         onRequestClose={onClose}>
         <SafeAreaView
           className="flex-1"
-          style={{backgroundColor: colors.background}}>
+          style={{backgroundColor: theme.background}}>
           {/* Header */}
           <View className="flex-row items-center justify-between p-4">
             <TouchableOpacity
-              onPress={onClose}
+              onPress={() => {
+                triggerHaptic('selection');
+                onClose();
+              }}
               className="w-10 h-10 rounded-full items-center justify-center"
-              style={{backgroundColor: colors.surface}}>
-              <ArrowBackIcon size={20} color={colors.text} />
+              style={{backgroundColor: theme.surface}}>
+              <ArrowBackIcon size={20} color={theme.text} />
             </TouchableOpacity>
-            <Text style={{color: colors.text}} className="font-bold text-xl">
-              All Art Styles
+            <Text style={{color: theme.text}} className="font-bold text-xl">
+              {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
             </Text>
             <View style={{width: 40}} />
           </View>
@@ -353,30 +321,35 @@ const ArtStylesDialog = memo(
           {/* Search Bar */}
           <View
             className="mx-4 my-3 rounded-xl flex-row items-center px-3"
-            style={{backgroundColor: colors.surface}}>
-            <SearchIcon size={28} color={colors.secondaryText} />
+            style={{backgroundColor: theme.surface}}>
+            <SearchIcon size={28} color={theme.secondaryText} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search styles..."
-              placeholderTextColor={colors.secondaryText}
+              onFocus={() => triggerHaptic('light')}
+              placeholder={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}...`}
+              placeholderTextColor={theme.secondaryText}
               className="flex-1 py-3 px-2 h-12 text-lg"
-              style={{color: colors.text}}
+              style={{color: theme.text}}
               autoCapitalize="none"
               autoCorrect={false}
               clearButtonMode="while-editing"
               returnKeyType="search"
               accessible={true}
-              accessibilityLabel="Search art styles"
-              accessibilityHint="Type to filter art styles by name"
+              accessibilityLabel={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}`}
+              accessibilityHint={strings.advancedSettings.filterArtStylesHint}
+              accessibilityRole="search"
             />
             {searchQuery ? (
               <TouchableOpacity
-                onPress={() => setSearchQuery('')}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setSearchQuery('');
+                }}
                 accessible={true}
-                accessibilityLabel="Clear search"
+                accessibilityLabel={`${strings.common.clear} ${strings.advancedSettings.featureInfo.artStyles.title}`}
                 accessibilityRole="button">
-                <CloseIcon size={18} color={colors.secondaryText} />
+                <CloseIcon size={18} color={theme.secondaryText} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -387,14 +360,14 @@ const ArtStylesDialog = memo(
               data={filteredStyles}
               selectedStyles={selectedStyles}
               toggleStyle={toggleStyle}
-              colors={colors}
+              theme={theme}
               isDark={isDark}
               scrollEnabled={true}
             />
           ) : (
             <View className="flex-1 justify-center items-center p-4">
               <Text
-                style={{color: colors.secondaryText}}
+                style={{color: theme.secondaryText}}
                 className="text-lg text-center">
                 No styles found matching "{searchQuery}"
               </Text>
@@ -405,13 +378,18 @@ const ArtStylesDialog = memo(
           {selectedStyles.length > 0 && (
             <View className="px-4 py-2.5 bg-orange-500 border border-white flex-row justify-between items-center absolute bottom-5 self-center w-[90%] rounded-2xl">
               <Text className="text-white font-medium">
-                {selectedStyles.length}{' '}
+                {selectedStyles.length}&nbsp;
                 {selectedStyles.length === 1 ? 'style' : 'styles'} selected
               </Text>
               <TouchableOpacity
-                onPress={onClose}
+                onPress={() => {
+                  triggerHaptic('success');
+                  onClose();
+                }}
                 className="bg-white py-2.5 px-4 rounded-full">
-                <Text style={{color: '#f97316', fontWeight: 'bold'}}>Done</Text>
+                <Text className="font-bold text-[#f97316]">
+                  {strings.common.done}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -425,19 +403,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   route,
 }) => {
   const params = route.params;
+  const strings = useStrings();
   const navigation = useNavigation();
-  const {isDark} = useThemeStore();
-  const colors = isDark ? theme.dark : theme.light;
+  const {isDark, theme} = useTheme();
+  const {triggerHaptic} = useHaptics();
+  const {user} = useAuthStore();
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
   const negativePromptRef = useRef<TextInput>(null);
-
   // Create local state that mirrors the parent state
   const [localSelectedStyles, setLocalSelectedStyles] = useState<string[]>(
     params.selectedStyles,
   );
-  const [localAspectRatio, setLocalAspectRatio] = useState<AspectRatioType>(
+  const [localAspectRatio, setLocalAspectRatio] = useState<AspectRatio>(
     params.aspectRatio,
   );
   const [localNumberOfImages, setLocalNumberOfImages] = useState<number>(
@@ -445,12 +424,17 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   );
   const [localQuality, setLocalQuality] = useState<number>(params.quality);
   const [localSeed, setLocalSeed] = useState<string>(params.seed);
-  const [localSampler, setLocalSampler] = useState<string>(params.sampler);
   const [localNegativePrompt, setLocalNegativePrompt] = useState<string>(
     params.negativePrompt,
   );
+  const [localIsImagePrivate, setLocalIsImagePrivate] = useState<boolean>(
+    params.isImagePrivate !== undefined ? params.isImagePrivate : true,
+  );
 
-  const [showSamplerPicker, setShowSamplerPicker] = useState(false);
+  // Add new local state for advanced settings
+  const [localEngine, setLocalEngine] = useState<'quantum' | 'nebula'>(
+    params.engine || 'quantum',
+  );
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -458,7 +442,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   const [artStylesDialogVisible, setArtStylesDialogVisible] = useState(false);
 
   // State to track if keyboard is showing
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [_, setKeyboardVisible] = useState(false);
 
   // Keyboard event listeners
   useEffect(() => {
@@ -482,10 +466,17 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   }, []);
 
   // Memoize expensive functions
-  const showInfoDialog = useCallback((feature: keyof typeof featureInfo) => {
-    setDialogContent(featureInfo[feature]);
-    setDialogVisible(true);
-  }, []);
+  const showInfoDialog = useCallback(
+    (title: string) => {
+      triggerHaptic('light');
+      const featureInfo = strings.advancedSettings.featureInfo;
+      if (title in featureInfo) {
+        setDialogContent(featureInfo[title as keyof typeof featureInfo]);
+        setDialogVisible(true);
+      }
+    },
+    [strings.advancedSettings.featureInfo],
+  );
 
   // Effect to sync parent state changes to local state (if needed)
   useEffect(() => {
@@ -494,8 +485,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     setLocalNumberOfImages(params.numberOfImages);
     setLocalQuality(params.quality);
     setLocalSeed(params.seed);
-    setLocalSampler(params.sampler);
-    setLocalNegativePrompt(params.negativePrompt);
+    setLocalNegativePrompt(params.negativePrompt); // Sync new parameters
+    setLocalEngine(params.engine || 'quantum');
+    setLocalIsImagePrivate(
+      params.isImagePrivate !== undefined ? params.isImagePrivate : true,
+    );
   }, [params]);
 
   // Split art styles into initial and selected that aren't in initial
@@ -520,6 +514,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   // Optimized toggle function with useCallback to prevent recreation on each render
   const toggleStyle = useCallback(
     (styleName: string) => {
+      triggerHaptic('selection');
       LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
       setLocalSelectedStyles(prevStyles => {
         const newStyles = prevStyles.includes(styleName)
@@ -536,18 +531,22 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
 
   return (
     <SafeAreaView
-      style={{backgroundColor: colors.background}}
+      style={{backgroundColor: theme.background}}
       className="flex-1">
       {/* Header */}
       <View className="flex-row items-center justify-between py-3 px-4">
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full items-center justify-center"
-          style={{backgroundColor: colors.surface}}>
-          <ArrowBackIcon size={20} color={colors.text} />
+          onPress={() => {
+            triggerHaptic('selection');
+            navigation.goBack();
+          }}
+          className="p-2"
+          accessible={true}
+          accessibilityLabel={strings.common.goBack}>
+          <ArrowBackIcon size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={{color: colors.text}} className="font-bold text-xl">
-          Advanced Settings
+        <Text className="text-xl font-semibold" style={{color: theme.text}}>
+          {strings.advancedSettings.title}
         </Text>
         <View style={{width: 40}} />
       </View>
@@ -561,99 +560,147 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           showsVerticalScrollIndicator={false}
           className="flex-1 px-4"
           keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none" // Don't dismiss on scroll
-          contentInsetAdjustmentBehavior="always" // Adjust content inset when keyboard shows
-          removeClippedSubviews={false} // Important: Set to false to maintain input state
-        >
+          keyboardDismissMode="none"
+          contentInsetAdjustmentBehavior="always"
+          removeClippedSubviews={false}>
+          {/* Engine Selection */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: theme.surface}}>
+            <SectionHeader
+              title="AI Engine"
+              showInfoDialog={() => showInfoDialog('AI Engine')}
+              theme={theme}
+            />
+
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setLocalEngine('quantum');
+                  if (params.setEngine) {
+                    params.setEngine('quantum');
+                  }
+                }}
+                style={{
+                  backgroundColor:
+                    localEngine === 'quantum'
+                      ? theme.primary
+                      : theme.background,
+                }}
+                className={clsx(
+                  'flex-1 p-4',
+                  localEngine === 'quantum' ? 'rounded-2xl' : 'rounded-xl',
+                )}>
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'quantum'
+                        ? isDark
+                          ? theme.text
+                          : 'white'
+                        : theme.text,
+                  }}
+                  className="text-lg font-medium text-center">
+                  Quantum
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'quantum'
+                        ? isDark
+                          ? theme.secondaryText
+                          : 'white'
+                        : theme.secondaryText,
+                  }}
+                  className="text-xs text-center mt-1">
+                  Fast & efficient
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setLocalEngine('nebula');
+                  if (params.setEngine) {
+                    params.setEngine('nebula');
+                  }
+                }}
+                style={{
+                  backgroundColor:
+                    localEngine === 'nebula' ? theme.primary : theme.background,
+                }}
+                className={clsx(
+                  'flex-1 p-4',
+                  localEngine === 'nebula' ? 'rounded-2xl' : 'rounded-xl',
+                )}>
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'nebula'
+                        ? isDark
+                          ? theme.text
+                          : 'white'
+                        : theme.text,
+                  }}
+                  className="text-lg font-medium text-center">
+                  Nebula
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      localEngine === 'nebula'
+                        ? isDark
+                          ? theme.secondaryText
+                          : 'white'
+                        : theme.secondaryText,
+                  }}
+                  className="text-xs text-center mt-1">
+                  Advanced control
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Art Styles Section */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title="Art Styles"
-              feature="artStyles"
-              subtitle="Select one or more styles to apply to your image"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
+              title={strings.advancedSettings.featureInfo.artStyles.title}
+              subtitle={strings.advancedSettings.artStylesSubtitle}
+              showInfoDialog={() => showInfoDialog('artStyles')}
+              theme={theme}
             />
-
             <StylesGrid
               data={stylesToShow}
               selectedStyles={localSelectedStyles}
               toggleStyle={toggleStyle}
-              colors={colors}
+              theme={theme}
               isDark={isDark}
               showButton={true}
-              onShowAllPress={() => setArtStylesDialogVisible(true)}
+              onShowAllPress={() => {
+                triggerHaptic('light');
+                setArtStylesDialogVisible(true);
+              }}
             />
-          </View>
-
-          {/* Quality Toggle */}
-          <View
-            className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
-            <SectionHeader
-              title="Quality"
-              feature="quality"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
-            />
-
-            <View className="flex-row justify-between items-center py-2">
-              <View>
-                <Text style={{color: colors.text}} className="text-lg">
-                  Premium Images
-                </Text>
-                <Text style={{color: colors.secondaryText}} className="text-xs">
-                  Generate higher quality images (50 steps)
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                className="w-14 h-8 rounded-full p-1.5"
-                style={{
-                  backgroundColor:
-                    localQuality === 50 ? colors.primary : '#cbd5e1',
-                }}
-                onPress={() => {
-                  LayoutAnimation.spring();
-                  const newQuality = localQuality === 50 ? 25 : 50;
-                  setLocalQuality(newQuality);
-                  params.setQuality(newQuality);
-                }}
-                accessible={true}
-                accessibilityLabel={
-                  localQuality === 50
-                    ? 'Turn off premium quality'
-                    : 'Turn on premium quality'
-                }
-                accessibilityRole="switch"
-                accessibilityState={{checked: localQuality === 50}}>
-                <View
-                  className={`w-5 h-5 rounded-full bg-white ${
-                    localQuality === 50 ? 'ml-6' : 'ml-0'
-                  }`}
-                />
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Batch Count */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title="Batch Count"
-              feature="batchCount"
-              showInfoDialog={showInfoDialog}
-              colors={colors}
+              title={strings.advancedSettings.featureInfo.batchCount.title}
+              showInfoDialog={() => showInfoDialog('batchCount')}
+              theme={theme}
             />
-
             <View className="flex-row flex-wrap gap-2">
-              {[1, 2, 4, 6, 8, 10].map((count, index) => (
+              {[1, 2, 4, 6, 8, 10].map(count => (
                 <TouchableOpacity
-                  key={index}
+                  key={count}
                   onPress={() => {
+                    triggerHaptic('selection');
                     LayoutAnimation.spring();
                     setLocalNumberOfImages(count);
                     params.setNumberOfImages(count);
@@ -661,22 +708,25 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   style={{
                     backgroundColor:
                       localNumberOfImages === count
-                        ? colors.primary
-                        : colors.background,
-                    shadowColor: colors.primary,
-                    elevation: localNumberOfImages === count ? 8 : 0,
+                        ? theme.primary
+                        : theme.background,
                     minWidth: 55,
                     width: '15%',
                   }}
-                  className="px-5 py-2.5 items-center justify-center rounded-xl">
+                  className={clsx(
+                    'px-5 py-2.5 items-center justify-center',
+                    localNumberOfImages === count
+                      ? 'rounded-2xl'
+                      : 'rounded-xl',
+                  )}>
                   <Text
                     style={{
                       color:
                         localNumberOfImages === count
                           ? isDark
-                            ? colors.text
+                            ? theme.text
                             : 'white'
-                          : colors.secondaryText,
+                          : theme.secondaryText,
                     }}
                     className="text-lg">
                     {count}
@@ -689,18 +739,16 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
           {/* Aspect Ratio and Size */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
+            style={{backgroundColor: theme.surface}}>
             {/* Aspect Ratio Section */}
             <View className="mb-5">
               <SectionHeader
-                title="Aspect Ratio"
-                feature="aspectRatio"
-                showInfoDialog={showInfoDialog}
-                colors={colors}
+                title={strings.advancedSettings.featureInfo.aspectRatio.title}
+                showInfoDialog={() => showInfoDialog('aspectRatio')}
+                theme={theme}
               />
-
               <View className="flex-row flex-wrap gap-2">
-                {aspectRatios.map((ratio, index) => {
+                {aspectRatios.map(ratio => {
                   // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
                   const [width, height] = ratio.ratio.split(':').map(Number);
 
@@ -721,17 +769,21 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
 
                   // Scale up smaller dimension for better visibility
                   const SCALE_FACTOR = 1.5;
-                  if (displayWidth < 12) displayWidth *= SCALE_FACTOR;
-                  if (displayHeight < 12) displayHeight *= SCALE_FACTOR;
-
+                  if (displayWidth < 12) {
+                    displayWidth *= SCALE_FACTOR;
+                  }
+                  if (displayHeight < 12) {
+                    displayHeight *= SCALE_FACTOR;
+                  }
                   return (
                     <TouchableOpacity
-                      key={index}
+                      key={ratio.ratio}
                       onPress={() => {
+                        triggerHaptic('selection');
                         LayoutAnimation.spring();
                         const newRatio = {
                           ...ratio,
-                          size: 'medium' as AspectRatioSizeType,
+                          size: 'medium' as ImageSize,
                         };
                         setLocalAspectRatio(newRatio);
                         params.setAspectRatio(newRatio);
@@ -739,29 +791,30 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       style={{
                         backgroundColor:
                           localAspectRatio.ratio === ratio.ratio
-                            ? colors.primary
-                            : colors.background,
-                        shadowColor: colors.primary,
-                        elevation:
-                          localAspectRatio.ratio === ratio.ratio ? 8 : 0,
+                            ? theme.primary
+                            : theme.background,
                       }}
-                      className="px-4 py-3 rounded-xl">
+                      className={clsx(
+                        'px-4 py-3',
+                        localAspectRatio.ratio === ratio.ratio
+                          ? 'rounded-2xl'
+                          : 'rounded-xl',
+                      )}>
                       {/* Aspect ratio visual icon */}
                       <View
                         className="mb-2 items-center justify-center"
                         style={{width: 40, height: 30}}>
                         <View
+                          className="border-2 rounded-sm"
                           style={{
                             width: displayWidth,
                             height: displayHeight,
-                            borderWidth: 2,
                             borderColor:
                               localAspectRatio.ratio === ratio.ratio
                                 ? isDark
-                                  ? colors.text
+                                  ? theme.text
                                   : 'white'
-                                : colors.secondaryText,
-                            borderRadius: 3,
+                                : theme.secondaryText,
                           }}
                         />
                       </View>
@@ -770,9 +823,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           color:
                             localAspectRatio.ratio === ratio.ratio
                               ? isDark
-                                ? colors.text
+                                ? theme.text
                                 : 'white'
-                              : colors.secondaryText,
+                              : theme.secondaryText,
                           textAlign: 'center',
                         }}
                         className="text-base font-medium">
@@ -787,10 +840,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Size Selection */}
             <View>
               <SectionHeader
-                title="Image Size"
-                feature="imageSize"
-                showInfoDialog={showInfoDialog}
-                colors={colors}
+                title={strings.advancedSettings.featureInfo.imageSize.title}
+                showInfoDialog={() => showInfoDialog('imageSize')}
+                theme={theme}
               />
 
               <View className="flex-row gap-2">
@@ -799,6 +851,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                     <TouchableOpacity
                       key={size}
                       onPress={() => {
+                        triggerHaptic('selection');
                         LayoutAnimation.spring();
                         const newRatio = {
                           ...localAspectRatio,
@@ -810,32 +863,36 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       style={{
                         backgroundColor:
                           localAspectRatio.size === size
-                            ? colors.primary
-                            : colors.background,
-                        shadowColor: colors.primary,
-                        elevation: localAspectRatio.size === size ? 8 : 0,
+                            ? theme.primary
+                            : theme.background,
                       }}
-                      className="flex-1 p-3 rounded-xl">
+                      className={clsx(
+                        'flex-1 p-3',
+                        localAspectRatio.size === size
+                          ? 'rounded-2xl'
+                          : 'rounded-xl',
+                      )}>
                       <Text
                         style={{
                           color:
                             localAspectRatio.size === size
                               ? isDark
-                                ? colors.text
+                                ? theme.text
                                 : 'white'
-                              : colors.secondaryText,
+                              : theme.secondaryText,
                         }}
                         className="text-center text-lg">
-                        {size.charAt(0).toUpperCase() + size.slice(1)}
+                        {strings.common[size as keyof typeof strings.common] ||
+                          size.charAt(0).toUpperCase() + size.slice(1)}
                       </Text>
                       <Text
                         style={{
                           color:
                             localAspectRatio.size === size
                               ? isDark
-                                ? colors.text
+                                ? theme.text
                                 : 'white'
-                              : colors.secondaryText,
+                              : theme.secondaryText,
                         }}
                         className="text-center text-sm">
                         {resolution}
@@ -847,75 +904,138 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             </View>
           </View>
 
-          {/* Sampler, Seed, and Negative Prompt */}
+          {/* Privacy Settings */}
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
-            style={{backgroundColor: colors.surface}}>
-            {/* Sampler Picker */}
-            <View className="mb-5">
-              <SectionHeader
-                title="Sampler"
-                feature="sampler"
-                showInfoDialog={showInfoDialog}
-                colors={colors}
-              />
-
-              <TouchableOpacity
-                onPress={() => {
-                  LayoutAnimation.configureNext(
-                    LayoutAnimation.Presets.easeInEaseOut,
-                  );
-                  setShowSamplerPicker(!showSamplerPicker);
-                }}
-                style={{backgroundColor: colors.background}}
-                className="p-4 rounded-xl flex-row justify-between items-center">
-                <Text style={{color: colors.text}} className="text-lg">
-                  {localSampler}
+            style={{backgroundColor: theme.surface}}>
+            <SectionHeader
+              title={strings.advancedSettings.privacy}
+              showInfoDialog={() => showInfoDialog('privacy')}
+              theme={theme}
+            />
+            <View className="flex-row justify-between items-center py-2">
+              <View className="flex-1 mr-4">
+                <View className="flex-row items-center">
+                  <Text style={{color: theme.text}} className="text-lg">
+                    {strings.advancedSettings.privateImages}
+                  </Text>
+                  {user?.planType === 'free' && (
+                    <View className="ml-2 bg-yellow-500 px-2 py-1 rounded-full">
+                      <Text className="text-yellow-900 text-xs font-medium">
+                        Pro Only
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{color: theme.secondaryText}} className="text-xs">
+                  {user?.planType === 'free'
+                    ? strings.advancedSettings.upgradeToMakePrivate
+                    : localIsImagePrivate
+                    ? strings.advancedSettings.imagesWillBePrivate
+                    : strings.advancedSettings.imagesWillBePublic}
                 </Text>
-                <ChevronDownIcon
-                  size={16}
-                  color={colors.secondaryText}
-                  style={{
-                    transform: [
-                      {rotate: showSamplerPicker ? '180deg' : '0deg'},
-                    ],
-                  }}
+              </View>
+              <TouchableOpacity
+                className="w-14 h-8 rounded-full p-1.5"
+                style={{
+                  backgroundColor:
+                    localIsImagePrivate && user?.planType !== 'free'
+                      ? theme.primary
+                      : '#cbd5e1',
+                }}
+                disabled={user?.planType === 'free'}
+                onPress={() => {
+                  if (user?.planType === 'free') {
+                    return;
+                  }
+                  triggerHaptic('selection');
+                  LayoutAnimation.spring();
+                  const newValue = !localIsImagePrivate;
+                  setLocalIsImagePrivate(newValue);
+                  if (params.setIsImagePrivate) {
+                    params.setIsImagePrivate(newValue);
+                  }
+                }}
+                accessible={true}
+                accessibilityLabel={
+                  localIsImagePrivate
+                    ? strings.advancedSettings.turnOffPrivateHint
+                    : strings.advancedSettings.turnOnPrivateHint
+                }
+                accessibilityRole="switch"
+                accessibilityState={{checked: localIsImagePrivate}}>
+                <View
+                  className={`w-5 h-5 rounded-full bg-white ${
+                    localIsImagePrivate && user?.planType !== 'free'
+                      ? 'ml-6'
+                      : 'ml-0'
+                  }`}
                 />
               </TouchableOpacity>
-
-              {showSamplerPicker && (
-                <View
-                  style={{backgroundColor: colors.background}}
-                  className="mt-2 rounded-xl overflow-hidden">
-                  {params.samplers.map((s, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => {
-                        LayoutAnimation.spring();
-                        setLocalSampler(s);
-                        params.setSampler(s);
-                        setShowSamplerPicker(false);
-                      }}
-                      className="p-4 border-b"
-                      style={{borderColor: colors.surface}}>
-                      <Text style={{color: colors.text}} className="text-base">
-                        {s}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
             </View>
+          </View>
 
+          {/* Quality Toggle */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: theme.surface}}>
+            <SectionHeader
+              title={strings.advancedSettings.featureInfo.quality.title}
+              showInfoDialog={() => showInfoDialog('quality')}
+              theme={theme}
+            />
+
+            <View className="flex-row justify-between items-center py-2">
+              <View>
+                <Text style={{color: theme.text}} className="text-lg">
+                  {strings.advancedSettings.premiumImages}
+                </Text>
+                <Text style={{color: theme.secondaryText}} className="text-xs">
+                  {strings.advancedSettings.generateHigherQualityImages}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                className="w-14 h-8 rounded-full p-1.5"
+                style={{
+                  backgroundColor:
+                    localQuality === 50 ? theme.primary : '#cbd5e1',
+                }}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  LayoutAnimation.spring();
+                  const newQuality = localQuality === 50 ? 25 : 50;
+                  setLocalQuality(newQuality);
+                  params.setQuality(newQuality);
+                }}
+                accessible={true}
+                accessibilityLabel={
+                  localQuality === 50
+                    ? strings.advancedSettings.turnOffPremiumHint
+                    : strings.advancedSettings.turnOnPremiumHint
+                }
+                accessibilityRole="switch"
+                accessibilityState={{checked: localQuality === 50}}>
+                <View
+                  className={`w-5 h-5 rounded-full bg-white ${
+                    localQuality === 50 ? 'ml-6' : 'ml-0'
+                  }`}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Seed and Negative Prompt */}
+          <View
+            className="py-4 px-3 mt-4 rounded-2xl"
+            style={{backgroundColor: theme.surface}}>
             {/* Seed Input */}
             <View className="mb-5">
               <SectionHeader
-                title="Seed"
-                feature="seed"
-                showInfoDialog={showInfoDialog}
-                colors={colors}
+                title={strings.advancedSettings.featureInfo.seed.title}
+                showInfoDialog={() => showInfoDialog('seed')}
+                theme={theme}
               />
-
               <TextInput
                 ref={seedInputRef}
                 value={localSeed}
@@ -923,14 +1043,17 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   setLocalSeed(text);
                   params.setSeed(text);
                 }}
-                placeholder="Random"
+                onFocus={() => triggerHaptic('light')}
+                placeholder={strings.advancedSettings.seedPlaceholder}
                 keyboardType="numeric"
                 className="p-4 rounded-xl text-lg"
-                style={{backgroundColor: colors.background, color: colors.text}}
+                style={{backgroundColor: theme.background, color: theme.text}}
                 placeholderTextColor="#6B7280"
                 accessible={true}
-                accessibilityLabel="Seed value input"
-                accessibilityHint="Enter a number to create reproducible images or leave empty for random results"
+                accessibilityLabel={
+                  strings.advancedSettings.featureInfo.seed.title
+                }
+                accessibilityHint={strings.advancedSettings.seedHint}
                 blurOnSubmit={false}
                 caretHidden={false}
                 autoCorrect={false}
@@ -941,12 +1064,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             {/* Negative Prompt */}
             <View>
               <SectionHeader
-                title="Negative Prompt"
-                feature="negativePrompt"
-                showInfoDialog={showInfoDialog}
-                colors={colors}
+                title={
+                  strings.advancedSettings.featureInfo.negativePrompt.title
+                }
+                showInfoDialog={() => showInfoDialog('negativePrompt')}
+                theme={theme}
               />
-
               <TextInput
                 ref={negativePromptRef}
                 value={localNegativePrompt}
@@ -954,34 +1077,35 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   setLocalNegativePrompt(text);
                   params.setNegativePrompt(text);
                 }}
-                placeholder="What to exclude from your image..."
+                onFocus={() => triggerHaptic('light')}
+                placeholder={strings.advancedSettings.negativePromptPlaceholder}
                 multiline
                 numberOfLines={4}
                 className="p-4 rounded-xl text-lg"
                 textAlignVertical="top"
                 style={{
-                  backgroundColor: colors.background,
-                  color: colors.text,
+                  backgroundColor: theme.background,
+                  color: theme.text,
                   minHeight: 100,
                 }}
                 placeholderTextColor="#6B7280"
                 accessible={true}
-                accessibilityLabel="Negative prompt input"
-                accessibilityHint="Enter terms to exclude from the generated image"
+                accessibilityLabel={
+                  strings.advancedSettings.featureInfo.negativePrompt.title
+                }
+                accessibilityHint={strings.advancedSettings.negativePromptHint}
                 blurOnSubmit={false}
-                scrollEnabled={true} // For multiline input
-                maxLength={500} // Optional, to prevent very long inputs
+                scrollEnabled={true}
+                maxLength={500}
                 returnKeyType="default"
               />
             </View>
           </View>
 
           {/* Add extra space at the bottom when keyboard is visible */}
-          <View className={keyboardVisible ? 'mb-20' : 'mb-4'} />
+          <View className="mb-16" />
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <View className="mb-12" />
 
       {/* Info Dialog */}
       <InfoDialog
@@ -995,7 +1119,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
       <ArtStylesDialog
         visible={artStylesDialogVisible}
         onClose={() => setArtStylesDialogVisible(false)}
-        colors={colors}
+        theme={theme}
         isDark={isDark}
         selectedStyles={localSelectedStyles}
         toggleStyle={toggleStyle}

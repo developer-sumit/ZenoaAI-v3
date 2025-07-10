@@ -1,6 +1,6 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
-import { ViewStyle } from 'react-native';
+import Svg, {Path} from 'react-native-svg';
+import {ViewStyle} from 'react-native';
 
 interface IconProps {
   size?: number;
