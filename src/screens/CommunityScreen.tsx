@@ -271,16 +271,14 @@ const CommunityScreen = () => {
           </View>
 
           {/* Favorite indicator */}
-          {item.isFavorite && (
-            <View className="flex-row absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl px-2.5 py-1 gap-1">
-              <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
-              <Text
-                className="text-sm font-medium ml-1"
-                style={{color: theme.text}}>
-                {item.favoriteCount}
-              </Text>
-            </View>
-          )}
+          <View className="flex-row absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl px-2.5 py-1 gap-1">
+            <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+            <Text
+              className="text-sm font-medium ml-1"
+              style={{color: theme.text}}>
+              {item.favoriteCount}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     );
