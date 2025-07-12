@@ -29,6 +29,7 @@ import SearchIcon from '@src/assets/icons/SearchIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import CommunityIcon from '@src/assets/icons/CommunityIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
+import TuneIcon from '@src/assets/icons/TuneIcon';
 
 // Constants
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
@@ -62,7 +63,8 @@ const CommunityScreen = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeFilter, _] = useState<FilterType>('latest');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('latest');
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -162,27 +164,6 @@ const CommunityScreen = () => {
     fetchPublicImages,
     activeFilter,
   ]);
-
-  // const handleFilterChange = useCallback(
-  //   async (newFilter: FilterType) => {
-  //     if (newFilter === activeFilter) {
-  //       return;
-  //     }
-
-  //     triggerHaptic('selection');
-  //     setActiveFilter(newFilter);
-  //     setCurrentPage(1);
-  //     setHasMore(true);
-
-  //     try {
-  //       await fetchPublicImages(1, 20, newFilter);
-  //     } catch (error) {
-  //       console.error('Failed to fetch images with new filter:', error);
-  //       showToast('Failed to load images', 'error');
-  //     }
-  //   },
-  //   [activeFilter, fetchPublicImages, triggerHaptic, showToast],
-  // );
 
   const calculateImageHeight = (item: GeneratedImage) => {
     // Use actual aspect ratio if available
@@ -342,44 +323,67 @@ const CommunityScreen = () => {
               <CloseIcon size={16} color={theme.secondaryText} />
             </TouchableOpacity>
           )}
+          {/* Filter Button */}
+          <TouchableOpacity
+            onPress={() => setShowFilterMenu(!showFilterMenu)}
+            className="p-3 ml-2 rounded-xl"
+            accessible={true}
+            accessibilityLabel="Open filter menu"
+            accessibilityRole="button"
+            style={{backgroundColor: theme.primary + '22'}}>
+            <TuneIcon size={20} color={theme.primary} />
+          </TouchableOpacity>
         </Animated.View>
-
-        {/* Filter Tabs */}
-        {/* <View
-          className="flex-row bg-opacity-50 rounded-2xl p-1"
-          style={{backgroundColor: theme.surface}}>
-          {FILTER_OPTIONS.map(filter => {
-            const isActive = activeFilter === filter.id;
-            const buttonBg = isActive ? theme.primary : 'transparent';
-            const textColor = isActive ? '#ffffff' : theme.text;
-
-            return (
-              <TouchableOpacity
-                key={filter.id}
-                onPress={() => handleFilterChange(filter.id)}
-                className={`flex-1 py-3 px-4 rounded-xl ${
-                  isActive ? 'shadow-sm' : ''
-                }`}
-                style={{
-                  backgroundColor: buttonBg,
-                }}
-                accessible={true}
-                accessibilityLabel={`Filter by ${filter.label}`}
-                accessibilityRole="button">
-                <Text
-                  className={`text-center font-semibold ${
-                    isActive ? 'text-white' : ''
-                  }`}
-                  style={{
-                    color: textColor,
-                  }}>
-                  {filter.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View> */}
       </Animated.View>
+
+      {/* Filter Menu Modal */}
+      {showFilterMenu && (
+        <View
+          className="absolute top-40 right-5 p-2.5 rounded-2xl bg-opacity-50 flex-1 justify-center items-center z-50"
+          style={{
+            backgroundColor: theme.surface,
+            elevation: 5,
+            shadowOffset: {width: 0, height: 2},
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
+          }}>
+          {FILTER_OPTIONS.map(option => (
+            <TouchableOpacity
+              key={option.id}
+              onPress={() => {
+                triggerHaptic('selection');
+                setShowFilterMenu(false);
+                setActiveFilter(option.id);
+                setCurrentPage(1);
+                setHasMore(true);
+                fetchPublicImages(1, 20, option.id);
+              }}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                backgroundColor:
+                  activeFilter === option.id
+                    ? theme.primary + '22'
+                    : 'transparent',
+                borderRadius: 12,
+                marginVertical: 2,
+              }}
+              accessible={true}
+              accessibilityLabel={`Filter by ${option.label}`}
+              accessibilityRole="button">
+              <Text
+                style={{
+                  color:
+                    activeFilter === option.id ? theme.primary : theme.text,
+                  fontWeight: activeFilter === option.id ? 'bold' : 'normal',
+                  fontSize: 16,
+                }}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Images Grid */}
       {isLoadingPublic && filteredImages.length === 0 ? (
