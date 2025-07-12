@@ -44,7 +44,7 @@ import {notificationService} from '@src/services/notificationService';
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
-import ProfileScreen from '@src/screens/ProfileScreen';
+import SettingsScreen from '@src/screens/SettingsScreen';
 import GalleryScreen from '@src/screens/GalleryScreen';
 import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
@@ -69,7 +69,7 @@ function ProfileStack() {
       }}>
       <Stack.Screen
         name={Routes.SETTINGS}
-        component={ProfileScreen}
+        component={SettingsScreen}
         options={{gestureEnabled: false}} // Disable swipe gesture on profile screen
       />
       <Stack.Screen

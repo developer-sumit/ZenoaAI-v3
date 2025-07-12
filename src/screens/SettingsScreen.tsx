@@ -54,7 +54,7 @@ if (Platform.OS === 'android') {
   }
 }
 
-const ProfileScreen = () => {
+const SettingsScreen = () => {
   const strings = useStrings();
   const navigation = useNavigation();
   const {user, logout} = useAuthStore();
@@ -131,17 +131,17 @@ const ProfileScreen = () => {
     }
 
     try {
-      console.log('ProfileScreen: Refreshing user profile data');
+      console.log('SettingsScreen: Refreshing user profile data');
       const freshUserData = await userService.getUser(user.uid);
       if (freshUserData) {
         // Update auth store with fresh data
         const {updateUser} = useAuthStore.getState();
         updateUser(freshUserData);
-        console.log('ProfileScreen: User profile refreshed successfully');
+        console.log('SettingsScreen: User profile refreshed successfully');
       }
     } catch (error) {
       showToast(strings.settings.internalServerError, 'error');
-      console.error('ProfileScreen: Failed to refresh user profile:', error);
+      console.error('SettingsScreen: Failed to refresh user profile:', error);
     }
   }, [user?.uid]);
 
@@ -866,4 +866,4 @@ const ProfileScreen = () => {
   );
 };
 
-export default ProfileScreen;
+export default SettingsScreen;
