@@ -117,6 +117,7 @@ const GalleryScreen = () => {
       loadMoreImages();
     }
   }, [isLoadingMore, hasMoreImages, loadMoreImages]);
+
   // Footer component for loading more
   const LoadingFooter = useMemo(() => {
     if (!isLoadingMore) {

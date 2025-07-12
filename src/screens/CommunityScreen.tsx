@@ -267,25 +267,18 @@ const CommunityScreen = () => {
                   {item.userName || 'Anonymous'}
                 </Text>
               </View>
-
-              {/* Favorite count */}
-              {(item.favoriteCount || 0) > 0 && (
-                <View className="flex-row items-center">
-                  <HeartIcon size={14} color="#FF6B6B" fill="#FF6B6B" />
-                  <Text
-                    className="text-sm font-medium ml-1"
-                    style={{color: theme.text}}>
-                    {item.favoriteCount}
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 
           {/* Favorite indicator */}
           {item.isFavorite && (
-            <View className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl p-1">
+            <View className="flex-row absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl px-2.5 py-1 gap-1">
               <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+              <Text
+                className="text-sm font-medium ml-1"
+                style={{color: theme.text}}>
+                {item.favoriteCount}
+              </Text>
             </View>
           )}
         </TouchableOpacity>

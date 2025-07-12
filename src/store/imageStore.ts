@@ -85,29 +85,16 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       }
 
       const images = await imageService.getUserImages({page, limit});
-      console.log('🏪 Store: Received', images.length, 'images from service');
-      console.log(
-        '🏪 Store: First image preview:',
-        images[0]
-          ? {
-              id: images[0].id,
-              imageUrl: images[0].imageUrl,
-              prompt: images[0].prompt?.substring(0, 30) + '...',
-              userId: images[0].userId,
-            }
-          : 'No images',
-      );
 
-      // Log all image IDs for debugging
-      if (images.length > 0) {
-        console.log(
-          '🏪 Store: All image IDs:',
-          images.map(img => ({
-            id: img.id,
-            prompt: img.prompt?.substring(0, 20) + '...',
-          })),
-        );
-      }
+      // if (images.length > 0) {
+      //   console.log(
+      //     '🏪 Store: All image IDs:',
+      //     images.map(img => ({
+      //       id: img.id,
+      //       prompt: img.prompt?.substring(0, 20) + '...',
+      //     })),
+      //   );
+      // }
 
       set(state => ({
         images: reset ? images : [...state.images, ...images],
@@ -174,6 +161,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     // For single image generation, use generateBatch with count 1
     return get().generateBatch(prompt, settings, 1, onQuotaUpdate);
   },
+
   generateBatch: async (
     prompt: string,
     settings: ImageGenerationSettings,
@@ -202,8 +190,8 @@ export const useImageStore = create<ImageState>()((set, get) => ({
             settings.imageSize === 'large'
               ? 1024
               : settings.imageSize === 'small'
-              ? 512
-              : 768;
+                ? 512
+                : 768;
 
           if (aspectRatioValue > 1) {
             // Landscape
@@ -418,6 +406,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   clearCurrentBatch: () => {
     set({currentGenerationBatch: []});
   },
+
   clearImages: () => {
     set({
       images: [],
