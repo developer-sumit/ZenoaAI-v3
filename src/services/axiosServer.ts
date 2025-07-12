@@ -188,10 +188,6 @@ export const imageAPI = {
     return axiosServer.post('/api/images/generate', imageData);
   },
 
-  getOptions: () => {
-    return axiosServer.get('/api/images/options');
-  },
-
   getImages: (params?: any) => {
     return axiosServer.get('/api/images', {params});
   },
@@ -204,32 +200,12 @@ export const imageAPI = {
     return axiosServer.get(`/api/images/${imageId}`);
   },
 
-  getImageStats: () => {
-    return axiosServer.get('/api/images/stats');
-  },
-
-  saveImage: (imageData: any) => {
-    return axiosServer.post('/api/images', imageData);
-  },
-
   deleteImage: (imageId: string) => {
     return axiosServer.delete(`/api/images/${imageId}`);
   },
 
-  updateImage: (imageId: string, updateData: any) => {
-    return axiosServer.put(`/api/images/${imageId}`, updateData);
-  },
-
   toggleFavorite: (imageId: string) => {
     return axiosServer.post(`/api/images/${imageId}/favorite`);
-  },
-
-  favoriteImage: (imageId: string) => {
-    return axiosServer.post(`/api/images/${imageId}/favorite`);
-  },
-
-  unfavoriteImage: (imageId: string) => {
-    return axiosServer.delete(`/api/images/${imageId}/favorite`);
   },
 
   updatePrivacy: (imageId: string, isPrivate: boolean) => {

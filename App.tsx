@@ -115,6 +115,7 @@ function App() {
   const navigationRef = React.useRef<any>(null);
 
   SystemBars.setHidden(true);
+
   // Handle Android back button
   useEffect(() => {
     const backAction = () => {

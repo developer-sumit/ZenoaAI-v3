@@ -407,7 +407,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                           onToggleFavorite();
                         }
                       }}
-                      className="bg-black/40 rounded-3xl p-2"
+                      className="bg-white rounded-2xl px-2.5 py-2 flex-row items-center gap-2 border-2 border-gray-900"
                       accessible={true}
                       accessibilityLabel={
                         image?.isFavorite
@@ -416,23 +416,21 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       }>
                       <HeartIcon
                         size={24}
-                        color={image?.isFavorite ? '#FF4B8C' : 'white'}
+                        color={image?.isFavorite ? '#FF4B8C' : '#121212'}
                         fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
                       />
+                      <Text
+                        className="font-bold text-lg"
+                        style={{
+                          color: image?.isFavorite ? '#FF4B8C' : '#121212',
+                        }}>
+                        {image?.favoriteCount ? image.favoriteCount : 0}
+                      </Text>
                     </TouchableOpacity>
-
-                    {/* Favorite Count */}
-                    {image?.favoriteCount && image.favoriteCount > 0 && (
-                      <View className="mt-1 px-2 py-0.5 bg-black/40 rounded-full">
-                        <Text className="text-white text-xs font-medium">
-                          {image.favoriteCount}
-                        </Text>
-                      </View>
-                    )}
                   </View>
                   {/* Fullscreen Button */}
-                  <View className="bg-black/40 rounded-3xl p-2">
-                    <FullscreenIcon size={24} color="white" />
+                  <View className="bg-white rounded-2xl p-2 border-2 border-gray-900">
+                    <FullscreenIcon size={24} color="#121212" />
                   </View>
                 </View>
               )}

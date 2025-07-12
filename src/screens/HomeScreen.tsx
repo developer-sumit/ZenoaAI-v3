@@ -64,7 +64,7 @@ const HomeScreen = () => {
     fetchImages,
     generateBatch,
   } = useImageStore();
-  const {hasImageQuota, refetch: refetchQuota} = useQuota();
+  const {refetch: refetchQuota} = useQuota();
 
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
@@ -193,11 +193,6 @@ const HomeScreen = () => {
       return;
     }
 
-    // Check quota
-    if (!hasImageQuota) {
-      showToast('Image generation quota exceeded', 'error');
-      return;
-    }
     try {
       console.log('Generating with:', {prompt, selectedStyles, aspectRatio});
 

@@ -87,12 +87,12 @@ const saveUser = async (userData: User): Promise<void> => {
  * - Gracefully handles JSON parsing errors from corrupted local storage
  */
 const getUser = async (userId: string): Promise<User | null> => {
-  try {
-    if (!userId) {
-      console.log('No userId provided to getUser');
-      return null;
-    }
+  if (!userId) {
+    console.log('No userId provided to getUser');
+    return null;
+  }
 
+  try {
     // First try to get data from local storage (faster)
     let userData: User | null = null;
     const localUserData = await EncryptedStorage.getItem(`user_${userId}`);
@@ -145,7 +145,7 @@ const getUser = async (userId: string): Promise<User | null> => {
         // Call the API endpoint using userAPI (token automatically added)
         const response = await userAPI.getProfile();
         if (response.data.success) {
-          const apiUser = response.data.profile;
+          const apiUser = response.data.data;
           const apiUserData: User = {
             uid: userId,
             email: apiUser.email || '',
@@ -431,7 +431,7 @@ const checkQuota = async (userId: string): Promise<IUserQuota | null> => {
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to check quota');
     }
-    const apiQuota = response.data.quota;
+    const apiQuota = response.data.data;
     const quota: IUserQuota = {
       imagesRemaining: apiQuota.imagesRemaining || 15, // Default for free plan
       lastRefreshedAt: apiQuota.lastRefreshedAt
@@ -443,60 +443,6 @@ const checkQuota = async (userId: string): Promise<IUserQuota | null> => {
     return quota;
   } catch (error) {
     console.error('Error checking user quota:', error);
-    return null;
-  }
-};
-
-/**
- * Checks if the device is currently offline by fetching network information.
- *
- * @returns A Promise that resolves to `true` if the device is offline (not connected to any network),
- *          or `false` if the device is online. Defaults to `false` (online) if an error occurs
- *          while checking the network status.
- *
- * @throws Does not throw errors - catches and logs any network checking errors internally
- *
- * @example
- * ```typescript
- * const offline = await isOffline();
- * if (offline) {
- *   console.log('Device is offline');
- * } else {
- *   console.log('Device is online');
- * }
- * ```
- */
-const isOffline = async (): Promise<boolean> => {
-  try {
-    const netInfo = await NetInfo.fetch();
-    return !netInfo.isConnected;
-  } catch (error) {
-    console.error('Error checking network status:', error);
-    // Default to assuming we're online
-    return false;
-  }
-};
-
-/**
- * Retrieves the current user ID from encrypted storage.
- *
- * @returns A promise that resolves to the user ID string if found, or null if not found or an error occurs
- *
- * @example
- * ```typescript
- * const userId = await getCurrentUserId();
- * if (userId) {
- *   console.log('Current user ID:', userId);
- * } else {
- *   console.log('No user ID found');
- * }
- * ```
- */
-const getCurrentUserId = async (): Promise<string | null> => {
-  try {
-    return await EncryptedStorage.getItem('currentUserId');
-  } catch (error) {
-    console.error('Error getting current user ID:', error);
     return null;
   }
 };
@@ -678,8 +624,6 @@ const userService = {
   deleteUserAccount,
   clearCurrentUserData,
   checkQuota,
-  isOffline,
-  getCurrentUserId,
   checkEmailAvailability,
   checkEmailRestriction,
   removeEmailRestriction,

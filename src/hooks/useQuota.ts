@@ -24,7 +24,7 @@ export const useQuota = () => {
       const response = await userAPI.checkQuota();
 
       if (response.data.success) {
-        setQuota(response.data.quota);
+        setQuota(response.data.data);
       } else {
         throw new Error(response.data.message || 'Failed to fetch quota');
       }

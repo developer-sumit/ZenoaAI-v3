@@ -33,13 +33,6 @@ const generateImage = async (
   settings: ImageGenerationSettings,
 ): Promise<GeneratedImage> => {
   try {
-    console.log('🎨 Generating single image:', {
-      prompt: prompt.substring(0, 30) + '...',
-      engine: settings.engine,
-      aspectRatio: settings.aspectRatio,
-      isPrivate: settings.isPrivate,
-    });
-
     const response = await imageAPI.generateImage({
       prompt,
       negativePrompt: settings.negativePrompt,
@@ -53,16 +46,9 @@ const generateImage = async (
       batchCount: 1,
     });
 
-    console.log('🎨 Server generation response:', {
-      success: response.data.success,
-      hasImageUrl: !!response.data.imageUrl,
-      hasMetadata: !!response.data.metadata,
-      metadataId: response.data.metadata?.id,
-    });
-
     if (response.data.success) {
       const data = response.data as any;
-      const metadata = data.metadata; // Create the image object, preferring server metadata when available
+      const metadata = data.data; // Create the image object, preferring server metadata when available
       const generatedImage: GeneratedImage = {
         id: metadata?.id || `temp-${Date.now()}`,
         userId: metadata?.userId || '',
@@ -70,33 +56,20 @@ const generateImage = async (
         prompt: data.prompts?.final || metadata?.finalPrompt || prompt,
         negativePrompt:
           metadata?.negativePrompt || settings.negativePrompt || '',
-        imageUrl: data.imageUrl || metadata?.imageUrl || '', // Prefer response imageUrl over metadata
-        thumbnailUrl:
-          data.optimizedUrls?.thumbnail ||
-          metadata?.thumbnailUrl ||
-          data.imageUrl,
+        imageUrl: metadata?.imageUrl || '', // Prefer response imageUrl over metadata
+        thumbnailUrl: data.optimizedUrls?.thumbnail || metadata?.imageUrl || '',
         width: metadata?.width || settings.width || 512,
         height: metadata?.height || settings.height || 512,
         imageSize: settings.imageSize || 'medium',
         aspectRatio: settings.aspectRatio || '1:1',
         styles: metadata?.styles || (settings.style ? [settings.style] : []),
-        seed:
-          metadata?.seed ||
-          settings.seed ||
-          Math.floor(Math.random() * 1000000),
+        seed: metadata?.seed || Math.floor(Math.random() * 1000000),
         createdAt: metadata?.createdAt || new Date(),
         isFavorite: metadata?.isFavorite || false,
         isPrivate: metadata?.isPrivate || settings.isPrivate || false,
         userName: metadata?.userName || '',
         userAvatar: metadata?.userAvatar || '',
       };
-
-      console.log('🎨 Generated image object:', {
-        id: generatedImage.id,
-        imageUrl: generatedImage.imageUrl,
-        hasMetadata: !!metadata,
-        isTemporary: generatedImage.id.startsWith('temp-'),
-      });
 
       return generatedImage;
     } else {
@@ -198,32 +171,11 @@ const getUserImages = async (params?: {
   favorite?: boolean;
 }): Promise<GeneratedImage[]> => {
   try {
-    console.log('📱 Fetching user images from server...', params);
     const response = await imageAPI.getImages(params);
-    console.log('📱 Server response:', {
-      success: response.data.success,
-      hasData: !!response.data.data,
-      hasImages: !!response.data.images,
-      dataLength: response.data.data?.length || 0,
-      imagesLength: response.data.images?.length || 0,
-      fullResponse: response.data, // Log the full response for debugging
-    });
 
     if (response.data.success) {
       // Handle both paginated and simple array responses
       const images = response.data.data || [];
-
-      console.log('📱 Processing', images.length, 'images from server');
-      console.log(
-        '📱 Raw server images:',
-        images.map((img: any) => ({
-          id: img.id,
-          userId: img.userId,
-          isDeleted: img.isDeleted,
-          isPrivate: img.isPrivate,
-          originalPrompt: img.originalPrompt?.substring(0, 30) + '...',
-        })),
-      );
 
       const processedImages = images.map((serverImage: any): GeneratedImage => {
         const styles = Array.isArray(serverImage.styles)
@@ -253,12 +205,6 @@ const getUserImages = async (params?: {
           userAvatar: String(serverImage.userAvatar || ''),
         };
       });
-
-      console.log(
-        '📱 Successfully processed',
-        processedImages.length,
-        'images',
-      );
       return processedImages;
     } else {
       console.error('📱 Server returned failure:', response.data.message);
@@ -315,6 +261,7 @@ const getPublicImages = async (
         const styles = Array.isArray(serverImage.styles)
           ? serverImage.styles
           : [];
+
         return {
           id: String(serverImage.id || ''),
           userId: String(serverImage.userId || ''),
@@ -336,6 +283,7 @@ const getPublicImages = async (
           seed: Number(serverImage.seed) || Math.floor(Math.random() * 1000000),
           createdAt: serverImage.createdAt || new Date(),
           isFavorite: Boolean(serverImage.isFavorite),
+          favoriteCount: Number(serverImage.favoriteCount) || 0,
           isPrivate: Boolean(serverImage.isPrivate),
           imageSize: serverImage.imageSize || 'medium',
           aspectRatio: serverImage.aspectRatio || '1:1',
