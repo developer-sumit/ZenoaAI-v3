@@ -315,10 +315,10 @@ const GalleryScreen = () => {
               {/* Image Overlay for Style Tag */}
               <View
                 className="absolute bottom-0 left-0 right-0 p-2 flex-row justify-between items-center"
-                style={{backgroundColor: 'rgba(0,0,0,0.3)'}}>
+                style={{backgroundColor: theme.surface + 'df'}}>
                 {/* Style Tag */}
                 {item.styles && item.styles.length > 0 && (
-                  <Text className="text-xs text-white">
+                  <Text className="text-xs font-semibold ml-1.5" style={{color: theme.text}}>
                     {item.styles[0]}
                     {item.styles.length > 1
                       ? ` +${item.styles.length - 1}`
@@ -329,34 +329,24 @@ const GalleryScreen = () => {
             </View>
           </TouchableOpacity>
           {/* Favorite Button */}
-          <View className="absolute top-2 right-2 flex-row items-center">
-            {/* Favorite Count (if greater than 0) */}
-            {item.favoriteCount && item.favoriteCount > 0 && (
-              <View className="mr-1 px-2 py-1 rounded-full bg-black/60">
-                <Text className="text-white text-xs font-medium">
-                  {item.favoriteCount}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              onPress={() => handleToggleFavorite(item)}
-              className="p-2.5 rounded-full bg-black/40"
-              hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
-              accessible={true}
-              accessibilityLabel={
-                item.isFavorite
-                  ? strings.imageViewer.removeFavourite
-                  : strings.imageViewer.addFavourite
-              }
-              accessibilityRole="button">
-              <HeartIcon
-                size={20}
-                color="white"
-                fill={item.isFavorite ? '#FF4B8C' : 'transparent'}
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => handleToggleFavorite(item)}
+            className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
+            hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+            accessible={true}
+            accessibilityLabel={
+              item.isFavorite
+                ? strings.imageViewer.removeFavourite
+                : strings.imageViewer.addFavourite
+            }
+            accessibilityRole="button">
+            <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+            <Text
+              className="text-sm font-medium ml-1"
+              style={{color: theme.text}}>
+              {item.favoriteCount ? item.favoriteCount : 0}
+            </Text>
+          </TouchableOpacity>
         </View>
       );
     },

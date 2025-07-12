@@ -198,6 +198,7 @@ const getUserImages = async (params?: {
           seed: Number(serverImage.seed) || Math.floor(Math.random() * 1000000),
           createdAt: serverImage.createdAt || new Date(),
           isFavorite: Boolean(serverImage.favorite || serverImage.isFavorite),
+          favoriteCount: Number(serverImage.favoriteCount) || 0,
           isPrivate: Boolean(serverImage.isPrivate),
           imageSize: serverImage.imageSize || 'medium',
           aspectRatio: serverImage.aspectRatio || '1:1',
