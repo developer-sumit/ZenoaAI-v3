@@ -1,8 +1,8 @@
-import NetInfo from '@react-native-community/netinfo';
 import EncryptedStorage from 'react-native-encrypted-storage';
 
 import {userAPI} from './axiosServer';
 import {User, IUserQuota} from '@src/types';
+import {ResponseData} from '@src/types/api';
 
 /**
  * Saves user data to encrypted local storage with proper date serialization.
@@ -29,23 +29,36 @@ import {User, IUserQuota} from '@src/types';
  */
 const saveUser = async (userData: User): Promise<void> => {
   try {
+    const newData: User = {
+      uid: userData.uid,
+      email: userData.email,
+      profile: {
+        username: userData.profile.username,
+        avatar: userData.profile.avatar,
+        bio: userData.profile.bio,
+      },
+      planType: userData.planType,
+      // Convert dates to ISO strings for JSON storage
+      createdAt: new Date(userData.createdAt),
+      updatedAt: new Date(userData.updatedAt),
+      quota: {
+        ...userData.quota,
+        lastRefreshedAt: new Date(
+          userData.quota.lastRefreshedAt?.toISOString() || '',
+        ),
+      },
+      statistics: {
+        ...userData.statistics,
+        lastLoginAt: new Date(userData.statistics?.lastLoginAt),
+      },
+      fcmTokenUpdatedAt: new Date(
+        userData.fcmTokenUpdatedAt?.toISOString() || '',
+      ),
+    };
+
     await EncryptedStorage.setItem(
       `user_${userData.uid}`,
-      JSON.stringify({
-        ...userData,
-        // Convert dates to ISO strings for JSON storage
-        createdAt: userData.createdAt?.toISOString(),
-        updatedAt: userData.updatedAt?.toISOString(),
-        quota: {
-          ...userData.quota,
-          lastRefreshedAt: userData.quota.lastRefreshedAt?.toISOString(),
-        },
-        statistics: {
-          ...userData.statistics,
-          lastLoginAt: userData.statistics?.lastLoginAt?.toISOString(),
-        },
-        fcmTokenUpdatedAt: userData.fcmTokenUpdatedAt?.toISOString(),
-      }),
+      JSON.stringify(newData),
     );
     await EncryptedStorage.setItem('currentUserId', userData.uid);
     console.log('User data saved to local storage');
@@ -86,10 +99,14 @@ const saveUser = async (userData: User): Promise<void> => {
  * - Handles network connectivity checks before attempting API calls
  * - Gracefully handles JSON parsing errors from corrupted local storage
  */
-const getUser = async (userId: string): Promise<User | null> => {
+const getUser = async (userId: string): Promise<ResponseData<User>> => {
   if (!userId) {
     console.log('No userId provided to getUser');
-    return null;
+    return {
+      success: false,
+      message: 'Unauthenticated: User must be logged in',
+      data: null,
+    };
   }
 
   try {
@@ -126,7 +143,8 @@ const getUser = async (userId: string): Promise<User | null> => {
           fcmTokenUpdatedAt: parsedData.fcmTokenUpdatedAt
             ? new Date(parsedData.fcmTokenUpdatedAt)
             : undefined,
-        }; // User data found locally
+        };
+        // User data found locally
         console.log('User data found locally, validating...');
         console.log('Found user data in local storage');
       } catch (parseError) {
@@ -134,90 +152,84 @@ const getUser = async (userId: string): Promise<User | null> => {
       }
     }
 
-    // Check network connectivity for potential API fetch
-    const isConnected = await NetInfo.fetch().then(state => state.isConnected);
-
-    // If connected, try to get the most up-to-date data from API
-    if (isConnected) {
-      try {
-        console.log('Attempting to fetch user data from API');
-
-        // Call the API endpoint using userAPI (token automatically added)
-        const response = await userAPI.getProfile();
-        if (response.data.success) {
-          const apiUser = response.data.data;
-          const apiUserData: User = {
-            uid: userId,
-            email: apiUser.email || '',
-            profile: {
-              username: apiUser.username || apiUser.profile?.username || '',
-              avatar: apiUser.avatar || apiUser.profile?.avatar || '',
-              bio: apiUser.bio || apiUser.profile?.bio || '',
-            },
-            createdAt: apiUser.createdAt
-              ? new Date(apiUser.createdAt)
-              : new Date(),
-            updatedAt: apiUser.updatedAt
-              ? new Date(apiUser.updatedAt)
-              : new Date(),
-            planType: apiUser.planType || 'free',
-            quota: {
-              imagesRemaining: apiUser.quota?.imagesRemaining || 40, // Default for free plan
-              lastRefreshedAt: apiUser.quota?.lastRefreshedAt
-                ? new Date(apiUser.quota.lastRefreshedAt)
-                : undefined,
-            },
-            statistics: apiUser.statistics
-              ? {
-                  lastLoginAt: apiUser.statistics.lastLoginAt
-                    ? new Date(apiUser.statistics.lastLoginAt)
-                    : new Date(),
-                  totalLogins: apiUser.statistics.totalLogins || 0,
-                  imagesGenerated:
-                    apiUser.statistics.imagesGenerated ||
-                    apiUser.statistics.totalImages ||
-                    0,
-                }
-              : {
-                  lastLoginAt: new Date(),
-                  totalLogins: 0,
-                  imagesGenerated: 0,
-                },
-            fcmToken: apiUser.fcmToken,
-            fcmTokenUpdatedAt: apiUser.fcmTokenUpdatedAt
-              ? new Date(apiUser.fcmTokenUpdatedAt)
+    try {
+      // Call the API endpoint using userAPI (token automatically added)
+      const response = await userAPI.getProfile();
+      if (response.data.success) {
+        const apiUser = response.data.data;
+        const apiUserData: User = {
+          uid: userId,
+          email: apiUser.email || '',
+          profile: {
+            username: apiUser.profile?.username || '',
+            avatar: apiUser.profile?.avatar || '',
+            bio: apiUser.profile?.bio || '',
+          },
+          createdAt: apiUser.createdAt
+            ? new Date(apiUser.createdAt)
+            : new Date(),
+          updatedAt: apiUser.updatedAt
+            ? new Date(apiUser.updatedAt)
+            : new Date(),
+          planType: apiUser.planType || 'free',
+          quota: {
+            imagesRemaining: apiUser.quota?.imagesRemaining || 15, // Default for free plan
+            lastRefreshedAt: apiUser.quota?.lastRefreshedAt
+              ? new Date(apiUser.quota.lastRefreshedAt)
               : undefined,
-          };
+            planLimits: {
+              totalImages: apiUser.quota?.planLimits?.totalImages || 15,
+            },
+          },
+          statistics: apiUser.statistics
+            ? {
+                lastLoginAt: apiUser.statistics.lastLoginAt
+                  ? new Date(apiUser.statistics.lastLoginAt)
+                  : new Date(),
+                totalLogins: apiUser.statistics.totalLogins || 0,
+                imagesGenerated: apiUser.statistics.imagesGenerated || 0,
+              }
+            : {
+                lastLoginAt: new Date(),
+                totalLogins: 0,
+                imagesGenerated: 0,
+              },
+          fcmToken: apiUser.fcmToken,
+          fcmTokenUpdatedAt: apiUser.fcmTokenUpdatedAt
+            ? new Date(apiUser.fcmTokenUpdatedAt)
+            : undefined,
+        };
 
-          // Check if API data is newer than local data
-          if (
-            !userData ||
-            !userData.updatedAt ||
-            (apiUserData.updatedAt &&
-              new Date(apiUserData.updatedAt) > new Date(userData.updatedAt))
-          ) {
-            console.log('Using newer API data');
-            userData = apiUserData;
+        // Check if API data is newer than local data
+        if (
+          !userData ||
+          !userData.updatedAt ||
+          (apiUserData.updatedAt &&
+            new Date(apiUserData.updatedAt) > new Date(userData.updatedAt))
+        ) {
+          console.log('Using newer API data');
+          userData = apiUserData;
 
-            // Update local cache with fresh data
-            await saveUser(userData);
-          }
-
-          return userData;
+          // Update local cache with fresh data
+          await saveUser(userData);
         }
-      } catch (apiError) {
-        console.log('API fetch failed, using cached data:', apiError);
-        // Return whatever we have in the cache
-        return userData;
       }
-    } else {
-      console.log('No network connection, using local data only');
+    } catch (apiError) {
+      console.log('API fetch failed, using cached data:', apiError);
+      // Return whatever we have in the cache
     }
 
-    return userData;
+    return {
+      success: true,
+      data: userData || null,
+      message: userData ? '' : 'User not found',
+    };
   } catch (error) {
     console.error('Error retrieving user data:', error);
-    return null;
+    return {
+      success: false,
+      message: 'Error retrieving user data',
+    };
   }
 };
 
@@ -249,46 +261,60 @@ const getUser = async (userId: string): Promise<User | null> => {
 const updateProfile = async (
   userId: string,
   profileData: Partial<User>,
-): Promise<User | null> => {
+): Promise<ResponseData<User>> => {
   try {
     console.log(`Starting profile update for userId: ${userId}`, profileData);
 
     // Get existing user data for merging
-    const existingUser = await getUser(userId);
-    if (!existingUser) {
-      console.error('User not found for update operation');
-      throw new Error('User not found');
+    const {success, data} = await getUser(userId);
+    if (!success || !data) {
+      return {
+        success: false,
+        message: 'User not found',
+        data: null,
+      };
     }
 
     // Prepare the merged data
     const updatedUser = {
-      ...existingUser,
+      ...data,
       ...profileData,
       updatedAt: new Date(),
     };
 
     // Format data for the API
     const apiData = {
-      username: profileData.profile?.username || existingUser.profile.username,
-      avatar: profileData.profile?.avatar || existingUser.profile.avatar,
-      bio: profileData.profile?.bio || existingUser.profile.bio,
+      username: profileData.profile?.username || data.profile.username,
+      bio: profileData.profile?.bio || data.profile.bio,
     };
 
     // Call the API endpoint using userAPI (token automatically added)
     const response = await userAPI.updateProfile(apiData);
 
     if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to update profile');
+      return {
+        success: false,
+        message: response.data.message || 'Failed to update profile',
+        data: null,
+      };
     }
 
     // Update local storage with the updated user
     await saveUser(updatedUser);
 
     console.log('Profile updated successfully through API');
-    return updatedUser;
+    return {
+      success: true,
+      message: response.data.message || 'Profile updated successfully',
+      data: updatedUser,
+    };
   } catch (error) {
     console.error('Error updating user profile:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Failed to update profile',
+      data: null,
+    };
   }
 };
 
@@ -314,19 +340,29 @@ const updateProfile = async (
 const deleteUserAccount = async (
   userId: string,
   reason?: string,
-): Promise<void> => {
+): Promise<ResponseData<void>> => {
   try {
     console.log('Initiating account deletion process');
 
     // Get user data to store email for restriction
-    const existingUser = await getUser(userId);
-    const userEmail = existingUser?.email;
+    const {success, data} = await getUser(userId);
+    if (!success || !data) {
+      return {
+        success: false,
+        message: 'User not found',
+      };
+    }
+
+    const userEmail = data?.email;
 
     // Call the backend API endpoint using userAPI (token automatically added)
     const response = await userAPI.deleteAccount(reason);
 
     if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to delete account');
+      return {
+        success: false,
+        message: response.data.message || 'Failed to delete account',
+      };
     }
 
     // Set email restriction for 30 days if we have the user's email
@@ -354,9 +390,16 @@ const deleteUserAccount = async (
     await EncryptedStorage.removeItem('currentUserId');
 
     console.log('Account successfully deleted and all data cleared');
+    return {
+      success: true,
+      message: 'Account deleted successfully',
+    };
   } catch (error) {
     console.error('Error deleting account:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Failed to delete account',
+    };
   }
 };
 
@@ -421,15 +464,17 @@ const clearCurrentUserData = async (): Promise<void> => {
  * }
  * ```
  */
-const checkQuota = async (userId: string): Promise<IUserQuota | null> => {
+const checkQuota = async (): Promise<ResponseData<IUserQuota>> => {
   try {
-    console.log('Checking quota for user:', userId);
-
     // Call the API endpoint using userAPI (token automatically added)
     const response = await userAPI.checkQuota();
 
     if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to check quota');
+      return {
+        success: false,
+        message: response.data.message || 'Failed to check quota',
+        data: null,
+      };
     }
     const apiQuota = response.data.data;
     const quota: IUserQuota = {
@@ -437,13 +482,24 @@ const checkQuota = async (userId: string): Promise<IUserQuota | null> => {
       lastRefreshedAt: apiQuota.lastRefreshedAt
         ? new Date(apiQuota.lastRefreshedAt)
         : undefined,
+      planLimits: {
+        totalImages: apiQuota.planLimits?.totalImages || 15, // Default for free
+      },
     };
 
-    console.log('Quota information retrieved successfully');
-    return quota;
+    console.log('Quota refreshed successfully:', quota);
+    return {
+      success: true,
+      message: 'Quota refreshed successfully',
+      data: quota,
+    };
   } catch (error) {
     console.error('Error checking user quota:', error);
-    return null;
+    return {
+      success: false,
+      message: 'Error refreshing user quota',
+      data: null,
+    };
   }
 };
 
@@ -494,11 +550,6 @@ const checkEmailAvailability = async (
         hoursRemaining: localRestriction.hoursRemaining,
         minutesRemaining: localRestriction.minutesRemaining,
       };
-    }
-
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      throw new Error('No internet connection available');
     }
 
     const response = await userAPI.checkEmailAvailability(email);

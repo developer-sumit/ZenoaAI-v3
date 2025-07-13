@@ -23,7 +23,6 @@ import ImageViewer from '@src/components/ImageViewer';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
-import {useQuota} from '@src/hooks/useQuota';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
 import {GeneratedImage} from '../types';
@@ -58,13 +57,13 @@ const HomeScreen = () => {
   const navigator = useAppNavigation();
   const route = useRoute();
   const {
+    error,
     images: generatedImages,
     currentGenerationBatch,
     isLoading: imageLoading,
     fetchImages,
-    generateBatch,
+    generateImage,
   } = useImageStore();
-  const {refetch: refetchQuota} = useQuota();
 
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
@@ -99,11 +98,6 @@ const HomeScreen = () => {
 
   // Android Quick Actions
   useAndroidQuickActions();
-
-  // Combined function to update both quota and profile
-  const updateQuotaAndProfile = async () => {
-    await refetchQuota();
-  };
 
   // Load user's images when component mounts
   useEffect(() => {
@@ -211,12 +205,16 @@ const HomeScreen = () => {
       };
 
       // Generate the batch using the store
-      const success = await generateBatch(
+      const success = await generateImage(
         prompt,
         apiSettings,
-        numberOfImages,
-        updateQuotaAndProfile,
+        numberOfImages || 1,
       );
+
+      if (error) {
+        showToast(error, 'error');
+        return;
+      }
 
       if (success) {
         console.log('Image generated successfully!');

@@ -179,9 +179,9 @@ function App() {
         // User just signed in or session was restored
         try {
           // Get user data using the updated User interface
-          let userData = await userService.getUser(authUser.uid);
+          let {data} = await userService.getUser(authUser.uid);
 
-          if (!userData) {
+          if (!data) {
             // Create a new user profile using the updated User interface
             const newUser: User = {
               uid: authUser.uid,
@@ -200,8 +200,11 @@ function App() {
                 totalLogins: 1,
               },
               quota: {
-                imagesRemaining: 40,
+                imagesRemaining: 15,
                 lastRefreshedAt: new Date(),
+                planLimits: {
+                  totalImages: 15,
+                },
               },
             };
 
@@ -209,7 +212,7 @@ function App() {
             await login(newUser);
           } else {
             // Update existing user with fresh info
-            await login(userData);
+            await login(data);
           }
         } catch (error) {
           console.error('Error handling auth state change:', error);
