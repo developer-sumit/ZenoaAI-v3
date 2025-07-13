@@ -40,13 +40,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({idToken: token});
 
           // Get user data from our API using the updated service
-          const userData = await userService.getUser(firebaseUser.uid);
+          const {success, data} = await userService.getUser(firebaseUser.uid);
 
-          if (userData) {
+          if (success && data) {
             console.log('User data found, restoring session');
 
             set({
-              user: userData,
+              user: data,
               isLoading: false,
               initialized: true,
             });
@@ -67,6 +67,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               planType: 'free',
               quota: {
                 imagesRemaining: 15, // Default for free plan
+                lastRefreshedAt: new Date(),
+                planLimits: {
+                  totalImages: 15,
+                },
               },
               statistics: {
                 lastLoginAt: new Date(),
@@ -100,6 +104,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             planType: 'free',
             quota: {
               imagesRemaining: 10, // Reduced quota for fallback
+              lastRefreshedAt: new Date(),
+              planLimits: {
+                totalImages: 15,
+              },
             },
             statistics: {
               lastLoginAt: new Date(),
@@ -133,6 +141,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     }
   },
+
   // Login function that uses the updated auth service
   login: async (userData: User) => {
     try {
@@ -199,10 +208,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Update user data in the store and local storage
   updateUser: async (updatedUser: User) => {
     try {
+      const data = {
+        ...get().user,
+        ...updatedUser,
+      };
       // Save updated user data
-      await userService.saveUser(updatedUser);
+      await userService.saveUser(data);
 
-      set({user: updatedUser});
+      set({user: data});
       console.log('User data updated in store');
     } catch (error) {
       console.error('Error updating user in store:', error);

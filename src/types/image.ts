@@ -35,30 +35,6 @@ export interface ImageResponse {
   userAvatar: string; // Avatar URL of the user
 }
 
-export interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-  requestId?: string;
-}
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-  error?: string;
-  errors?: string[];
-  requestId?: string;
-}
-
 export interface ImageStats {
   totalImages: number;
   favoriteImages: number;

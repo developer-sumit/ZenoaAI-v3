@@ -10,6 +10,9 @@ export interface IUserProfile {
 export interface IUserQuota {
   imagesRemaining: number;
   lastRefreshedAt?: Date;
+  planLimits: {
+    totalImages: number; // Total images allowed in the plan
+  };
 }
 
 export interface UserStatistics {
@@ -29,31 +32,6 @@ export interface User {
   statistics: UserStatistics;
   fcmToken?: string; // Firebase Cloud Messaging token
   fcmTokenUpdatedAt?: Date; // When the FCM token was last updated
-}
-
-// API Response types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-  error?: string;
-  errors?: string[];
-  requestId?: string;
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-  requestId?: string;
 }
 
 // Authentication types
