@@ -350,7 +350,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
 
   updatePrivacy: async (imageId: string, isPrivate: boolean) => {
     try {
-      const success = await imageService.updatePrivacy(imageId, isPrivate);
+      const {success} = await imageService.updatePrivacy(imageId, isPrivate);
 
       if (success) {
         set(state => ({
