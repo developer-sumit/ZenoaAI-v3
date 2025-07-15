@@ -31,7 +31,6 @@ import appConfig from '@src/config/app.config';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import ContentCopyIcon from '@src/assets/icons/ContentCopyIcon';
 import DownloadIcon from '@src/assets/icons/DownloadIcon';
-import FullscreenIcon from '@src/assets/icons/FullscreenIcon';
 import DeleteOutlineIcon from '@src/assets/icons/DeleteOutlineIcon';
 import PaletteIcon from '@src/assets/icons/PaletteIcon';
 import ChevronUpIcon from '@src/assets/icons/ChevronUpIcon';
@@ -44,6 +43,7 @@ import HeartIcon from '@src/assets/icons/HeartIcon';
 import PrivacyIcon from '@src/assets/icons/PrivacyIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import {useGenerationStore} from '@src/store/generationStore';
+import clsx from 'clsx';
 
 type IconName =
   | 'seed'
@@ -71,7 +71,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
-  const {deleteImage: storeDeleteImage} = useImageStore();
+  const {updatePrivacy, deleteImage: storeDeleteImage} = useImageStore();
   const {
     setPrompt,
     setNegativePrompt,
@@ -87,6 +87,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   // Track if component is mounted to prevent state updates after unmount
   const isMounted = useRef(true);
 
+  const [isPrivate, setIsPrivate] = useState(image?.isPrivate || false);
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
@@ -147,6 +148,19 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen mode, current mode:', fullscreenMode);
     setFullscreenMode(!fullscreenMode);
+  };
+
+  const handlePrivacyUpdate = async () => {
+    triggerHaptic('light');
+    if (image) {
+      const res = await updatePrivacy(image?.id, !image.isPrivate);
+      if (res) {
+        showToast('Privacy updated successfully', 'success');
+        setIsPrivate(!image.isPrivate);
+      } else {
+        showToast('Failed to update privacy', 'error');
+      }
+    }
   };
 
   const handleDownloadPress = () => {
@@ -437,10 +451,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  {/* Fullscreen Button */}
-                  <View className="bg-white rounded-2xl p-2 border-2 border-gray-900">
-                    <FullscreenIcon size={24} color="#121212" />
-                  </View>
+                  {/* Privacy Button */}
+                  {image?.userId === user?.uid && (
+                    <TouchableOpacity
+                      className="bg-white rounded-2xl p-2 border-2 border-gray-900 items-center justify-center"
+                      onPress={handlePrivacyUpdate}>
+                      <Text
+                        className="font-bold"
+                        style={{
+                          color: isPrivate ? '#FF4B8C' : '#14B8A6',
+                        }}>
+                        {isPrivate ? 'Private' : 'Public'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -572,7 +596,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 <MetadataItem
                   icon="privacy"
                   label="Visibility"
-                  value={image?.isPrivate ? 'Private' : 'Public'}
+                  value={isPrivate ? 'Private' : 'Public'}
                 />
                 {/* Seed */}
                 <MetadataItem
