@@ -43,6 +43,7 @@ import ChartDonutIcon from '@src/assets/icons/ChartDonutIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 import PrivacyIcon from '@src/assets/icons/PrivacyIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
+import {useGenerationStore} from '@src/store/generationStore';
 
 type IconName =
   | 'seed'
@@ -71,6 +72,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
   const {deleteImage: storeDeleteImage} = useImageStore();
+  const {
+    setPrompt,
+    setNegativePrompt,
+    setEngine,
+    setStyles,
+    setImageWidth,
+    setImageHeight,
+    setAspectRatio,
+  } = useGenerationStore();
   const navigation = useNavigation();
   const imageUri = image?.imageUrl || '';
 
@@ -282,21 +292,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       return;
     }
 
-    // Close the image viewer first    onClose?.();
+    // Close the image viewer first
+    onClose?.();
 
     // Navigate to home screen with a slight delay to ensure modal is closed
     setTimeout(() => {
-      (navigation as any).navigate(Routes.HOME, {
-        remixData: {
-          prompt: image.prompt,
-          negativePrompt: image.negativePrompt,
-          engine: image.engineType,
-          styles: image.styles,
-          width: image.width,
-          height: image.height,
-          aspectRatio: image.aspectRatio,
-        },
-      });
+      setPrompt(image.prompt);
+      setNegativePrompt(image.negativePrompt || '');
+      setEngine(image.engineType);
+      setStyles(image.styles || []);
+      setImageWidth(image.width);
+      setImageHeight(image.height);
+      setAspectRatio(image.aspectRatio);
+
+      navigation.navigate(Routes.HOME as never);
     }, 100);
   };
 
