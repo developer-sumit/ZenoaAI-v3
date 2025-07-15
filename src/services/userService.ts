@@ -1,8 +1,9 @@
 import EncryptedStorage from 'react-native-encrypted-storage';
 
 import {userAPI} from './axiosServer';
-import {User, IUserQuota} from '@src/types';
+import {User, IUserQuota} from '@src/types/user';
 import {ResponseData} from '@src/types/api';
+import {DEFAULT_PLAN_TYPE} from '@src/constants';
 
 /**
  * Saves user data to encrypted local storage with proper date serialization.
@@ -41,16 +42,8 @@ const saveUser = async (userData: User): Promise<void> => {
       // Convert dates to ISO strings for JSON storage
       createdAt: new Date(userData.createdAt),
       updatedAt: new Date(userData.updatedAt),
-      quota: {
-        ...userData.quota,
-        lastRefreshedAt: new Date(
-          userData.quota.lastRefreshedAt?.toISOString() || '',
-        ),
-      },
-      statistics: {
-        ...userData.statistics,
-        lastLoginAt: new Date(userData.statistics?.lastLoginAt),
-      },
+      quota: userData.quota,
+      statistics: userData.statistics,
       fcmTokenUpdatedAt: new Date(
         userData.fcmTokenUpdatedAt?.toISOString() || '',
       ),
@@ -104,8 +97,8 @@ const getUser = async (userId: string): Promise<ResponseData<User>> => {
     console.log('No userId provided to getUser');
     return {
       success: false,
-      message: 'Unauthenticated: User must be logged in',
       data: null,
+      message: 'Unauthenticated: User must be logged in',
     };
   }
 
@@ -115,47 +108,31 @@ const getUser = async (userId: string): Promise<ResponseData<User>> => {
     const localUserData = await EncryptedStorage.getItem(`user_${userId}`);
 
     if (localUserData) {
-      try {
-        const parsedData = JSON.parse(localUserData);
-        userData = {
-          ...parsedData,
-          // Convert ISO strings back to Date objects
-          createdAt: new Date(parsedData.createdAt),
-          updatedAt: new Date(parsedData.updatedAt),
-          quota: {
-            ...parsedData.quota,
-            lastRefreshedAt: parsedData.quota.lastRefreshedAt
-              ? new Date(parsedData.quota.lastRefreshedAt)
-              : undefined,
-          },
-          statistics: parsedData.statistics
-            ? {
-                ...parsedData.statistics,
-                lastLoginAt: parsedData.statistics.lastLoginAt
-                  ? new Date(parsedData.statistics.lastLoginAt)
-                  : new Date(),
-              }
-            : {
-                lastLoginAt: new Date(),
-                totalLogins: 0,
-                imagesGenerated: 0,
-              },
-          fcmTokenUpdatedAt: parsedData.fcmTokenUpdatedAt
-            ? new Date(parsedData.fcmTokenUpdatedAt)
-            : undefined,
-        };
-        // User data found locally
-        console.log('User data found locally, validating...');
-        console.log('Found user data in local storage');
-      } catch (parseError) {
-        console.error('Error parsing local user data:', parseError);
-      }
+      const parsedData = JSON.parse(localUserData);
+      userData = {
+        ...parsedData,
+        // Convert ISO strings back to Date objects
+        createdAt: new Date(parsedData.createdAt),
+        updatedAt: new Date(parsedData.updatedAt),
+        quota: parsedData.quota,
+        statistics: parsedData.statistics || {
+          lastLoginAt: new Date(),
+          totalLogins: 0,
+          imagesGenerated: 0,
+        },
+        fcmTokenUpdatedAt: parsedData.fcmTokenUpdatedAt
+          ? new Date(parsedData.fcmTokenUpdatedAt)
+          : undefined,
+      };
+      // User data found locally
+      console.log('User data found locally, validating...');
+      console.log('Found user data in local storage');
     }
 
     try {
       // Call the API endpoint using userAPI (token automatically added)
       const response = await userAPI.getProfile();
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
         const apiUser = response.data.data;
         const apiUserData: User = {
           uid: userId,
@@ -171,12 +148,9 @@ const getUser = async (userId: string): Promise<ResponseData<User>> => {
           updatedAt: apiUser.updatedAt
             ? new Date(apiUser.updatedAt)
             : new Date(),
-          planType: apiUser.planType || 'free',
+          planType: apiUser.planType || DEFAULT_PLAN_TYPE,
           quota: {
             imagesRemaining: apiUser.quota?.imagesRemaining || 15, // Default for free plan
-            lastRefreshedAt: apiUser.quota?.lastRefreshedAt
-              ? new Date(apiUser.quota.lastRefreshedAt)
-              : undefined,
             planLimits: {
               totalImages: apiUser.quota?.planLimits?.totalImages || 15,
             },
@@ -211,23 +185,35 @@ const getUser = async (userId: string): Promise<ResponseData<User>> => {
           userData = apiUserData;
 
           // Update local cache with fresh data
-          await saveUser(userData);
+          await saveUser(apiUserData);
+
+          return {
+            success: true,
+            data: apiUserData,
+            message: 'User data retrieved from API',
+          };
         }
       }
     } catch (apiError) {
       console.log('API fetch failed, using cached data:', apiError);
-      // Return whatever we have in the cache
+
+      return {
+        success: true,
+        data: userData,
+        message: 'Using cached user data',
+      };
     }
 
     return {
       success: true,
-      data: userData || null,
+      data: userData,
       message: userData ? '' : 'User not found',
     };
   } catch (error) {
     console.error('Error retrieving user data:', error);
     return {
       success: false,
+      data: null,
       message: 'Error retrieving user data',
     };
   }

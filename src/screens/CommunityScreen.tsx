@@ -4,7 +4,6 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
   TextInput,
   RefreshControl,
   Animated,
@@ -16,13 +15,18 @@ import {useToast} from '@masumdev/rn-toast';
 
 import {useTheme} from '@src/store/themeStore';
 import {useImageStore} from '@src/store/imageStore';
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import ImageViewer from '@src/components/ImageViewer';
 import EmptyState from '@src/components/EmptyState';
 import UserAvatar from '@src/components/UserAvatar';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
+import {
+  COMMUNITY_FILTER_OPTIONS,
+  DEFAULT_COMMUNITY_FILTER,
+  SCREEN_WIDTH,
+} from '@src/constants';
 
 // Icons
 import SearchIcon from '@src/assets/icons/SearchIcon';
@@ -31,29 +35,22 @@ import CommunityIcon from '@src/assets/icons/CommunityIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
 
-// Constants
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
 const SPACING = 12;
 const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
 const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
-// Hardcoded filter options
-const FILTER_OPTIONS = [
-  {id: 'latest', label: 'Latest'},
-  {id: 'popular', label: 'Popular'},
-] as const;
-
-type FilterType = (typeof FILTER_OPTIONS)[number]['id'];
+type FilterType = (typeof COMMUNITY_FILTER_OPTIONS)[number]['id'];
 
 const CommunityScreen = () => {
   const {theme} = useTheme();
-  const {showToast} = useToast();
   const strings = useStrings();
-  const {publicImages, isLoadingPublic, fetchPublicImages, toggleFavorite} =
-    useImageStore();
+  const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
+  const {publicImages, isLoadingPublic, fetchPublicImages, toggleFavorite} =
+    useImageStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,7 +61,9 @@ const CommunityScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('latest');
+  const [activeFilter, setActiveFilter] = useState<FilterType>(
+    DEFAULT_COMMUNITY_FILTER,
+  );
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -92,18 +91,15 @@ const CommunityScreen = () => {
     if (publicImages.length > 0) {
       let filtered = [...publicImages];
 
-      // Apply search query filter - search by prompt, ID, or user name
+      // Apply search query filter - search by prompt, or user name
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(img => {
-          const searchablePrompt = img.prompt || '';
-          const finalPrompt = img.prompt || '';
-          const userName = img.userName || 'Anonymous';
+          const prompt = img.prompt || '';
+          const userName = img.userName || '';
 
           return (
-            img.id.toLowerCase().includes(query) ||
-            searchablePrompt.toLowerCase().includes(query) ||
-            finalPrompt.toLowerCase().includes(query) ||
+            prompt.toLowerCase().includes(query) ||
             userName.toLowerCase().includes(query)
           );
         });
@@ -116,7 +112,6 @@ const CommunityScreen = () => {
   }, [publicImages, searchQuery]);
 
   const handleRefresh = useCallback(async () => {
-    triggerHaptic('light');
     setRefreshing(true);
     setCurrentPage(1);
     setHasMore(true);
@@ -182,7 +177,7 @@ const CommunityScreen = () => {
         if (parts.length === 2) {
           const width = parseFloat(parts[0]);
           const height = parseFloat(parts[1]);
-          if (!isNaN(width) && !isNaN(height) && height > 0) {
+          if (!isNaN(width) && !isNaN(height) && height > 0 && width > 0) {
             const calculatedHeight = COLUMN_WIDTH / (width / height);
             console.log(
               `Image ${item.id}: ratio ${item.aspectRatio} -> height: ${calculatedHeight}`,
@@ -196,8 +191,7 @@ const CommunityScreen = () => {
     }
 
     // Default aspect ratio
-    const aspectRatio = 0.75; // Default 3:4 aspect ratio
-    const defaultHeight = COLUMN_WIDTH / aspectRatio;
+    const defaultHeight = COLUMN_WIDTH / 0.75; // 4:3 ratio
     console.log(`Image ${item.id}: using default height: ${defaultHeight}`);
     return defaultHeight;
   };
@@ -216,7 +210,7 @@ const CommunityScreen = () => {
           }}
           activeOpacity={0.9}
           accessible={true}
-          accessibilityLabel={`Community image ${item.id}`}
+          accessibilityLabel="Community image"
           accessibilityRole="button">
           <FastImage
             source={{uri: item.imageUrl}}
@@ -347,7 +341,7 @@ const CommunityScreen = () => {
             shadowOpacity: 0.1,
             shadowRadius: 10,
           }}>
-          {FILTER_OPTIONS.map(option => (
+          {COMMUNITY_FILTER_OPTIONS.map(option => (
             <TouchableOpacity
               key={option.id}
               onPress={() => {

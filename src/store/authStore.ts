@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import auth from '@react-native-firebase/auth';
 
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 import userService from '@src/services/userService';
 import authService from '@src/services/authService';
 
@@ -40,9 +40,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({idToken: token});
 
           // Get user data from our API using the updated service
-          const {success, data} = await userService.getUser(firebaseUser.uid);
+          const {data} = await userService.getUser(firebaseUser.uid);
 
-          if (success && data) {
+          if (data && data !== null) {
             console.log('User data found, restoring session');
 
             set({

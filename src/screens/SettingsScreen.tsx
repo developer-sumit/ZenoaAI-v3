@@ -155,35 +155,6 @@ const SettingsScreen = () => {
     }
   };
 
-  // Function to refresh user profile data
-  const refreshUserProfile = useCallback(async () => {
-    if (!user?.uid) {
-      showToast(strings.settings.somethingWentWrong, 'error');
-      return;
-    }
-
-    try {
-      console.log('SettingsScreen: Refreshing user profile data');
-      const {success, data, message} = await userService.getUser(user.uid);
-      if (success && data) {
-        // Update auth store with fresh data
-        const {updateUser} = useAuthStore.getState();
-        updateUser(data);
-        console.log('SettingsScreen: User profile refreshed successfully');
-      }
-
-      showToast(message, success ? 'success' : 'error');
-    } catch (error) {
-      showToast(strings.settings.internalServerError, 'error');
-      console.error('SettingsScreen: Failed to refresh user profile:', error);
-    }
-  }, [user?.uid]);
-
-  // Refresh user data when component mounts
-  useEffect(() => {
-    refreshUserProfile();
-  }, []);
-
   useEffect(() => {
     if (user) {
       // Use the new User interface structure

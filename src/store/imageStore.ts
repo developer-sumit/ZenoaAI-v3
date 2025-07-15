@@ -1,24 +1,7 @@
 import {create} from 'zustand';
 
 import imageService from '@src/services/imageService';
-import {GeneratedImage, EngineType, ImageSize} from '@src/types';
-
-export interface ImageGenerationSettings {
-  engine?: EngineType;
-  style?: string;
-  aspectRatio?: string;
-  imageSize?: ImageSize;
-  quality?: 'standard' | 'premium' | 'ultra';
-  seed?: number;
-  steps?: number;
-  guidance?: number;
-  width?: number;
-  height?: number;
-  negativePrompt?: string;
-  model?: string;
-  batchCount?: number;
-  isPrivate?: boolean;
-}
+import {GeneratedImage} from '@src/types/image';
 
 interface ImageState {
   images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
@@ -45,8 +28,7 @@ interface ImageState {
   ) => Promise<void>;
   generateImage: (
     prompt: string,
-    settings: ImageGenerationSettings,
-    batchCount: number,
+    settings: ImageGenerationRequest,
   ) => Promise<boolean>;
   deleteImage: (imageId: string) => Promise<boolean>;
   toggleFavorite: (imageId: string) => Promise<boolean>;
@@ -150,11 +132,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     }
   },
 
-  generateImage: async (
-    prompt: string,
-    settings: ImageGenerationSettings,
-    batchCount: number,
-  ) => {
+  generateImage: async (prompt: string, settings: ImageGenerationRequest) => {
     try {
       set({isLoading: true, error: null}); // Clear previous batch when starting new generation
       set({currentGenerationBatch: []});
@@ -163,7 +141,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       const batchTimestamp = Date.now(); // Create placeholder images for the batch
       const placeholderImages: GeneratedImage[] = [];
 
-      for (let i = 0; i < batchCount; i++) {
+      for (let i = 0; i < settings.batchCount; i++) {
         // Calculate dimensions from aspect ratio
         let width = 512;
         let height = 512;
@@ -206,9 +184,9 @@ export const useImageStore = create<ImageState>()((set, get) => ({
           height: height,
           imageSize: settings.imageSize || 'medium',
           aspectRatio: settings.aspectRatio || '1:1',
-          styles: settings.style ? [settings.style] : [],
+          styles: settings.styles || [],
           seed: settings.seed || 0,
-          engineType: settings.engine || 'quantum',
+          engineType: settings.engineType || 'quantum',
           createdAt: new Date(),
           isFavorite: false,
           isPrivate: settings.isPrivate || false,
@@ -225,7 +203,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       const generatedImages: GeneratedImage[] = [];
 
       // Generate images in the batch
-      for (let i = 0; i < batchCount; i++) {
+      for (let i = 0; i < settings.batchCount; i++) {
         try {
           const {success, data, message} = await imageService.generateImage(
             prompt,
@@ -266,7 +244,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
             }));
           } else {
             console.error(
-              `Failed to generate image ${i + 1} of ${batchCount}:`,
+              `Failed to generate image ${i + 1} of ${settings.batchCount}:`,
               message,
             );
             set(state => ({
@@ -278,7 +256,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
           }
         } catch (imageError: any) {
           console.error(
-            `Error generating image ${i + 1} of ${batchCount}:`,
+            `Error generating image ${i + 1} of ${settings.batchCount}:`,
             imageError,
           );
           set(state => ({
@@ -421,6 +399,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
 // Auto-clear images when auth state changes
 import {useAuthStore} from './authStore';
 import userService from '@src/services/userService';
+import {ImageGenerationRequest} from '@src/types/image';
 
 let lastAuthState = useAuthStore.getState().user;
 
