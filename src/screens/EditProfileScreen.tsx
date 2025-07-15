@@ -16,7 +16,7 @@ import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
 import {useToast} from '@masumdev/rn-toast';
 
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
@@ -99,6 +99,7 @@ const EditProfileScreen = () => {
       showToast(strings.editProfile.pleaseLogin, 'error');
       return;
     }
+
     try {
       setIsSaving(true);
       triggerHaptic('selection');

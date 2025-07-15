@@ -1,44 +1,52 @@
-import {AspectRatio} from '@src/types/image';
-
-export const aspectRatios: AspectRatio[] = [
-  {
-    ratio: '1:1',
-    sizes: {small: '512x512', medium: '1024x1024', large: '1536x1536'},
+export const aspectRatios = {
+  '1:1': {
+    small: {width: 512, height: 512},
+    medium: {width: 1024, height: 1024},
+    large: {width: 1536, height: 1536},
   },
-  {
-    ratio: '3:2',
-    sizes: {small: '768x512', medium: '1152x768', large: '1728x1152'},
+  '3:2': {
+    small: {width: 768, height: 512},
+    medium: {width: 1152, height: 768},
+    large: {width: 1728, height: 1152},
   },
-  {
-    ratio: '4:5',
-    sizes: {small: '512x640', medium: '768x960', large: '1024x1280'},
+  '4:5': {
+    small: {width: 512, height: 640},
+    medium: {width: 768, height: 960},
+    large: {width: 1024, height: 1280},
   },
-  {
-    ratio: '16:9',
-    sizes: {small: '1024x576', medium: '1536x864', large: '2048x1152'},
+  '16:9': {
+    small: {width: 1024, height: 576},
+    medium: {width: 1536, height: 864},
+    large: {width: 2048, height: 1152},
   },
-  {
-    ratio: '9:16',
-    sizes: {small: '576x1024', medium: '864x1536', large: '1152x2048'},
+  '9:16': {
+    small: {width: 576, height: 1024},
+    medium: {width: 864, height: 1536},
+    large: {width: 1152, height: 2048},
   },
-  {
-    ratio: '2:3',
-    sizes: {small: '512x768', medium: '768x1152', large: '1024x1536'},
+  '2:3': {
+    small: {width: 512, height: 768},
+    medium: {width: 768, height: 1152},
+    large: {width: 1024, height: 1536},
   },
-  {
-    ratio: '5:4',
-    sizes: {small: '640x512', medium: '960x768', large: '1280x1024'},
+  '5:4': {
+    small: {width: 640, height: 512},
+    medium: {width: 960, height: 768},
+    large: {width: 1280, height: 1024},
   },
-  {
-    ratio: '21:9',
-    sizes: {small: '1280x540', medium: '1920x810', large: '2560x1080'},
+  '21:9': {
+    small: {width: 1280, height: 540},
+    medium: {width: 1920, height: 810},
+    large: {width: 2560, height: 1080},
   },
-  {
-    ratio: '4:3',
-    sizes: {small: '800x600', medium: '1024x768', large: '1600x1200'},
+  '4:3': {
+    small: {width: 800, height: 600},
+    medium: {width: 1024, height: 768},
+    large: {width: 1600, height: 1200},
   },
-  {
-    ratio: '3:4',
-    sizes: {small: '600x800', medium: '768x1024', large: '1200x1600'},
+  '3:4': {
+    small: {width: 600, height: 800},
+    medium: {width: 768, height: 1024},
+    large: {width: 1200, height: 1600},
   },
-];
+};

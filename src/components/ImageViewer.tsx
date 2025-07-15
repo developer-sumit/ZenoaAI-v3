@@ -18,7 +18,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Toaster, useToast} from '@masumdev/rn-toast';
 import {useNavigation} from '@react-navigation/native';
 
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';

@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import React, {
   useState,
   useEffect,
@@ -27,11 +28,12 @@ import FastImage from 'react-native-fast-image';
 import {artStyles} from '@src/data/styles';
 import {aspectRatios} from '@src/data/ratio';
 import {useStrings} from '@src/hooks/useStrings';
-import {useTheme} from '@src/store/themeStore';
+import {Theme, useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useHaptics} from '@src/hooks/useHaptics';
-import {ArtStyleType, ImageSize, AspectRatio} from '@src/types/image';
 import InfoDialog from '@src/components/InfoDialog';
+import {ArtStyleType, ImageSize} from '@src/types/image';
+import {useGenerationStore} from '@src/store/generationStore';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -40,40 +42,12 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
-import clsx from 'clsx';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
-}
-
-interface AdvancedSettingsScreenProps {
-  route: {
-    params: {
-      selectedStyles: string[];
-      setSelectedStyles: (styles: string[]) => void;
-      aspectRatio: AspectRatio;
-      setAspectRatio: (ratio: AspectRatio) => void;
-      numberOfImages: number;
-      setNumberOfImages: (count: number) => void;
-      quality: number;
-      setQuality: (value: number) => void;
-      seed: string;
-      setSeed: (value: string) => void;
-      negativePrompt: string;
-      setNegativePrompt: (value: string) => void;
-      isImagePrivate?: boolean;
-      setIsImagePrivate?: (value: boolean) => void;
-      engine?: 'quantum' | 'nebula';
-      setEngine?: (engine: 'quantum' | 'nebula') => void;
-      guidance?: number;
-      setGuidance?: (guidance: number) => void;
-      steps?: number;
-      setSteps?: (steps: number) => void;
-    };
-  };
 }
 
 const INITIAL_STYLES_TO_SHOW = 9; // Show 9 initial styles (3x3 grid)
@@ -88,7 +62,7 @@ const StyleItem = memo(
     item: ArtStyleType;
     isSelected: boolean;
     onToggle: () => void;
-    theme: any;
+    theme: Theme;
     isDark: boolean;
   }) => (
     <TouchableOpacity
@@ -151,7 +125,7 @@ const SectionHeader = memo(
     title: string;
     subtitle?: string;
     showInfoDialog: (title: string) => void;
-    theme: any;
+    theme: Theme;
   }) => (
     <>
       <View className="flex-row items-center mb-2">
@@ -190,7 +164,7 @@ const StylesGrid = memo(
     data: ArtStyleType[];
     selectedStyles: string[];
     toggleStyle: (name: string) => void;
-    theme: any;
+    theme: Theme;
     isDark: boolean;
     showButton?: boolean;
     onShowAllPress?: () => void;
@@ -271,7 +245,7 @@ const ArtStylesDialog = memo(
   }: {
     visible: boolean;
     onClose: () => void;
-    theme: any;
+    theme: Theme;
     isDark: boolean;
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
@@ -351,7 +325,9 @@ const ArtStylesDialog = memo(
                 accessibilityRole="button">
                 <CloseIcon size={18} color={theme.secondaryText} />
               </TouchableOpacity>
-            ) : null}
+            ) : (
+              <></>
+            )}
           </View>
 
           {/* Filtered Styles Grid */}
@@ -375,7 +351,7 @@ const ArtStylesDialog = memo(
           )}
 
           {/* Selected Styles Counter */}
-          {selectedStyles.length > 0 && (
+          {selectedStyles.length > 0 ? (
             <View className="px-4 py-2.5 bg-orange-500 border border-white flex-row justify-between items-center absolute bottom-5 self-center w-[90%] rounded-2xl">
               <Text className="text-white font-medium">
                 {selectedStyles.length}&nbsp;
@@ -392,6 +368,8 @@ const ArtStylesDialog = memo(
                 </Text>
               </TouchableOpacity>
             </View>
+          ) : (
+            <></>
           )}
         </SafeAreaView>
       </Modal>
@@ -399,42 +377,36 @@ const ArtStylesDialog = memo(
   },
 );
 
-const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
-  route,
-}) => {
-  const params = route.params;
+const AdvancedSettingsScreen: React.FC = () => {
   const strings = useStrings();
   const navigation = useNavigation();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
+  const {
+    engine,
+    aspectRatio,
+    imageSize,
+    negativePrompt,
+    isPrivate,
+    isPremium,
+    numberOfImages,
+    styles,
+    seed,
+    setEngine,
+    setAspectRatio,
+    setImageSize,
+    setNegativePrompt,
+    setIsPrivate,
+    setIsPremium,
+    setNumberOfImages,
+    setStyles,
+    setSeed,
+  } = useGenerationStore();
 
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
   const negativePromptRef = useRef<TextInput>(null);
-  // Create local state that mirrors the parent state
-  const [localSelectedStyles, setLocalSelectedStyles] = useState<string[]>(
-    params.selectedStyles,
-  );
-  const [localAspectRatio, setLocalAspectRatio] = useState<AspectRatio>(
-    params.aspectRatio,
-  );
-  const [localNumberOfImages, setLocalNumberOfImages] = useState<number>(
-    params.numberOfImages,
-  );
-  const [localQuality, setLocalQuality] = useState<number>(params.quality);
-  const [localSeed, setLocalSeed] = useState<string>(params.seed);
-  const [localNegativePrompt, setLocalNegativePrompt] = useState<string>(
-    params.negativePrompt,
-  );
-  const [localIsImagePrivate, setLocalIsImagePrivate] = useState<boolean>(
-    params.isImagePrivate !== undefined ? params.isImagePrivate : true,
-  );
-
-  // Add new local state for advanced settings
-  const [localEngine, setLocalEngine] = useState<'quantum' | 'nebula'>(
-    params.engine || 'quantum',
-  );
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -478,20 +450,6 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     [strings.advancedSettings.featureInfo],
   );
 
-  // Effect to sync parent state changes to local state (if needed)
-  useEffect(() => {
-    setLocalSelectedStyles(params.selectedStyles);
-    setLocalAspectRatio(params.aspectRatio);
-    setLocalNumberOfImages(params.numberOfImages);
-    setLocalQuality(params.quality);
-    setLocalSeed(params.seed);
-    setLocalNegativePrompt(params.negativePrompt); // Sync new parameters
-    setLocalEngine(params.engine || 'quantum');
-    setLocalIsImagePrivate(
-      params.isImagePrivate !== undefined ? params.isImagePrivate : true,
-    );
-  }, [params]);
-
   // Split art styles into initial and selected that aren't in initial
   const initialStylesToShow = useMemo(() => {
     return artStyles.slice(0, INITIAL_STYLES_TO_SHOW);
@@ -501,10 +459,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
     const initialStyleNames = initialStylesToShow.map(style => style.name);
     return artStyles.filter(
       style =>
-        !initialStyleNames.includes(style.name) &&
-        localSelectedStyles.includes(style.name),
+        !initialStyleNames.includes(style.name) && styles.includes(style.name),
     );
-  }, [initialStylesToShow, localSelectedStyles]);
+  }, [initialStylesToShow, styles]);
 
   // Styles to show in the main screen
   const stylesToShow = useMemo(() => {
@@ -512,22 +469,14 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
   }, [initialStylesToShow, selectedStylesNotInInitial]);
 
   // Optimized toggle function with useCallback to prevent recreation on each render
-  const toggleStyle = useCallback(
-    (styleName: string) => {
-      triggerHaptic('selection');
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-      setLocalSelectedStyles(prevStyles => {
-        const newStyles = prevStyles.includes(styleName)
-          ? prevStyles.filter(s => s !== styleName)
-          : [...prevStyles, styleName];
-
-        // Update parent state
-        params.setSelectedStyles(newStyles);
-        return newStyles;
-      });
-    },
-    [params],
-  );
+  const toggleStyle = useCallback((styleName: string) => {
+    triggerHaptic('selection');
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+    const newStyles = styles.includes(styleName)
+      ? styles.filter(s => s !== styleName)
+      : [...styles, styleName];
+    setStyles(newStyles);
+  }, []);
 
   return (
     <SafeAreaView
@@ -577,25 +526,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               <TouchableOpacity
                 onPress={() => {
                   triggerHaptic('selection');
-                  setLocalEngine('quantum');
-                  if (params.setEngine) {
-                    params.setEngine('quantum');
-                  }
+                  setEngine('quantum');
                 }}
                 style={{
                   backgroundColor:
-                    localEngine === 'quantum'
-                      ? theme.primary
-                      : theme.background,
+                    engine === 'quantum' ? theme.primary : theme.background,
                 }}
                 className={clsx(
                   'flex-1 p-4',
-                  localEngine === 'quantum' ? 'rounded-2xl' : 'rounded-xl',
+                  engine === 'quantum' ? 'rounded-2xl' : 'rounded-xl',
                 )}>
                 <Text
                   style={{
                     color:
-                      localEngine === 'quantum'
+                      engine === 'quantum'
                         ? isDark
                           ? theme.text
                           : 'white'
@@ -607,7 +551,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 <Text
                   style={{
                     color:
-                      localEngine === 'quantum'
+                      engine === 'quantum'
                         ? isDark
                           ? theme.secondaryText
                           : 'white'
@@ -621,23 +565,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               <TouchableOpacity
                 onPress={() => {
                   triggerHaptic('selection');
-                  setLocalEngine('nebula');
-                  if (params.setEngine) {
-                    params.setEngine('nebula');
-                  }
+                  setEngine('nebula');
                 }}
                 style={{
                   backgroundColor:
-                    localEngine === 'nebula' ? theme.primary : theme.background,
+                    engine === 'nebula' ? theme.primary : theme.background,
                 }}
                 className={clsx(
                   'flex-1 p-4',
-                  localEngine === 'nebula' ? 'rounded-2xl' : 'rounded-xl',
+                  engine === 'nebula' ? 'rounded-2xl' : 'rounded-xl',
                 )}>
                 <Text
                   style={{
                     color:
-                      localEngine === 'nebula'
+                      engine === 'nebula'
                         ? isDark
                           ? theme.text
                           : 'white'
@@ -649,7 +590,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 <Text
                   style={{
                     color:
-                      localEngine === 'nebula'
+                      engine === 'nebula'
                         ? isDark
                           ? theme.secondaryText
                           : 'white'
@@ -674,7 +615,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
             />
             <StylesGrid
               data={stylesToShow}
-              selectedStyles={localSelectedStyles}
+              selectedStyles={styles}
               toggleStyle={toggleStyle}
               theme={theme}
               isDark={isDark}
@@ -702,12 +643,11 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   onPress={() => {
                     triggerHaptic('selection');
                     LayoutAnimation.spring();
-                    setLocalNumberOfImages(count);
-                    params.setNumberOfImages(count);
+                    setNumberOfImages(count);
                   }}
                   style={{
                     backgroundColor:
-                      localNumberOfImages === count
+                      numberOfImages === count
                         ? theme.primary
                         : theme.background,
                     minWidth: 55,
@@ -715,14 +655,12 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   }}
                   className={clsx(
                     'px-5 py-2.5 items-center justify-center',
-                    localNumberOfImages === count
-                      ? 'rounded-2xl'
-                      : 'rounded-xl',
+                    numberOfImages === count ? 'rounded-2xl' : 'rounded-xl',
                   )}>
                   <Text
                     style={{
                       color:
-                        localNumberOfImages === count
+                        numberOfImages === count
                           ? isDark
                             ? theme.text
                             : 'white'
@@ -748,9 +686,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 theme={theme}
               />
               <View className="flex-row flex-wrap gap-2">
-                {aspectRatios.map(ratio => {
+                {Object.keys(aspectRatios).map(ratio => {
                   // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
-                  const [width, height] = ratio.ratio.split(':').map(Number);
+                  const [width, height] = ratio.split(':').map(Number);
 
                   // Base size for the visual representation
                   const BASE_SIZE = 24;
@@ -777,28 +715,21 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   }
                   return (
                     <TouchableOpacity
-                      key={ratio.ratio}
+                      key={ratio}
                       onPress={() => {
                         triggerHaptic('selection');
                         LayoutAnimation.spring();
-                        const newRatio = {
-                          ...ratio,
-                          size: 'medium' as ImageSize,
-                        };
-                        setLocalAspectRatio(newRatio);
-                        params.setAspectRatio(newRatio);
+                        setAspectRatio(ratio);
                       }}
                       style={{
                         backgroundColor:
-                          localAspectRatio.ratio === ratio.ratio
+                          aspectRatio === ratio
                             ? theme.primary
                             : theme.background,
                       }}
                       className={clsx(
                         'px-4 py-3',
-                        localAspectRatio.ratio === ratio.ratio
-                          ? 'rounded-2xl'
-                          : 'rounded-xl',
+                        aspectRatio === ratio ? 'rounded-2xl' : 'rounded-xl',
                       )}>
                       {/* Aspect ratio visual icon */}
                       <View
@@ -810,7 +741,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                             width: displayWidth,
                             height: displayHeight,
                             borderColor:
-                              localAspectRatio.ratio === ratio.ratio
+                              aspectRatio === ratio
                                 ? isDark
                                   ? theme.text
                                   : 'white'
@@ -821,7 +752,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                       <Text
                         style={{
                           color:
-                            localAspectRatio.ratio === ratio.ratio
+                            aspectRatio === ratio
                               ? isDark
                                 ? theme.text
                                 : 'white'
@@ -829,7 +760,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                           textAlign: 'center',
                         }}
                         className="text-base font-medium">
-                        {ratio.ratio}
+                        {ratio}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -846,60 +777,51 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               />
 
               <View className="flex-row gap-2">
-                {Object.entries(localAspectRatio.sizes).map(
-                  ([size, resolution]) => (
-                    <TouchableOpacity
-                      key={size}
-                      onPress={() => {
-                        triggerHaptic('selection');
-                        LayoutAnimation.spring();
-                        const newRatio = {
-                          ...localAspectRatio,
-                          size: size as 'small' | 'medium' | 'large',
-                        };
-                        setLocalAspectRatio(newRatio);
-                        params.setAspectRatio(newRatio);
-                      }}
+                {Object.entries(
+                  aspectRatios[aspectRatio as keyof typeof aspectRatios],
+                ).map(([size, dim]) => (
+                  <TouchableOpacity
+                    key={size[0]}
+                    onPress={() => {
+                      triggerHaptic('selection');
+                      LayoutAnimation.spring();
+                      setImageSize(size as ImageSize);
+                    }}
+                    style={{
+                      backgroundColor:
+                        imageSize === size ? theme.primary : theme.background,
+                    }}
+                    className={clsx(
+                      'flex-1 p-3',
+                      imageSize === size ? 'rounded-2xl' : 'rounded-xl',
+                    )}>
+                    <Text
                       style={{
-                        backgroundColor:
-                          localAspectRatio.size === size
-                            ? theme.primary
-                            : theme.background,
+                        color:
+                          imageSize === size
+                            ? isDark
+                              ? theme.text
+                              : 'white'
+                            : theme.secondaryText,
                       }}
-                      className={clsx(
-                        'flex-1 p-3',
-                        localAspectRatio.size === size
-                          ? 'rounded-2xl'
-                          : 'rounded-xl',
-                      )}>
-                      <Text
-                        style={{
-                          color:
-                            localAspectRatio.size === size
-                              ? isDark
-                                ? theme.text
-                                : 'white'
-                              : theme.secondaryText,
-                        }}
-                        className="text-center text-lg">
-                        {strings.common[size as keyof typeof strings.common] ||
-                          size.charAt(0).toUpperCase() + size.slice(1)}
-                      </Text>
-                      <Text
-                        style={{
-                          color:
-                            localAspectRatio.size === size
-                              ? isDark
-                                ? theme.text
-                                : 'white'
-                              : theme.secondaryText,
-                        }}
-                        className="text-center text-sm">
-                        {resolution}
-                      </Text>
-                    </TouchableOpacity>
-                  ),
-                )}
+                      className="text-center text-lg">
+                      {strings.common[size as keyof typeof strings.common] ||
+                        size.charAt(0).toUpperCase() + size.slice(1)}
+                    </Text>
+                    <Text
+                      style={{
+                        color:
+                          imageSize === size
+                            ? isDark
+                              ? theme.text
+                              : 'white'
+                            : theme.secondaryText,
+                      }}
+                      className="text-center text-sm">
+                      {dim.width}x{dim.height}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </View>
@@ -930,16 +852,16 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                 <Text style={{color: theme.secondaryText}} className="text-xs">
                   {user?.planType === 'free'
                     ? strings.advancedSettings.upgradeToMakePrivate
-                    : localIsImagePrivate
-                    ? strings.advancedSettings.imagesWillBePrivate
-                    : strings.advancedSettings.imagesWillBePublic}
+                    : isPrivate
+                      ? strings.advancedSettings.imagesWillBePrivate
+                      : strings.advancedSettings.imagesWillBePublic}
                 </Text>
               </View>
               <TouchableOpacity
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
                   backgroundColor:
-                    localIsImagePrivate && user?.planType !== 'free'
+                    isPrivate && user?.planType !== 'free'
                       ? theme.primary
                       : '#cbd5e1',
                 }}
@@ -950,25 +872,20 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
                   }
                   triggerHaptic('selection');
                   LayoutAnimation.spring();
-                  const newValue = !localIsImagePrivate;
-                  setLocalIsImagePrivate(newValue);
-                  if (params.setIsImagePrivate) {
-                    params.setIsImagePrivate(newValue);
-                  }
+                  const newValue = !isPrivate;
+                  setIsPrivate(newValue);
                 }}
                 accessible={true}
                 accessibilityLabel={
-                  localIsImagePrivate
+                  isPrivate
                     ? strings.advancedSettings.turnOffPrivateHint
                     : strings.advancedSettings.turnOnPrivateHint
                 }
                 accessibilityRole="switch"
-                accessibilityState={{checked: localIsImagePrivate}}>
+                accessibilityState={{checked: isPrivate}}>
                 <View
                   className={`w-5 h-5 rounded-full bg-white ${
-                    localIsImagePrivate && user?.planType !== 'free'
-                      ? 'ml-6'
-                      : 'ml-0'
+                    isPrivate && user?.planType !== 'free' ? 'ml-6' : 'ml-0'
                   }`}
                 />
               </TouchableOpacity>
@@ -998,27 +915,24 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               <TouchableOpacity
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
-                  backgroundColor:
-                    localQuality === 50 ? theme.primary : '#cbd5e1',
+                  backgroundColor: isPremium ? theme.primary : '#cbd5e1',
                 }}
                 onPress={() => {
                   triggerHaptic('selection');
                   LayoutAnimation.spring();
-                  const newQuality = localQuality === 50 ? 25 : 50;
-                  setLocalQuality(newQuality);
-                  params.setQuality(newQuality);
+                  setIsPremium(!isPremium);
                 }}
                 accessible={true}
                 accessibilityLabel={
-                  localQuality === 50
+                  isPremium
                     ? strings.advancedSettings.turnOffPremiumHint
                     : strings.advancedSettings.turnOnPremiumHint
                 }
                 accessibilityRole="switch"
-                accessibilityState={{checked: localQuality === 50}}>
+                accessibilityState={{checked: isPremium}}>
                 <View
                   className={`w-5 h-5 rounded-full bg-white ${
-                    localQuality === 50 ? 'ml-6' : 'ml-0'
+                    isPremium ? 'ml-6' : 'ml-0'
                   }`}
                 />
               </TouchableOpacity>
@@ -1038,10 +952,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               />
               <TextInput
                 ref={seedInputRef}
-                value={localSeed}
+                value={seed}
                 onChangeText={text => {
-                  setLocalSeed(text);
-                  params.setSeed(text);
+                  setSeed(text);
                 }}
                 onFocus={() => triggerHaptic('light')}
                 placeholder={strings.advancedSettings.seedPlaceholder}
@@ -1072,10 +985,9 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
               />
               <TextInput
                 ref={negativePromptRef}
-                value={localNegativePrompt}
+                value={negativePrompt}
                 onChangeText={text => {
-                  setLocalNegativePrompt(text);
-                  params.setNegativePrompt(text);
+                  setNegativePrompt(text);
                 }}
                 onFocus={() => triggerHaptic('light')}
                 placeholder={strings.advancedSettings.negativePromptPlaceholder}
@@ -1121,7 +1033,7 @@ const AdvancedSettingsScreen: React.FC<AdvancedSettingsScreenProps> = ({
         onClose={() => setArtStylesDialogVisible(false)}
         theme={theme}
         isDark={isDark}
-        selectedStyles={localSelectedStyles}
+        selectedStyles={styles}
         toggleStyle={toggleStyle}
       />
     </SafeAreaView>

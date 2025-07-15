@@ -4,7 +4,6 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
   TextInput,
   ScrollView,
   Animated,
@@ -15,10 +14,11 @@ import {MasonryFlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 import {useToast} from '@masumdev/rn-toast';
 
+import {SCREEN_WIDTH} from '@src/constants';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import ImageViewer from '@src/components/ImageViewer';
@@ -31,7 +31,6 @@ import HeartIcon from '@src/assets/icons/HeartIcon';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
 
 // Constants
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
 const SPACING = 12;
 const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
@@ -86,16 +85,11 @@ const GalleryScreen = () => {
         filtered = filtered.filter(img => img.isFavorite);
       }
 
-      // Apply search query filter - search by prompt or ID
+      // Apply search query filter - search by prompt
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(img => {
-          const searchablePrompt = img.prompt || '';
-          return (
-            img.id.toLowerCase().includes(query) ||
-            searchablePrompt.toLowerCase().includes(query) ||
-            searchablePrompt.toLowerCase().includes(query)
-          );
+          return img.prompt.toLowerCase().includes(query);
         });
       }
 
@@ -140,10 +134,6 @@ const GalleryScreen = () => {
     setRefreshing(false);
   }, [fetchImages]);
 
-  const handleRefresh = useCallback(() => {
-    refreshImages();
-  }, [refreshImages]);
-
   const handleToggleFavorite = useCallback(
     async (image: GeneratedImage) => {
       // Haptic feedback for favorite action
@@ -152,6 +142,16 @@ const GalleryScreen = () => {
       if (!user?.uid) {
         showToast('Please log in to favorite images', 'error');
         return;
+      }
+
+      if (selectedImage?.id === image.id) {
+        setSelectedImage({
+          ...selectedImage,
+          favoriteCount: selectedImage.favoriteCount
+            ? selectedImage.favoriteCount + (image.isFavorite ? -1 : 1)
+            : 1,
+          isFavorite: !selectedImage.isFavorite,
+        });
       }
 
       try {
@@ -172,10 +172,22 @@ const GalleryScreen = () => {
           );
         } else {
           showToast('Failed to update favorite', 'error');
+          if (selectedImage?.id === image.id) {
+            setSelectedImage({
+              ...selectedImage,
+              isFavorite: !selectedImage.isFavorite,
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to toggle favorite:', error);
         showToast('Failed to update favorite', 'error');
+        if (selectedImage?.id === image.id) {
+          setSelectedImage({
+            ...selectedImage,
+            isFavorite: !selectedImage.isFavorite,
+          });
+        }
       }
     },
     [user?.uid, storeToggleFavorite, selectedImage],
@@ -186,7 +198,6 @@ const GalleryScreen = () => {
     (tab: 'all' | 'favorites') => {
       // Haptic feedback for tab switch
       triggerHaptic('selection');
-
       setActiveTab(tab);
       console.log(
         `Switched to ${tab} tab, favorites count: ${
@@ -318,7 +329,9 @@ const GalleryScreen = () => {
                 style={{backgroundColor: theme.surface + 'df'}}>
                 {/* Style Tag */}
                 {item.styles && item.styles.length > 0 && (
-                  <Text className="text-xs font-semibold ml-1.5" style={{color: theme.text}}>
+                  <Text
+                    className="text-xs font-semibold ml-1.5"
+                    style={{color: theme.text}}>
                     {item.styles[0]}
                     {item.styles.length > 1
                       ? ` +${item.styles.length - 1}`
@@ -599,7 +612,7 @@ const GalleryScreen = () => {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refreshImages}
               colors={[theme.primary]}
               tintColor={theme.primary}
             />

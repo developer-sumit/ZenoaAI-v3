@@ -1,5 +1,5 @@
 import analytics from '@react-native-firebase/analytics';
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 
 export const analyticsService = {
   /**

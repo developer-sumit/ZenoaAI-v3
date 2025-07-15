@@ -1,7 +1,6 @@
 import {imageAPI} from '@src/services/axiosServer';
-import {GeneratedImage} from '@src/types';
-import {ImageGenerationSettings} from '@src/store/imageStore';
 import {ResponseData} from '@src/types/api';
+import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
 
 /**
  * Generates a single image using the specified prompt and settings.
@@ -31,7 +30,7 @@ import {ResponseData} from '@src/types/api';
  */
 const generateImage = async (
   prompt: string,
-  settings: ImageGenerationSettings,
+  settings: ImageGenerationRequest,
 ): Promise<ResponseData<GeneratedImage>> => {
   try {
     const response = await imageAPI.generateImage({
@@ -39,15 +38,13 @@ const generateImage = async (
       negativePrompt: settings.negativePrompt,
       aspectRatio: settings.aspectRatio || '1:1',
       imageSize: settings.imageSize || 'medium',
-      styles: settings.style ? [settings.style] : [],
-      steps: settings.steps,
+      styles: settings.styles ? [settings.styles] : [],
       seed: settings.seed,
-      engineType: settings.engine || 'quantum',
+      engineType: settings.engineType || 'quantum',
       isPrivate: settings.isPrivate || false,
-      batchCount: 1,
     });
 
-    if (!response.data.success) {
+    if (!response.data.success || !response.data.data) {
       return {
         success: false,
         data: null,
@@ -55,21 +52,21 @@ const generateImage = async (
       };
     }
 
-    const data = response.data as any;
-    const metadata = data.data; // Create the image object, preferring server metadata when available
+    const metadata = response.data.data; // Create the image object, preferring server metadata when available
     const generatedImage: GeneratedImage = {
       id: metadata?.id || `temp-${Date.now()}`,
       userId: metadata?.userId || '',
-      engineType: metadata?.engineType || settings.engine || 'quantum',
-      prompt: data.prompts?.final || metadata?.finalPrompt || prompt,
+      engineType: metadata?.engineType || settings.engineType || 'quantum',
+      prompt: response.data.prompts?.final || metadata?.finalPrompt || prompt,
       negativePrompt: metadata?.negativePrompt || settings.negativePrompt || '',
       imageUrl: metadata?.imageUrl || '', // Prefer response imageUrl over metadata
-      thumbnailUrl: data.optimizedUrls?.thumbnail || metadata?.imageUrl || '',
-      width: metadata?.width || settings.width || 512,
-      height: metadata?.height || settings.height || 512,
+      thumbnailUrl:
+        response.data.optimizedUrls?.thumbnail || metadata?.imageUrl || '',
+      width: metadata?.width || 512,
+      height: metadata?.height || 512,
       imageSize: settings.imageSize || 'medium',
       aspectRatio: settings.aspectRatio || '1:1',
-      styles: metadata?.styles || (settings.style ? [settings.style] : []),
+      styles: metadata?.styles || (settings.styles ? [settings.styles] : []),
       seed: metadata?.seed || Math.floor(Math.random() * 1000000),
       createdAt: metadata?.createdAt || new Date(),
       isFavorite: metadata?.isFavorite || false,

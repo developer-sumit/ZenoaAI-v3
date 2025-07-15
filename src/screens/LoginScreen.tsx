@@ -37,6 +37,7 @@ const LoginScreen = () => {
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
+
   const [signingIn, setSigningIn] = React.useState(false);
   const [emailRestrictionVisible, setEmailRestrictionVisible] =
     React.useState(false);
@@ -201,21 +202,6 @@ const LoginScreen = () => {
         }
         return; // Don't proceed with fallback for email restrictions
       }
-
-      // Check if this is a network error
-      if (
-        error.message?.includes('Network Error') ||
-        error.message?.includes('network request failed')
-      ) {
-        triggerHaptic('warning');
-        showToast(
-          'Network connection issue. Please check your internet connection.',
-          'error',
-        );
-      } else {
-        triggerHaptic('error');
-        showToast(strings.auth.signInFailed, 'error');
-      }
     } finally {
       setSigningIn(false);
     }
@@ -223,7 +209,6 @@ const LoginScreen = () => {
 
   return (
     <View style={{backgroundColor: theme.background}} className="flex-1">
-      {/* Rest of your component remains unchanged */}
       <BlurView
         style={StyleSheet.absoluteFill}
         blurType={isDark ? 'dark' : 'light'}
