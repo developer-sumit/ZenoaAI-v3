@@ -42,6 +42,8 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
+import {planLimits} from '@src/constants/planLimits';
+import LockIcon from '@src/assets/icons/LockIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -413,6 +415,11 @@ const AdvancedSettingsScreen: React.FC = () => {
   const [dialogContent, setDialogContent] = useState({title: '', message: ''});
   const [artStylesDialogVisible, setArtStylesDialogVisible] = useState(false);
 
+  const limits = planLimits[user?.planType || 'free'];
+  const allowedAspectRatios = limits.aspectRatios;
+  const allowedSizes = limits.sizes;
+  const maxBatch = limits.maxBatch;
+
   // State to track if keyboard is showing
   const [_, setKeyboardVisible] = useState(false);
 
@@ -637,40 +644,62 @@ const AdvancedSettingsScreen: React.FC = () => {
               theme={theme}
             />
             <View className="flex-row flex-wrap gap-2">
-              {[1, 2, 4, 6, 8, 10].map(count => (
-                <TouchableOpacity
-                  key={count}
-                  onPress={() => {
-                    triggerHaptic('selection');
-                    LayoutAnimation.spring();
-                    setNumberOfImages(count);
-                  }}
-                  style={{
-                    backgroundColor:
-                      numberOfImages === count
-                        ? theme.primary
-                        : theme.background,
-                    minWidth: 55,
-                    width: '15%',
-                  }}
-                  className={clsx(
-                    'px-5 py-2.5 items-center justify-center',
-                    numberOfImages === count ? 'rounded-2xl' : 'rounded-xl',
-                  )}>
-                  <Text
-                    style={{
-                      color:
-                        numberOfImages === count
-                          ? isDark
-                            ? theme.text
-                            : 'white'
-                          : theme.secondaryText,
+              {[1, 2, 4, 6, 8, 10].map(count => {
+                const isAllowed = count <= maxBatch;
+                return (
+                  <TouchableOpacity
+                    key={count}
+                    onPress={() => {
+                      if (!isAllowed) return;
+                      triggerHaptic('selection');
+                      LayoutAnimation.spring();
+                      setNumberOfImages(count);
                     }}
-                    className="text-lg">
-                    {count}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    disabled={!isAllowed}
+                    style={{
+                      backgroundColor:
+                        numberOfImages === count
+                          ? theme.primary
+                          : theme.background,
+                      minWidth: 55,
+                      width: '15%',
+                      opacity: isAllowed ? 1 : 0.5,
+                    }}
+                    className={clsx(
+                      'px-5 py-2.5 items-center justify-center flex-row',
+                      numberOfImages === count ? 'rounded-2xl' : 'rounded-xl',
+                    )}>
+                    <Text
+                      style={{
+                        color:
+                          numberOfImages === count
+                            ? isDark
+                              ? theme.text
+                              : 'white'
+                            : theme.secondaryText,
+                      }}
+                      className="text-lg">
+                      {count}
+                    </Text>
+                    {!isAllowed && (
+                      <View
+                        className="absolute p-2 z-[3] rounded-full border"
+                        style={{
+                          top: -5,
+                          right: -5,
+                          backgroundColor: theme.surface + '80',
+                        }}
+                        pointerEvents="none">
+                        <LockIcon
+                          width={18}
+                          height={18}
+                          color={theme.secondaryText}
+                        />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -687,48 +716,40 @@ const AdvancedSettingsScreen: React.FC = () => {
               />
               <View className="flex-row flex-wrap gap-2">
                 {Object.keys(aspectRatios).map(ratio => {
+                  const isAllowed = allowedAspectRatios.includes(ratio);
                   // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
                   const [width, height] = ratio.split(':').map(Number);
-
-                  // Base size for the visual representation
                   const BASE_SIZE = 24;
                   let displayWidth, displayHeight;
-
-                  // Calculate dimensions while maintaining aspect ratio
                   if (width >= height) {
-                    // Landscape or square orientation
                     displayWidth = BASE_SIZE;
                     displayHeight = (height / width) * BASE_SIZE;
                   } else {
-                    // Portrait orientation
                     displayHeight = BASE_SIZE;
                     displayWidth = (width / height) * BASE_SIZE;
                   }
-
-                  // Scale up smaller dimension for better visibility
                   const SCALE_FACTOR = 1.5;
-                  if (displayWidth < 12) {
-                    displayWidth *= SCALE_FACTOR;
-                  }
-                  if (displayHeight < 12) {
-                    displayHeight *= SCALE_FACTOR;
-                  }
+                  if (displayWidth < 12) displayWidth *= SCALE_FACTOR;
+                  if (displayHeight < 12) displayHeight *= SCALE_FACTOR;
                   return (
                     <TouchableOpacity
                       key={ratio}
                       onPress={() => {
+                        if (!isAllowed) return;
                         triggerHaptic('selection');
                         LayoutAnimation.spring();
                         setAspectRatio(ratio);
                       }}
+                      disabled={!isAllowed}
                       style={{
                         backgroundColor:
                           aspectRatio === ratio
                             ? theme.primary
                             : theme.background,
+                        opacity: isAllowed ? 1 : 0.5,
                       }}
                       className={clsx(
-                        'px-4 py-3',
+                        'px-4 py-3 items-center justify-center',
                         aspectRatio === ratio ? 'rounded-2xl' : 'rounded-xl',
                       )}>
                       {/* Aspect ratio visual icon */}
@@ -762,6 +783,22 @@ const AdvancedSettingsScreen: React.FC = () => {
                         className="text-base font-medium">
                         {ratio}
                       </Text>
+                      {!isAllowed && (
+                        <View
+                          className="absolute p-2 z-[3] rounded-full border"
+                          style={{
+                            top: -5,
+                            right: -5,
+                            backgroundColor: theme.surface + '80',
+                          }}
+                          pointerEvents="none">
+                          <LockIcon
+                            width={18}
+                            height={18}
+                            color={theme.secondaryText}
+                          />
+                        </View>
+                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -779,49 +816,71 @@ const AdvancedSettingsScreen: React.FC = () => {
               <View className="flex-row gap-2">
                 {Object.entries(
                   aspectRatios[aspectRatio as keyof typeof aspectRatios],
-                ).map(([size, dim]) => (
-                  <TouchableOpacity
-                    key={size[0]}
-                    onPress={() => {
-                      triggerHaptic('selection');
-                      LayoutAnimation.spring();
-                      setImageSize(size as ImageSize);
-                    }}
-                    style={{
-                      backgroundColor:
-                        imageSize === size ? theme.primary : theme.background,
-                    }}
-                    className={clsx(
-                      'flex-1 p-3',
-                      imageSize === size ? 'rounded-2xl' : 'rounded-xl',
-                    )}>
-                    <Text
-                      style={{
-                        color:
-                          imageSize === size
-                            ? isDark
-                              ? theme.text
-                              : 'white'
-                            : theme.secondaryText,
+                ).map(([size, dim]) => {
+                  const isAllowed = allowedSizes.includes(size);
+                  return (
+                    <TouchableOpacity
+                      key={size[0]}
+                      onPress={() => {
+                        if (!isAllowed) return;
+                        triggerHaptic('selection');
+                        LayoutAnimation.spring();
+                        setImageSize(size as ImageSize);
                       }}
-                      className="text-center text-lg">
-                      {strings.common[size as keyof typeof strings.common] ||
-                        size.charAt(0).toUpperCase() + size.slice(1)}
-                    </Text>
-                    <Text
+                      disabled={!isAllowed}
                       style={{
-                        color:
-                          imageSize === size
-                            ? isDark
-                              ? theme.text
-                              : 'white'
-                            : theme.secondaryText,
+                        backgroundColor:
+                          imageSize === size ? theme.primary : theme.background,
+                        opacity: isAllowed ? 1 : 0.5,
                       }}
-                      className="text-center text-sm">
-                      {dim.width}x{dim.height}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      className={clsx(
+                        'flex-1 p-3 items-center justify-center',
+                        imageSize === size ? 'rounded-2xl' : 'rounded-xl',
+                      )}>
+                      <Text
+                        style={{
+                          color:
+                            imageSize === size
+                              ? isDark
+                                ? theme.text
+                                : 'white'
+                              : theme.secondaryText,
+                        }}
+                        className="text-center text-lg">
+                        {strings.common[size as keyof typeof strings.common] ||
+                          size.charAt(0).toUpperCase() + size.slice(1)}
+                      </Text>
+                      <Text
+                        style={{
+                          color:
+                            imageSize === size
+                              ? isDark
+                                ? theme.text
+                                : 'white'
+                              : theme.secondaryText,
+                        }}
+                        className="text-center text-sm ml-1">
+                        {dim.width}x{dim.height}
+                      </Text>
+                      {!isAllowed && (
+                        <View
+                          className="absolute p-2 z-[3] rounded-full border"
+                          style={{
+                            top: -5,
+                            right: -5,
+                            backgroundColor: theme.surface + '80',
+                          }}
+                          pointerEvents="none">
+                          <LockIcon
+                            width={18}
+                            height={18}
+                            color={theme.secondaryText}
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           </View>
