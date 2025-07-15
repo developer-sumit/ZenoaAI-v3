@@ -166,7 +166,7 @@ const HomeScreen = () => {
       const apiSettings: ImageGenerationRequest = {
         engineType: engine,
         prompt: prompt.trim(),
-        styles: styles || [],
+        styles: styles ? (Array.isArray(styles) ? styles : [styles]) : [],
         aspectRatio,
         imageSize: imageSize,
         seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
