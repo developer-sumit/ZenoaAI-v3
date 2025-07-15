@@ -38,7 +38,11 @@ const generateImage = async (
       negativePrompt: settings.negativePrompt,
       aspectRatio: settings.aspectRatio || '1:1',
       imageSize: settings.imageSize || 'medium',
-      styles: settings.styles ? [settings.styles] : [],
+      styles: settings.styles
+        ? Array.isArray(settings.styles)
+          ? settings.styles
+          : [settings.styles]
+        : [],
       seed: settings.seed,
       engineType: settings.engineType || 'quantum',
       isPrivate: settings.isPrivate || false,

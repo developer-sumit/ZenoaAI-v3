@@ -293,15 +293,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       return generatedImages.length > 0;
     } catch (error: any) {
       console.error('Failed to generate image batch:', error);
-
-      let errorMessage = 'Failed to generate image batch';
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      set({error: errorMessage});
+      set({error: 'Failed to generate image'});
       return false;
     } finally {
       set({isLoading: false});
