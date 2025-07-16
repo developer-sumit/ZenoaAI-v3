@@ -272,6 +272,7 @@ const SettingsScreen = () => {
       style={{backgroundColor: theme.background}}
       contentContainerClassName="pb-[90px] pt-10 px-5"
       showsVerticalScrollIndicator={false}
+      removeClippedSubviews={true}
       scrollEventThrottle={16}
       onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {
         useNativeDriver: false,

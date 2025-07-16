@@ -22,6 +22,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {Toaster} from '@masumdev/rn-toast';
+import {enableScreens} from 'react-native-screens';
 import {SystemBars} from 'react-native-edge-to-edge';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
 
@@ -49,6 +50,8 @@ import GalleryScreen from '@src/screens/GalleryScreen';
 import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
+
+enableScreens();
 
 GoogleSignin.configure({
   webClientId: Config.GOOGLE_WEB_CLIENT_ID,

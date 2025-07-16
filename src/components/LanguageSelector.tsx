@@ -132,7 +132,7 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView>
+                <ScrollView removeClippedSubviews={true}>
                   {languages.map(lang => (
                     <TouchableOpacity
                       key={lang.code}

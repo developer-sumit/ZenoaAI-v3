@@ -589,6 +589,7 @@ const HomeScreen = () => {
             data={groupImagesByParameters(getCombinedImages())}
             keyExtractor={(item, index) => `home-group-${item.key}-${index}`}
             estimatedItemSize={300}
+            removeClippedSubviews={true}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 200}}
             renderItem={renderGroup}
