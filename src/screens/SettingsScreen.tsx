@@ -26,7 +26,6 @@ import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
-import {useQuota} from '@src/hooks/useQuota';
 import urls from '@src/constants/urls';
 import {notificationService} from '@src/services/notificationService';
 import {notificationAPI} from '@src/services/notificationAPI';
@@ -54,14 +53,13 @@ if (Platform.OS === 'android') {
   }
 }
 
-const ProfileScreen = () => {
+const SettingsScreen = () => {
   const strings = useStrings();
   const navigation = useNavigation();
-  const {user, logout} = useAuthStore();
+  const {user, updateUser, logout} = useAuthStore();
   const {isDark, theme, toggleTheme} = useTheme();
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
-  const {quota, refetch, isLoading: quotaLoading} = useQuota();
   const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
 
@@ -74,6 +72,7 @@ const ProfileScreen = () => {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
+  const [quotaLoading, setQuotaLoading] = useState(false);
 
   // Check notification status on mount
   useEffect(() => {
@@ -88,6 +87,39 @@ const ProfileScreen = () => {
 
     checkNotificationStatus();
   }, []);
+
+  const fetchQuota = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      setQuotaLoading(true);
+
+      const {success, data, message} = await userService.checkQuota();
+
+      if (success && data) {
+        updateUser({...user, quota: data});
+      } else {
+        showToast(message, 'error');
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch quota:', err);
+
+      updateUser({
+        ...user,
+        quota: {
+          imagesRemaining: 0,
+          lastRefreshedAt: new Date(),
+          planLimits: {
+            totalImages: 0, // Reset to 0 if fetch fails
+          },
+        },
+      });
+    } finally {
+      setQuotaLoading(false);
+    }
+  }, [user]);
 
   const handleToggleNotifications = async (value: boolean) => {
     setNotificationLoading(true);
@@ -122,33 +154,6 @@ const ProfileScreen = () => {
       setNotificationLoading(false);
     }
   };
-
-  // Function to refresh user profile data
-  const refreshUserProfile = useCallback(async () => {
-    if (!user?.uid) {
-      showToast(strings.settings.somethingWentWrong, 'error');
-      return;
-    }
-
-    try {
-      console.log('ProfileScreen: Refreshing user profile data');
-      const freshUserData = await userService.getUser(user.uid);
-      if (freshUserData) {
-        // Update auth store with fresh data
-        const {updateUser} = useAuthStore.getState();
-        updateUser(freshUserData);
-        console.log('ProfileScreen: User profile refreshed successfully');
-      }
-    } catch (error) {
-      showToast(strings.settings.internalServerError, 'error');
-      console.error('ProfileScreen: Failed to refresh user profile:', error);
-    }
-  }, [user?.uid]);
-
-  // Refresh user data when component mounts
-  useEffect(() => {
-    refreshUserProfile();
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -267,6 +272,7 @@ const ProfileScreen = () => {
       style={{backgroundColor: theme.background}}
       contentContainerClassName="pb-[90px] pt-10 px-5"
       showsVerticalScrollIndicator={false}
+      removeClippedSubviews={true}
       scrollEventThrottle={16}
       onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {
         useNativeDriver: false,
@@ -331,7 +337,7 @@ const ProfileScreen = () => {
                 {strings.settings.quotaTitle}
               </Text>
               <TouchableOpacity
-                onPress={refetch}
+                onPress={fetchQuota}
                 disabled={quotaLoading}
                 className="p-2 rounded-full"
                 style={{
@@ -362,10 +368,10 @@ const ProfileScreen = () => {
                   <Text
                     style={{color: theme.primary}}
                     className="text-base font-bold">
-                    {quota && !quotaLoading
-                      ? `${quota.imagesRemaining}${
-                          quota.planLimits?.totalImages
-                            ? ` / ${quota.planLimits.totalImages}`
+                    {user.quota && !quotaLoading
+                      ? `${user.quota.imagesRemaining}${
+                          user.quota.planLimits.totalImages
+                            ? ` / ${user.quota.planLimits.totalImages}`
                             : ''
                         }`
                       : '0'}
@@ -378,20 +384,20 @@ const ProfileScreen = () => {
                     className="h-full rounded-full"
                     style={{
                       backgroundColor:
-                        quota && quota.imagesRemaining > 5
+                        user.quota && user.quota.imagesRemaining > 5
                           ? theme.primary
-                          : quota && quota.imagesRemaining > 0
+                          : user.quota && user.quota.imagesRemaining > 0
                             ? '#f59e0b'
                             : '#ef4444',
                       width: `${
-                        quota && quota.planLimits?.totalImages
+                        user.quota && user.quota.planLimits?.totalImages
                           ? Math.min(
-                              (quota.imagesRemaining /
-                                quota.planLimits.totalImages) *
+                              (user.quota.imagesRemaining /
+                                user.quota.planLimits.totalImages) *
                                 100,
                               100,
                             )
-                          : quota?.imagesRemaining
+                          : user.quota?.imagesRemaining
                             ? 100 // Show full bar if no limit is specified
                             : 0
                       }%`,
@@ -866,4 +872,4 @@ const ProfileScreen = () => {
   );
 };
 
-export default ProfileScreen;
+export default SettingsScreen;

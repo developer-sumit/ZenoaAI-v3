@@ -7,32 +7,38 @@ import {
   TouchableOpacity,
   Platform,
   Keyboard,
-  Dimensions,
   ToastAndroid,
   Animated,
 } from 'react-native';
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
-import {useRoute} from '@react-navigation/native';
 import {KeyboardAvoidingView} from 'react-native-keyboard-controller';
 
-import {aspectRatios} from '@src/data/ratio';
 import appConfig from '@src/config/app.config';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
-import {useQuota} from '@src/hooks/useQuota';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
-import {GeneratedImage} from '../types';
-import {AspectRatio} from '../types/image';
+import {
+  GeneratedImage,
+  ImageGenerationRequest,
+  ImageSize,
+} from '@src/types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
 import {contentFilter} from '@src/utils/contentFilter';
+import {
+  DEFAULT_ASPECT_RATIO,
+  DEFAULT_ENGINE_TYPE,
+  DEFAULT_IMAGE_SIZE,
+  SCREEN_HEIGHT,
+  SCREEN_WIDTH,
+} from '@src/constants';
 import {useStrings} from '@src/hooks/useStrings';
 import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
 
@@ -44,9 +50,8 @@ import CloseIcon from '@src/assets/icons/CloseIcon';
 import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
+import {useGenerationStore} from '@src/store/generationStore';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING = 24;
 const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
 
@@ -56,54 +61,47 @@ const HomeScreen = () => {
   const {showToast} = useToast();
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
-  const route = useRoute();
+  const {triggerHaptic} = useHaptics();
+  const {animatePress} = useAnimations();
   const {
+    error,
     images: generatedImages,
     currentGenerationBatch,
     isLoading: imageLoading,
     fetchImages,
-    generateBatch,
+    generateImage,
   } = useImageStore();
-  const {hasImageQuota, refetch: refetchQuota} = useQuota();
+  const {
+    prompt,
+    engine,
+    aspectRatio,
+    imageSize,
+    negativePrompt,
+    isPrivate,
+    isPremium,
+    numberOfImages,
+    styles,
+    seed,
+    setPrompt,
+    setAspectRatio,
+    setImageSize,
+    setStyles,
+    reset,
+  } = useGenerationStore();
+
+  const flashListRef = useRef<FlashList<any>>(null);
 
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
-  const [prompt, setPrompt] = React.useState('');
-  const [selectedStyles, setSelectedStyles] = React.useState<string[]>([]);
-  const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>({
-    ratio: aspectRatios[0].ratio,
-    sizes: aspectRatios[0].sizes,
-    size: 'medium',
-  });
-  const [numberOfImages, setNumberOfImages] = React.useState(1);
-  const [quality, setQuality] = React.useState(25);
-  const [seed, setSeed] = React.useState('');
-  const [negativePrompt, setNegativePrompt] = React.useState('');
-  const [isImagePrivate, setIsImagePrivate] = React.useState(false);
   const [selectedImage, setSelectedImage] =
     React.useState<GeneratedImage | null>(null);
-
-  // New advanced settings
-  const [engine, setEngine] = React.useState<'quantum' | 'nebula'>('quantum');
-  const [guidance, setGuidance] = React.useState<number>(7.5);
-  const [steps, setSteps] = React.useState<number>(30);
-  const flashListRef = useRef<FlashList<any>>(null);
-
   const [showOnboarding, setShowOnboarding] = React.useState(false);
   // Animation values for micro interactions
   const generateButtonScale = useRef(new Animated.Value(1)).current;
   const promptSuggestionsButtonScale = useRef(new Animated.Value(1)).current;
 
-  const {triggerHaptic} = useHaptics();
-  const {animatePress} = useAnimations();
-
   // Android Quick Actions
   useAndroidQuickActions();
-
-  // Combined function to update both quota and profile
-  const updateQuotaAndProfile = async () => {
-    await refetchQuota();
-  };
 
   // Load user's images when component mounts
   useEffect(() => {
@@ -111,33 +109,6 @@ const HomeScreen = () => {
       fetchImages(1, 20, true); // Load first page
     }
   }, [user?.uid, fetchImages]);
-
-  // Handle remix data from navigation params
-  useEffect(() => {
-    const params = route.params as any;
-    if (params?.remixData) {
-      const remix = params.remixData; // Apply the remix settings
-      setPrompt(remix.prompt || '');
-      setNegativePrompt(remix.negativePrompt || '');
-      setEngine(remix.engine || 'quantum');
-      setGuidance(remix.guidance || 7.5);
-      setSelectedStyles(remix.styles || []);
-
-      // Set aspect ratio based on dimensions
-      if (remix.width && remix.height) {
-        const ratio = `${remix.width}:${remix.height}`;
-        const foundRatio = aspectRatios.find(ar => ar.ratio === ratio);
-        if (foundRatio) {
-          setAspectRatio({
-            ratio: foundRatio.ratio,
-            sizes: foundRatio.sizes,
-            size: 'medium',
-          });
-        }
-      }
-      showToast('Settings applied from remixed image!', 'success');
-    }
-  }, [route.params]);
 
   const getAspectRatio = (image: GeneratedImage): number => {
     // Use actual image dimensions if available
@@ -157,11 +128,6 @@ const HomeScreen = () => {
   const getImageHeight = (image: GeneratedImage): number => {
     const ratio = getAspectRatio(image);
     return COLUMN_WIDTH / ratio;
-  };
-
-  const handleSelectPrompt = (selectedPrompt: string) => {
-    triggerHaptic('selection'); // Add haptic feedback for prompt selection
-    setPrompt(selectedPrompt);
   };
 
   const handleImageGeneration = async () => {
@@ -193,42 +159,36 @@ const HomeScreen = () => {
       return;
     }
 
-    // Check quota
-    if (!hasImageQuota) {
-      showToast('Image generation quota exceeded', 'error');
-      return;
-    }
     try {
-      console.log('Generating with:', {prompt, selectedStyles, aspectRatio});
+      console.log('Generating with:', {prompt, styles, aspectRatio});
 
       // Convert our settings to the API format (matching web)
-      const apiSettings = {
-        engine, // Use current engine setting
-        style: selectedStyles?.[0] || '',
-        aspectRatio: aspectRatio.ratio,
-        imageSize: aspectRatio.size || 'medium',
-        quality: 'standard' as const,
-        guidance, // Use current guidance setting
-        steps, // Use current steps setting
-        seed: seed ? parseInt(seed, 10) : undefined,
+      const apiSettings: ImageGenerationRequest = {
+        engineType: engine,
+        prompt: prompt.trim(),
+        styles: styles ? (Array.isArray(styles) ? styles : [styles]) : [],
+        aspectRatio,
+        imageSize: imageSize,
+        seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
         negativePrompt,
-        isPrivate: isImagePrivate,
+        isPrivate,
+        highQuality: isPremium,
+        batchCount: numberOfImages || 1,
       };
 
       // Generate the batch using the store
-      const success = await generateBatch(
-        prompt,
-        apiSettings,
-        numberOfImages,
-        updateQuotaAndProfile,
-      );
+      const success = await generateImage(prompt, apiSettings);
+
+      if (error) {
+        showToast(error, 'error');
+        return;
+      }
 
       if (success) {
         console.log('Image generated successfully!');
         triggerHaptic('success'); // Add success haptic feedback
         // Scroll to top if needed
         if (flashListRef.current) {
-          // @ts-ignore
           flashListRef.current.scrollToOffset({offset: 0, animated: true});
         }
       } else {
@@ -248,16 +208,13 @@ const HomeScreen = () => {
       prompt: string;
       styles: string[];
       aspectRatio: string;
+      imageSize: ImageSize;
     };
   }) => {
     setPrompt(item.parameters.prompt);
-    setSelectedStyles(item.parameters.styles);
-
-    // Find the matching AspectRatio object from aspectRatios
-    const aspectRatioObj =
-      aspectRatios.find(ar => ar.ratio === item.parameters.aspectRatio) ||
-      aspectRatios[0];
-    setAspectRatio(aspectRatioObj);
+    setStyles(item.parameters.styles);
+    setAspectRatio(item.parameters.aspectRatio);
+    setImageSize(item.parameters.imageSize || DEFAULT_IMAGE_SIZE);
 
     // Auto scroll to input
     setTimeout(() => {
@@ -335,7 +292,7 @@ const HomeScreen = () => {
       const groupKey = [
         image.prompt || '',
         (image.styles || []).sort().join(','),
-        image.engineType || 'quantum',
+        image.engineType || DEFAULT_ENGINE_TYPE,
         groupingIdentifier,
       ].join('|');
 
@@ -361,7 +318,8 @@ const HomeScreen = () => {
         parameters: {
           prompt: items[0].prompt || '',
           styles: items[0].styles || [],
-          aspectRatio: items[0].aspectRatio || '1:1',
+          aspectRatio: items[0].aspectRatio || DEFAULT_ASPECT_RATIO,
+          imageSize: items[0].imageSize || DEFAULT_IMAGE_SIZE,
           timestamp: items[0].batchTimestamp
             ? items[0].batchTimestamp.getTime()
             : new Date(items[0].createdAt).getTime(),
@@ -435,9 +393,10 @@ const HomeScreen = () => {
               <TouchableOpacity
                 key={style}
                 style={{backgroundColor: theme.primary + '15'}}
-                onPress={() =>
-                  setSelectedStyles(styles => styles.filter(s => s !== style))
-                }
+                onPress={() => {
+                  const newStyles = styles.filter(s => s !== style);
+                  setStyles(newStyles);
+                }}
                 className="py-1 px-3 rounded-full flex-row items-center"
                 accessible={true}
                 accessibilityLabel={`Remove ${style} style`}>
@@ -466,16 +425,7 @@ const HomeScreen = () => {
 
   const clearInputs = () => {
     triggerHaptic('light');
-    setPrompt('');
-    setSelectedStyles([]);
-    // Optionally reset other settings to defaults
-    setAspectRatio({
-      ratio: aspectRatios[0].ratio,
-      sizes: aspectRatios[0].sizes,
-      size: 'medium',
-    });
-    setSeed('');
-    setNegativePrompt('');
+    reset();
 
     if (Platform.OS === 'android') {
       ToastAndroid.show(strings.home.allCleared, ToastAndroid.SHORT);
@@ -639,6 +589,7 @@ const HomeScreen = () => {
             data={groupImagesByParameters(getCombinedImages())}
             keyExtractor={(item, index) => `home-group-${item.key}-${index}`}
             estimatedItemSize={300}
+            removeClippedSubviews={true}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 200}}
             renderItem={renderGroup}
@@ -713,17 +664,16 @@ const HomeScreen = () => {
             </View>
 
             {/* Selected Styles Pills */}
-            {selectedStyles.length > 0 && (
+            {styles.length > 0 && (
               <View className="flex-row flex-wrap gap-1.5 px-4 pb-2">
-                {selectedStyles.map(style => (
+                {styles.map(style => (
                   <TouchableOpacity
                     key={style}
                     style={{backgroundColor: theme.primary + '15'}}
-                    onPress={() =>
-                      setSelectedStyles(styles =>
-                        styles.filter(s => s !== style),
-                      )
-                    }
+                    onPress={() => {
+                      const newStyles = styles.filter(s => s !== style);
+                      setStyles(newStyles);
+                    }}
                     className="py-1 px-3 rounded-full flex-row items-center"
                     accessible={true}
                     accessibilityLabel={`Remove ${style} style`}
@@ -745,16 +695,23 @@ const HomeScreen = () => {
               style={{borderColor: theme.surface}}>
               <TouchableOpacity
                 onPress={clearInputs}
-                disabled={imageLoading || prompt.trim().length === 0}
+                disabled={
+                  imageLoading || (prompt.length === 0 && styles.length === 0)
+                }
                 style={{
-                  opacity: imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
+                  opacity:
+                    imageLoading || (prompt.length === 0 && styles.length === 0)
+                      ? 0.5
+                      : 1,
                   backgroundColor: theme.surface,
                 }}
                 className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
                 accessible={true}
                 accessibilityLabel={strings.home.clearInputs}
                 accessibilityState={{
-                  disabled: imageLoading || prompt.trim().length === 0,
+                  disabled:
+                    imageLoading ||
+                    (prompt.length === 0 && styles.length === 0),
                 }}
                 accessibilityRole="button"
                 accessibilityHint={strings.home.clearInputsHint}>
@@ -767,37 +724,7 @@ const HomeScreen = () => {
                 activeOpacity={0.8}
                 onPress={() => {
                   triggerHaptic('light'); // Add haptic feedback for navigation
-                  navigator.navigate({
-                    route: Routes.ADVANCED_SETTINGS,
-                    params: {
-                      selectedStyles,
-                      setSelectedStyles: (styles: string[]) =>
-                        setSelectedStyles(styles),
-                      aspectRatio,
-                      setAspectRatio: (ratio: AspectRatio) =>
-                        setAspectRatio(ratio),
-                      numberOfImages,
-                      setNumberOfImages: (count: number) =>
-                        setNumberOfImages(count),
-                      quality,
-                      setQuality: (value: number) => setQuality(value),
-                      seed,
-                      setSeed: (value: string) => setSeed(value),
-                      negativePrompt,
-                      setNegativePrompt: (value: string) =>
-                        setNegativePrompt(value),
-                      isImagePrivate,
-                      setIsImagePrivate: (value: boolean) =>
-                        setIsImagePrivate(value),
-                      // Add new parameters
-                      engine,
-                      setEngine: (eng: 'quantum' | 'nebula') => setEngine(eng),
-                      guidance,
-                      setGuidance: (g: number) => setGuidance(g),
-                      steps,
-                      setSteps: (s: number) => setSteps(s),
-                    },
-                  });
+                  navigator.navigate({route: Routes.ADVANCED_SETTINGS});
                 }}
                 className="p-3 rounded-2xl"
                 style={{backgroundColor: theme.primary + '20'}}
@@ -849,9 +776,10 @@ const HomeScreen = () => {
         <PromptSuggestions
           visible={showPromptSuggestions}
           setVisible={setShowPromptSuggestions}
-          onSelectPrompt={handleSelectPrompt}
+          onSelectPrompt={selectedPrompt => setPrompt(selectedPrompt)}
           theme={theme}
         />
+
         {selectedImage && (
           <ImageViewer
             image={selectedImage}

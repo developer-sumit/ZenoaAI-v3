@@ -16,7 +16,7 @@ import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
 import {useToast} from '@masumdev/rn-toast';
 
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
@@ -99,6 +99,7 @@ const EditProfileScreen = () => {
       showToast(strings.editProfile.pleaseLogin, 'error');
       return;
     }
+
     try {
       setIsSaving(true);
       triggerHaptic('selection');
@@ -106,19 +107,6 @@ const EditProfileScreen = () => {
 
       console.log('Starting profile update with user ID:', user.uid);
       if (name !== user.profile.username || bio !== user.profile.bio) {
-        // Debug log for better troubleshooting
-        console.log(
-          'Updating profile data:',
-          'username from',
-          user.profile.username,
-          'to',
-          name,
-          'bio from',
-          user.profile.bio,
-          'to',
-          bio,
-        );
-
         try {
           // Prepare updated user data with proper type structure matching web API
           const updatedUserData: Partial<User> = {
@@ -130,21 +118,23 @@ const EditProfileScreen = () => {
           };
 
           // Use userService to update profile via API - this matches web updateProfile structure
-          const updatedUser = await userService.updateProfile(
+          const {success, data, message} = await userService.updateProfile(
             user.uid,
             updatedUserData,
           );
 
-          if (updatedUser) {
+          if (success && data) {
             // Update auth store with the new user data
-            updateUser(updatedUser);
+            updateUser(data);
             console.log('Profile successfully updated via API');
           } else {
             throw new Error('Failed to update profile - no response data');
           }
+
+          showToast(message, success ? 'success' : 'error');
         } catch (updateError) {
           console.error('API update error:', updateError);
-          throw updateError;
+          showToast(strings.editProfile.updateFailed, 'error');
         }
       } else {
         console.log('No changes to save');
@@ -182,7 +172,12 @@ const EditProfileScreen = () => {
           selectedReason === 'Other' ? customReason : selectedReason;
 
         // Use userService to mark account as deleted via API
-        await userService.deleteUserAccount(user.uid, deletionReason);
+        const {success, message} = await userService.deleteUserAccount(
+          user.uid,
+          deletionReason,
+        );
+
+        showToast(message, success ? 'success' : 'error');
 
         triggerHaptic('success');
         showToast(strings.editProfile.accountDeleted, 'success');

@@ -1,24 +1,7 @@
 import {create} from 'zustand';
 
 import imageService from '@src/services/imageService';
-import {GeneratedImage, EngineType, ImageSize} from '@src/types';
-
-export interface ImageGenerationSettings {
-  engine?: EngineType;
-  style?: string;
-  aspectRatio?: string;
-  imageSize?: ImageSize;
-  quality?: 'standard' | 'premium' | 'ultra';
-  seed?: number;
-  steps?: number;
-  guidance?: number;
-  width?: number;
-  height?: number;
-  negativePrompt?: string;
-  model?: string;
-  batchCount?: number;
-  isPrivate?: boolean;
-}
+import {GeneratedImage} from '@src/types/image';
 
 interface ImageState {
   images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
@@ -45,14 +28,7 @@ interface ImageState {
   ) => Promise<void>;
   generateImage: (
     prompt: string,
-    settings: ImageGenerationSettings,
-    onQuotaUpdate?: () => void,
-  ) => Promise<boolean>;
-  generateBatch: (
-    prompt: string,
-    settings: ImageGenerationSettings,
-    batchCount: number,
-    onQuotaUpdate?: () => void,
+    settings: ImageGenerationRequest,
   ) => Promise<boolean>;
   deleteImage: (imageId: string) => Promise<boolean>;
   toggleFavorite: (imageId: string) => Promise<boolean>;
@@ -84,34 +60,19 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         set({isLoadingMore: true, error: null});
       }
 
-      const images = await imageService.getUserImages({page, limit});
-      console.log('🏪 Store: Received', images.length, 'images from service');
-      console.log(
-        '🏪 Store: First image preview:',
-        images[0]
-          ? {
-              id: images[0].id,
-              imageUrl: images[0].imageUrl,
-              prompt: images[0].prompt?.substring(0, 30) + '...',
-              userId: images[0].userId,
-            }
-          : 'No images',
-      );
+      const {success, data, message} = await imageService.getUserImages({
+        page,
+        limit,
+      });
 
-      // Log all image IDs for debugging
-      if (images.length > 0) {
-        console.log(
-          '🏪 Store: All image IDs:',
-          images.map(img => ({
-            id: img.id,
-            prompt: img.prompt?.substring(0, 20) + '...',
-          })),
-        );
+      if (!success || !data) {
+        set({error: message || 'Failed to fetch images'});
+        return;
       }
 
       set(state => ({
-        images: reset ? images : [...state.images, ...images],
-        hasMoreImages: images.length === limit, // If we get less than limit, no more images
+        images: reset ? data : [...state.images, ...data],
+        hasMoreImages: data.length === limit, // If we get less than limit, no more images
         currentPage: page,
       }));
       console.log('🏪 Store: Images state updated successfully');
@@ -142,19 +103,24 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     try {
       set({isLoadingPublic: true, error: null});
 
-      const newPublicImages = await imageService.getPublicImages(
+      const {success, data, message} = await imageService.getPublicImages(
         page,
         limit,
         filter,
       );
 
+      if (!success || !data) {
+        set({error: message || 'Failed to fetch public images'});
+        return;
+      }
+
       // If it's the first page, replace all images
       // Otherwise, append to existing images
       if (page === 1) {
-        set({publicImages: newPublicImages});
+        set({publicImages: data});
       } else {
         set(state => ({
-          publicImages: [...state.publicImages, ...newPublicImages],
+          publicImages: [...state.publicImages, ...data],
         }));
       }
     } catch (error: any) {
@@ -166,20 +132,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     }
   },
 
-  generateImage: async (
-    prompt: string,
-    settings: ImageGenerationSettings,
-    onQuotaUpdate?: () => void,
-  ) => {
-    // For single image generation, use generateBatch with count 1
-    return get().generateBatch(prompt, settings, 1, onQuotaUpdate);
-  },
-  generateBatch: async (
-    prompt: string,
-    settings: ImageGenerationSettings,
-    batchCount: number,
-    onQuotaUpdate?: () => void,
-  ) => {
+  generateImage: async (prompt: string, settings: ImageGenerationRequest) => {
     try {
       set({isLoading: true, error: null}); // Clear previous batch when starting new generation
       set({currentGenerationBatch: []});
@@ -187,7 +140,8 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       // Create a shared timestamp for the entire batch
       const batchTimestamp = Date.now(); // Create placeholder images for the batch
       const placeholderImages: GeneratedImage[] = [];
-      for (let i = 0; i < batchCount; i++) {
+
+      for (let i = 0; i < settings.batchCount; i++) {
         // Calculate dimensions from aspect ratio
         let width = 512;
         let height = 512;
@@ -202,8 +156,8 @@ export const useImageStore = create<ImageState>()((set, get) => ({
             settings.imageSize === 'large'
               ? 1024
               : settings.imageSize === 'small'
-              ? 512
-              : 768;
+                ? 512
+                : 768;
 
           if (aspectRatioValue > 1) {
             // Landscape
@@ -218,6 +172,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
             width = height = baseSize;
           }
         }
+
         const placeholder: GeneratedImage = {
           id: `placeholder-${batchTimestamp}-${i}`,
           userId: '',
@@ -229,9 +184,9 @@ export const useImageStore = create<ImageState>()((set, get) => ({
           height: height,
           imageSize: settings.imageSize || 'medium',
           aspectRatio: settings.aspectRatio || '1:1',
-          styles: settings.style ? [settings.style] : [],
+          styles: settings.styles || [],
           seed: settings.seed || 0,
-          engineType: settings.engine || 'quantum',
+          engineType: settings.engineType || 'quantum',
           createdAt: new Date(),
           isFavorite: false,
           isPrivate: settings.isPrivate || false,
@@ -248,67 +203,78 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       const generatedImages: GeneratedImage[] = [];
 
       // Generate images in the batch
-      for (let i = 0; i < batchCount; i++) {
+      for (let i = 0; i < settings.batchCount; i++) {
         try {
-          const newImage = await imageService.generateImage(prompt, settings); // Ensure the generated image has the same batch timestamp
-          const batchImage: GeneratedImage = {
-            ...newImage,
-            batchTimestamp: new Date(batchTimestamp),
-          };
-          generatedImages.push(batchImage);
+          const {success, data, message} = await imageService.generateImage(
+            prompt,
+            settings,
+          );
 
-          // Replace the placeholder with the actual image
-          set(state => ({
-            currentGenerationBatch: state.currentGenerationBatch.map(
-              (img, index) => (index === i ? batchImage : img),
-            ),
-          }));
+          if (success && data) {
+            // Ensure the generated image has the same batch timestamp
+            const batchImage: GeneratedImage = {
+              ...data,
+              batchTimestamp: new Date(batchTimestamp),
+            };
+            generatedImages.push(batchImage);
+
+            const user = useAuthStore().user;
+            if (!user) {
+              set({error: 'Unauthenticated: User must be logged in'});
+              return false;
+            }
+
+            userService.saveUser({
+              ...user,
+              statistics: {
+                ...user.statistics,
+                imagesGenerated: user.statistics.imagesGenerated + 1,
+              },
+              quota: {
+                ...user.quota,
+                imagesRemaining: user.quota.imagesRemaining - 1,
+              },
+            });
+
+            // Replace the placeholder with the actual image
+            set(state => ({
+              currentGenerationBatch: state.currentGenerationBatch.map(
+                (img, index) => (index === i ? batchImage : img),
+              ),
+            }));
+          } else {
+            console.error(
+              `Failed to generate image ${i + 1} of ${settings.batchCount}:`,
+              message,
+            );
+            set(state => ({
+              error: message || 'Image generation failed',
+              currentGenerationBatch: state.currentGenerationBatch.map(
+                (img, index) => (index === i ? placeholderImages[i] : img),
+              ),
+            }));
+          }
         } catch (imageError: any) {
           console.error(
-            `Error generating image ${i + 1} of ${batchCount}:`,
+            `Error generating image ${i + 1} of ${settings.batchCount}:`,
             imageError,
-          ); // Replace placeholder with error state - keep original placeholder
+          );
           set(state => ({
+            error: imageError.message || 'Image generation failed',
             currentGenerationBatch: state.currentGenerationBatch.map(
               (img, index) => (index === i ? placeholderImages[i] : img),
             ),
           }));
-
-          // Handle specific error types
-          let errorMessage = 'Failed to generate image';
-
-          if (imageError?.response?.status === 503) {
-            errorMessage =
-              'Image generation service is temporarily unavailable. Please try again in a few minutes.';
-          } else if (imageError?.response?.status === 504) {
-            errorMessage =
-              'Image generation timed out. Please try with a simpler prompt or try again later.';
-          } else if (imageError?.response?.status === 401) {
-            errorMessage = 'Authentication failed. Please log in again.';
-          } else if (imageError?.response?.status === 429) {
-            errorMessage =
-              'Generation quota exceeded. Please wait or upgrade your plan.';
-          } else if (imageError?.response?.data?.message) {
-            errorMessage = imageError.response.data.message;
-          } else if (imageError?.message) {
-            errorMessage = imageError.message;
-          }
-
-          set({error: errorMessage});
-          break;
         }
-      } // Only refresh images list if we successfully generated at least one image
+      }
+
+      // Only refresh images list if we successfully generated at least one image
       if (generatedImages.length > 0) {
         console.log(
           '🏪 Store: Successfully generated',
           generatedImages.length,
           'images, refreshing list in 2 seconds...',
         );
-
-        // Refresh quota once after the entire batch is completed
-        if (onQuotaUpdate) {
-          onQuotaUpdate();
-        }
 
         // Refresh the images list to get the proper server data
         setTimeout(() => {
@@ -327,15 +293,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       return generatedImages.length > 0;
     } catch (error: any) {
       console.error('Failed to generate image batch:', error);
-
-      let errorMessage = 'Failed to generate image batch';
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      set({error: errorMessage});
+      set({error: 'Failed to generate image'});
       return false;
     } finally {
       set({isLoading: false});
@@ -392,7 +350,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
 
   updatePrivacy: async (imageId: string, isPrivate: boolean) => {
     try {
-      const success = await imageService.updatePrivacy(imageId, isPrivate);
+      const {success} = await imageService.updatePrivacy(imageId, isPrivate);
 
       if (success) {
         set(state => ({
@@ -418,6 +376,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   clearCurrentBatch: () => {
     set({currentGenerationBatch: []});
   },
+
   clearImages: () => {
     set({
       images: [],
@@ -431,6 +390,8 @@ export const useImageStore = create<ImageState>()((set, get) => ({
 
 // Auto-clear images when auth state changes
 import {useAuthStore} from './authStore';
+import userService from '@src/services/userService';
+import {ImageGenerationRequest} from '@src/types/image';
 
 let lastAuthState = useAuthStore.getState().user;
 
