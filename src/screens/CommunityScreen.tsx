@@ -396,6 +396,7 @@ const CommunityScreen = () => {
           numColumns={NUM_COLUMNS}
           renderItem={renderImageItem}
           estimatedItemSize={200}
+          removeClippedSubviews={true}
           className="rounded-3xl"
           contentContainerStyle={{paddingHorizontal: SPACING}}
           contentContainerClassName="pb-24 pt-6"

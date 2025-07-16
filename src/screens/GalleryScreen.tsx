@@ -544,6 +544,7 @@ const GalleryScreen = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             className="pb-2"
+            removeClippedSubviews={true}
             contentContainerStyle={{paddingHorizontal: 2}}>
             {uniqueStyles().map(style => (
               <TouchableOpacity
@@ -600,6 +601,7 @@ const GalleryScreen = () => {
           numColumns={NUM_COLUMNS}
           renderItem={renderItem}
           estimatedItemSize={250}
+          removeClippedSubviews={true}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           contentContainerStyle={{
