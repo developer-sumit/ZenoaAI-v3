@@ -60,6 +60,7 @@ export const useAnimations = () => {
       useNativeDriver: true,
     }).start();
   };
+
   const animatePulse = (
     animatedValue: Animated.Value = scaleValue,
     duration: number = 1000,

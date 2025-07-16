@@ -1,5 +1,5 @@
 import crashlytics from '@react-native-firebase/crashlytics';
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 
 export const crashlyticsService = {
   /**

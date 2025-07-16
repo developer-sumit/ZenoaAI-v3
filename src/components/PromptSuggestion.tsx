@@ -228,6 +228,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
         {/* Categories */}
         <ScrollView
           className="px-5"
+          removeClippedSubviews={true}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{paddingBottom: 30}}>
           {samplePrompts.map((category, index) => (

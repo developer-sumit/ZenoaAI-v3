@@ -91,8 +91,8 @@ android {
         applicationId "com.sumit.zenoaai"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "3.0.0"
+        versionCode 10
+        versionName "3.1.1"
         missingDimensionStrategy "store", "play"
         resConfigs "en"
     }
@@ -113,7 +113,9 @@ android {
     }
     splits {
         abi {
-            enable true
+            // Only enable splits for APK builds, not for bundle builds (AAB)
+            def isBuildingBundle = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
+            enable !isBuildingBundle
             reset()
             include "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
             universalApk true
@@ -147,7 +149,10 @@ android {
         }
     }
 
+    // Packaging options to exclude duplicate and unnecessary files from APK/AAB.
+    // This helps prevent "duplicate files" errors during build and reduces APK size.
     packagingOptions {
+        // Common license and metadata files
         exclude 'META-INF/DEPENDENCIES'
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/LICENSE.txt'
@@ -156,7 +161,36 @@ android {
         exclude 'META-INF/NOTICE.txt'
         exclude 'META-INF/notice.txt'
         exclude 'META-INF/ASL2.0'
+        exclude 'META-INF/AL2.0'
+        exclude 'META-INF/AL2.0.txt'
+        exclude 'META-INF/AL2.0.md'
+        exclude 'META-INF/LGPL2.1'
+        exclude 'META-INF/LGPL2.1.txt'
+        exclude 'META-INF/LGPL2.1.md'
+        // Kotlin/Multiplatform metadata
         exclude 'META-INF/*.kotlin_module'
+        exclude 'META-INF/*.kotlin_mpp_module'
+        exclude 'META-INF/*.kotlin_eccodule'
+        // Additional common excludes for duplicate errors
+        exclude 'META-INF/gradle/incremental.annotation.processors'
+        exclude 'META-INF/proguard/androidx-annotations.pro'
+        exclude 'META-INF/com.android.tools/proguard/coroutines.pro'
+        exclude 'META-INF/com.android.tools/proguard/jetifier-androidx.pro'
+        exclude 'META-INF/com.android.tools/proguard/jetifier-core.pro'
+        exclude 'META-INF/com.android.tools/proguard/jetifier-processor.pro'
+        exclude 'META-INF/io.netty.versions.properties'
+        exclude 'META-INF/INDEX.LIST'
+        exclude 'META-INF/io.netty.versions.properties'
+        exclude 'META-INF/native-image/**'
+        exclude 'META-INF/versions/9/previous-compilation-data.bin'
+        // Exclude duplicate module info files
+        exclude 'module-info.class'
+        // Exclude any other duplicate files as needed
+        exclude 'META-INF/*.version'
+        exclude 'META-INF/*.properties'
+        exclude 'META-INF/*.SF'
+        exclude 'META-INF/*.DSA'
+        exclude 'META-INF/*.RSA'
     }
 }
 
@@ -167,7 +201,7 @@ dependencies {
 
     implementation platform('com.google.firebase:firebase-bom:33.10.0')
     implementation('com.google.firebase:firebase-analytics')
-    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation('com.google.firebase:firebase-crashlytics')
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

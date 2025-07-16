@@ -4,7 +4,6 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
   TextInput,
   ScrollView,
   Animated,
@@ -15,10 +14,11 @@ import {MasonryFlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 import {useToast} from '@masumdev/rn-toast';
 
+import {SCREEN_WIDTH} from '@src/constants';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import ImageViewer from '@src/components/ImageViewer';
@@ -31,7 +31,6 @@ import HeartIcon from '@src/assets/icons/HeartIcon';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
 
 // Constants
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
 const SPACING = 12;
 const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
@@ -86,16 +85,11 @@ const GalleryScreen = () => {
         filtered = filtered.filter(img => img.isFavorite);
       }
 
-      // Apply search query filter - search by prompt or ID
+      // Apply search query filter - search by prompt
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(img => {
-          const searchablePrompt = img.prompt || '';
-          return (
-            img.id.toLowerCase().includes(query) ||
-            searchablePrompt.toLowerCase().includes(query) ||
-            searchablePrompt.toLowerCase().includes(query)
-          );
+          return img.prompt.toLowerCase().includes(query);
         });
       }
 
@@ -117,6 +111,7 @@ const GalleryScreen = () => {
       loadMoreImages();
     }
   }, [isLoadingMore, hasMoreImages, loadMoreImages]);
+
   // Footer component for loading more
   const LoadingFooter = useMemo(() => {
     if (!isLoadingMore) {
@@ -139,10 +134,6 @@ const GalleryScreen = () => {
     setRefreshing(false);
   }, [fetchImages]);
 
-  const handleRefresh = useCallback(() => {
-    refreshImages();
-  }, [refreshImages]);
-
   const handleToggleFavorite = useCallback(
     async (image: GeneratedImage) => {
       // Haptic feedback for favorite action
@@ -151,6 +142,16 @@ const GalleryScreen = () => {
       if (!user?.uid) {
         showToast('Please log in to favorite images', 'error');
         return;
+      }
+
+      if (selectedImage?.id === image.id) {
+        setSelectedImage({
+          ...selectedImage,
+          favoriteCount: selectedImage.favoriteCount
+            ? selectedImage.favoriteCount + (image.isFavorite ? -1 : 1)
+            : 1,
+          isFavorite: !selectedImage.isFavorite,
+        });
       }
 
       try {
@@ -171,10 +172,22 @@ const GalleryScreen = () => {
           );
         } else {
           showToast('Failed to update favorite', 'error');
+          if (selectedImage?.id === image.id) {
+            setSelectedImage({
+              ...selectedImage,
+              isFavorite: !selectedImage.isFavorite,
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to toggle favorite:', error);
         showToast('Failed to update favorite', 'error');
+        if (selectedImage?.id === image.id) {
+          setSelectedImage({
+            ...selectedImage,
+            isFavorite: !selectedImage.isFavorite,
+          });
+        }
       }
     },
     [user?.uid, storeToggleFavorite, selectedImage],
@@ -185,7 +198,6 @@ const GalleryScreen = () => {
     (tab: 'all' | 'favorites') => {
       // Haptic feedback for tab switch
       triggerHaptic('selection');
-
       setActiveTab(tab);
       console.log(
         `Switched to ${tab} tab, favorites count: ${
@@ -314,10 +326,12 @@ const GalleryScreen = () => {
               {/* Image Overlay for Style Tag */}
               <View
                 className="absolute bottom-0 left-0 right-0 p-2 flex-row justify-between items-center"
-                style={{backgroundColor: 'rgba(0,0,0,0.3)'}}>
+                style={{backgroundColor: theme.surface + 'df'}}>
                 {/* Style Tag */}
                 {item.styles && item.styles.length > 0 && (
-                  <Text className="text-xs text-white">
+                  <Text
+                    className="text-xs font-semibold ml-1.5"
+                    style={{color: theme.text}}>
                     {item.styles[0]}
                     {item.styles.length > 1
                       ? ` +${item.styles.length - 1}`
@@ -328,34 +342,24 @@ const GalleryScreen = () => {
             </View>
           </TouchableOpacity>
           {/* Favorite Button */}
-          <View className="absolute top-2 right-2 flex-row items-center">
-            {/* Favorite Count (if greater than 0) */}
-            {item.favoriteCount && item.favoriteCount > 0 && (
-              <View className="mr-1 px-2 py-1 rounded-full bg-black/60">
-                <Text className="text-white text-xs font-medium">
-                  {item.favoriteCount}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              onPress={() => handleToggleFavorite(item)}
-              className="p-2.5 rounded-full bg-black/40"
-              hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
-              accessible={true}
-              accessibilityLabel={
-                item.isFavorite
-                  ? strings.imageViewer.removeFavourite
-                  : strings.imageViewer.addFavourite
-              }
-              accessibilityRole="button">
-              <HeartIcon
-                size={20}
-                color="white"
-                fill={item.isFavorite ? '#FF4B8C' : 'transparent'}
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => handleToggleFavorite(item)}
+            className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
+            hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+            accessible={true}
+            accessibilityLabel={
+              item.isFavorite
+                ? strings.imageViewer.removeFavourite
+                : strings.imageViewer.addFavourite
+            }
+            accessibilityRole="button">
+            <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+            <Text
+              className="text-sm font-medium ml-1"
+              style={{color: theme.text}}>
+              {item.favoriteCount ? item.favoriteCount : 0}
+            </Text>
+          </TouchableOpacity>
         </View>
       );
     },
@@ -540,6 +544,7 @@ const GalleryScreen = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             className="pb-2"
+            removeClippedSubviews={true}
             contentContainerStyle={{paddingHorizontal: 2}}>
             {uniqueStyles().map(style => (
               <TouchableOpacity
@@ -596,6 +601,7 @@ const GalleryScreen = () => {
           numColumns={NUM_COLUMNS}
           renderItem={renderItem}
           estimatedItemSize={250}
+          removeClippedSubviews={true}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           contentContainerStyle={{
@@ -608,7 +614,7 @@ const GalleryScreen = () => {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refreshImages}
               colors={[theme.primary]}
               tintColor={theme.primary}
             />

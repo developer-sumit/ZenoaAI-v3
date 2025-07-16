@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 import {authAPI} from './axiosServer';
 import {notificationService} from './notificationService';
 
@@ -95,6 +95,10 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
         planType: apiUser.planType || 'free',
         quota: {
           imagesRemaining: apiUser.quota?.imagesRemaining || 0, // Default for free plan
+          lastRefreshedAt: apiUser.quota?.lastRefreshedAt,
+          planLimits: {
+            totalImages: apiUser.quota?.planLimits?.totalImages || 0,
+          },
         },
         statistics: {
           lastLoginAt: apiUser.statistics?.lastLoginAt

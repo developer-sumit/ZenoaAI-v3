@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
@@ -160,8 +160,8 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
         isPlaceholder
           ? 'Image is being generated'
           : image.prompt
-          ? `Generated image of ${image.prompt}`
-          : strings.home.generationSuccess
+            ? `Generated image of ${image.prompt}`
+            : strings.home.generationSuccess
       }
       accessibilityHint={
         isPlaceholder

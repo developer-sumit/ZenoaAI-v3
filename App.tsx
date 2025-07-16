@@ -15,17 +15,18 @@ import './global.css';
 import React, {useEffect} from 'react';
 import Config from 'react-native-config';
 import auth from '@react-native-firebase/auth';
-import {StatusBar, AppState, AppStateStatus, BackHandler} from 'react-native';
+import {StatusBar, AppState, AppStateStatus} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {Toaster} from '@masumdev/rn-toast';
+import {enableScreens} from 'react-native-screens';
 import {SystemBars} from 'react-native-edge-to-edge';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
 
-import {User} from '@src/types';
+import {User} from '@src/types/user';
 import Routes from '@src/constants/routes';
 import CustomTabBar from '@src/components/CustomTabBar';
 
@@ -44,11 +45,13 @@ import {notificationService} from '@src/services/notificationService';
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
-import ProfileScreen from '@src/screens/ProfileScreen';
+import SettingsScreen from '@src/screens/SettingsScreen';
 import GalleryScreen from '@src/screens/GalleryScreen';
 import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
+
+enableScreens();
 
 GoogleSignin.configure({
   webClientId: Config.GOOGLE_WEB_CLIENT_ID,
@@ -67,16 +70,8 @@ function ProfileStack() {
         gestureEnabled: true,
         animationTypeForReplace: 'push',
       }}>
-      <Stack.Screen
-        name={Routes.SETTINGS}
-        component={ProfileScreen}
-        options={{gestureEnabled: false}} // Disable swipe gesture on profile screen
-      />
-      <Stack.Screen
-        name={Routes.EDIT_PROFILE}
-        component={EditProfileScreen}
-        options={{gestureEnabled: true}}
-      />
+      <Stack.Screen name={Routes.SETTINGS} component={SettingsScreen} />
+      <Stack.Screen name={Routes.EDIT_PROFILE} component={EditProfileScreen} />
     </Stack.Navigator>
   );
 }
@@ -111,37 +106,7 @@ function App() {
     logout,
   } = useAuthStore();
 
-  // Navigation ref for programmatic navigation
-  const navigationRef = React.useRef<any>(null);
-
   SystemBars.setHidden(true);
-  // Handle Android back button
-  useEffect(() => {
-    const backAction = () => {
-      // Check if navigation ref is available and can go back
-      if (navigationRef.current?.canGoBack()) {
-        navigationRef.current.goBack();
-        return true; // Prevent default behavior (closing app)
-      }
-
-      // If at root screen and user is logged in, don't close app immediately
-      // This prevents accidental app closure
-      if (user && !isLoading) {
-        // You could show a "Press back again to exit" toast here
-        console.log('At root screen, allowing app to close');
-        return false; // Allow default behavior (close app)
-      }
-
-      return false; // Allow default behavior
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction,
-    );
-
-    return () => backHandler.remove();
-  }, [user, isLoading]); // Add dependencies to re-register when state changes
 
   // Set up auth state listener
   useEffect(() => {
@@ -178,9 +143,9 @@ function App() {
         // User just signed in or session was restored
         try {
           // Get user data using the updated User interface
-          let userData = await userService.getUser(authUser.uid);
+          const {data} = await userService.getUser(authUser.uid);
 
-          if (!userData) {
+          if (!data || data === null) {
             // Create a new user profile using the updated User interface
             const newUser: User = {
               uid: authUser.uid,
@@ -199,8 +164,11 @@ function App() {
                 totalLogins: 1,
               },
               quota: {
-                imagesRemaining: 40,
+                imagesRemaining: 15,
                 lastRefreshedAt: new Date(),
+                planLimits: {
+                  totalImages: 15,
+                },
               },
             };
 
@@ -208,7 +176,7 @@ function App() {
             await login(newUser);
           } else {
             // Update existing user with fresh info
-            await login(userData);
+            await login(data);
           }
         } catch (error) {
           console.error('Error handling auth state change:', error);
@@ -303,7 +271,6 @@ function App() {
         />
 
         <NavigationContainer
-          ref={navigationRef}
           onStateChange={state => {
             // Optional: Log navigation state changes for debugging
             console.log('Navigation state changed:', state);
@@ -317,43 +284,19 @@ function App() {
               <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
             </Stack.Navigator>
           ) : (
-            <Stack.Navigator
-              screenOptions={{
-                headerShown: false,
-                // Enable gestures for better navigation experience
-                gestureEnabled: true,
-              }}>
+            <Stack.Navigator screenOptions={{headerShown: false}}>
               {user ? (
-                <Stack.Screen
-                  name={Routes.MAIN}
-                  component={HomeTabs}
-                  options={{
-                    // Prevent going back to login after successful login
-                    headerLeft: () => null,
-                    gestureEnabled: false,
-                  }}
-                />
+                <>
+                  <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
+                  <Stack.Screen
+                    name={Routes.ADVANCED_SETTINGS}
+                    component={AdvancedSettingsScreen}
+                    options={{headerShown: false, gestureEnabled: true}}
+                  />
+                </>
               ) : (
-                <Stack.Screen
-                  name={Routes.SIGN_IN}
-                  component={LoginScreen}
-                  options={{
-                    // Prevent going back on login screen
-                    headerLeft: () => null,
-                    gestureEnabled: false,
-                  }}
-                />
+                <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
               )}
-              <Stack.Screen
-                name={Routes.ADVANCED_SETTINGS}
-                component={(props: any) => (
-                  <AdvancedSettingsScreen {...props} />
-                )}
-                options={{
-                  headerShown: false,
-                  gestureEnabled: true,
-                }}
-              />
             </Stack.Navigator>
           )}
         </NavigationContainer>

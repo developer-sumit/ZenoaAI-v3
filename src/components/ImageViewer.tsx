@@ -17,8 +17,9 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Toaster, useToast} from '@masumdev/rn-toast';
 import {useNavigation} from '@react-navigation/native';
+import ImageView from "react-native-image-viewing";
 
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
@@ -26,12 +27,12 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import Routes from '@src/constants/routes';
 import appConfig from '@src/config/app.config';
+import {useGenerationStore} from '@src/store/generationStore';
 
 // Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import ContentCopyIcon from '@src/assets/icons/ContentCopyIcon';
 import DownloadIcon from '@src/assets/icons/DownloadIcon';
-import FullscreenIcon from '@src/assets/icons/FullscreenIcon';
 import DeleteOutlineIcon from '@src/assets/icons/DeleteOutlineIcon';
 import PaletteIcon from '@src/assets/icons/PaletteIcon';
 import ChevronUpIcon from '@src/assets/icons/ChevronUpIcon';
@@ -70,13 +71,23 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
-  const {deleteImage: storeDeleteImage} = useImageStore();
+  const {updatePrivacy, deleteImage: storeDeleteImage} = useImageStore();
+  const {
+    setPrompt,
+    setNegativePrompt,
+    setEngine,
+    setStyles,
+    setImageWidth,
+    setImageHeight,
+    setAspectRatio,
+  } = useGenerationStore();
   const navigation = useNavigation();
   const imageUri = image?.imageUrl || '';
 
   // Track if component is mounted to prevent state updates after unmount
   const isMounted = useRef(true);
 
+  const [isPrivate, setIsPrivate] = useState(image?.isPrivate || false);
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
@@ -137,6 +148,19 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen mode, current mode:', fullscreenMode);
     setFullscreenMode(!fullscreenMode);
+  };
+
+  const handlePrivacyUpdate = async () => {
+    triggerHaptic('light');
+    if (image) {
+      const res = await updatePrivacy(image?.id, !image.isPrivate);
+      if (res) {
+        showToast('Privacy updated successfully', 'success');
+        setIsPrivate(!image.isPrivate);
+      } else {
+        showToast('Failed to update privacy', 'error');
+      }
+    }
   };
 
   const handleDownloadPress = () => {
@@ -282,476 +306,500 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       return;
     }
 
-    // Close the image viewer first    onClose?.();
+    // Close the image viewer first
+    onClose?.();
 
     // Navigate to home screen with a slight delay to ensure modal is closed
     setTimeout(() => {
-      (navigation as any).navigate(Routes.HOME, {
-        remixData: {
-          prompt: image.prompt,
-          negativePrompt: image.negativePrompt,
-          engine: image.engineType,
-          styles: image.styles,
-          width: image.width,
-          height: image.height,
-          aspectRatio: image.aspectRatio,
-        },
-      });
+      setPrompt(image.prompt);
+      setNegativePrompt(image.negativePrompt || '');
+      setEngine(image.engineType);
+      setStyles(image.styles || []);
+      setImageWidth(image.width);
+      setImageHeight(image.height);
+      setAspectRatio(image.aspectRatio);
+
+      navigation.navigate(Routes.HOME as never);
     }, 100);
   };
 
   return (
     <>
-      <Modal
-        visible={!!image}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          if (fullscreenMode) {
-            setFullscreenMode(false);
-          } else {
-            onClose?.();
-          }
-        }}
-        statusBarTranslucent>
-        <BlurView
-          style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+      {!fullscreenMode ? (
+        <Modal
+          visible={!!image}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            if (fullscreenMode) {
+              setFullscreenMode(false);
+            } else {
+              onClose?.();
+            }
           }}
-          blurType={isDark ? 'dark' : 'light'}
-          blurAmount={fullscreenMode ? 0 : 20}
-        />
+          statusBarTranslucent>
+          <BlurView
+            style={{
+              flex: 1,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            blurType={isDark ? 'dark' : 'light'}
+            blurAmount={fullscreenMode ? 0 : 20}
+          />
 
-        <SafeAreaView
-          className="flex-1"
-          style={{
-            padding: fullscreenMode ? 0 : 16,
-            paddingTop: fullscreenMode ? 0 : 0,
-            backgroundColor: fullscreenMode ? 'black' : 'transparent',
-          }}>
-          {/* Header - only visible in normal mode */}
-          {!fullscreenMode && (
-            <View className="flex-row justify-between items-center mb-4">
-              <TouchableOpacity
-                onPress={onClose}
-                className="p-2.5 rounded-full"
-                style={{backgroundColor: theme.surface}}
-                accessible={true}
-                accessibilityLabel={strings.imageViewer.closeHint}>
-                <CloseIcon size={24} color={theme.text} />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Image Display - takes full screen in fullscreen mode */}
-          <View
-            className={`${
-              fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4'
-            } justify-center overflow-hidden`}
-            style={[!fullscreenMode && expandedPrompt ? {flex: 0.7} : {}]}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={toggleFullscreen}
-              className="w-full h-full justify-center items-center"
-              accessible={true}
-              accessibilityLabel={`Image of ${
-                image?.prompt || 'generated content'
-              }`}
-              accessibilityHint="">
-              <FastImage
-                source={{
-                  uri: imageUri,
-                  priority: FastImage.priority.high,
-                  cache: FastImage.cacheControl.immutable,
-                  headers: {'Cache-Control': 'max-age=31536000'},
-                }}
-                style={{
-                  borderRadius: fullscreenMode ? 0 : 24,
-                  width: '100%',
-                  height: '100%',
-                  aspectRatio: fullscreenMode ? undefined : getAspectRatio(),
-                  backgroundColor: 'transparent',
-                }}
-                resizeMode={FastImage.resizeMode.contain}
-                onLoadStart={() => {
-                  console.log('Image load started');
-                  if (!imageLoaded) {
-                    setImageLoaded(false);
-                  }
-                }}
-                onLoad={() => {
-                  console.log('Image loaded successfully');
-                  setImageLoaded(true);
-                  setImageLoadFailed(false);
-                }}
-                onError={() => {
-                  console.error('Image load error!');
-                  setImageLoadFailed(true);
-                  setImageLoaded(false);
-                }}
-              />
-              {/* Overlay buttons - only in normal mode */}
-              {imageLoaded && !fullscreenMode && (
-                <View className="absolute top-2.5 right-2.5 flex-row gap-2">
-                  {/* Favorite Button */}
-                  <View className="items-center">
-                    <TouchableOpacity
-                      onPress={() => {
-                        triggerHaptic('light');
-                        if (onToggleFavorite) {
-                          onToggleFavorite();
-                        }
-                      }}
-                      className="bg-black/40 rounded-3xl p-2"
-                      accessible={true}
-                      accessibilityLabel={
-                        image?.isFavorite
-                          ? 'Remove from favorites'
-                          : 'Add to favorites'
-                      }>
-                      <HeartIcon
-                        size={24}
-                        color={image?.isFavorite ? '#FF4B8C' : 'white'}
-                        fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
-                      />
-                    </TouchableOpacity>
-
-                    {/* Favorite Count */}
-                    {image?.favoriteCount && image.favoriteCount > 0 && (
-                      <View className="mt-1 px-2 py-0.5 bg-black/40 rounded-full">
-                        <Text className="text-white text-xs font-medium">
-                          {image.favoriteCount}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  {/* Fullscreen Button */}
-                  <View className="bg-black/40 rounded-3xl p-2">
-                    <FullscreenIcon size={24} color="white" />
-                  </View>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {/* Loading indicator */}
-            {!imageLoaded && !imageLoadFailed && (
-              <View className="absolute inset-0 justify-center items-center">
-                <ActivityIndicator
-                  color={fullscreenMode ? 'white' : theme.primary}
-                  size="large"
-                />
-                <Text
-                  className="mt-3 text-base"
-                  style={{color: fullscreenMode ? 'white' : theme.text}}>
-                  {strings.imageViewer.loading}
-                </Text>
-              </View>
-            )}
-
-            {/* Image load error */}
-            {imageLoadFailed && (
-              <View className="absolute inset-0 justify-center items-center">
-                <Text
-                  style={{color: fullscreenMode ? 'white' : theme.text}}
-                  className="text-base mb-3">
-                  {strings.imageViewer.loadingError}
-                </Text>
+          <SafeAreaView
+            className="flex-1"
+            style={{
+              padding: fullscreenMode ? 0 : 16,
+              paddingTop: fullscreenMode ? 0 : 0,
+              backgroundColor: fullscreenMode ? 'black' : 'transparent',
+            }}>
+            {/* Header - only visible in normal mode */}
+            {!fullscreenMode && (
+              <View className="flex-row justify-between items-center mb-4">
                 <TouchableOpacity
-                  onPress={() => {
-                    triggerHaptic('light');
-                    setImageLoadFailed(false);
-                    setImageLoaded(false);
-                    // Force reload
-                    FastImage.preload([
-                      {
-                        uri: imageUri + '?reload=' + Date.now(),
-                        priority: FastImage.priority.high,
-                      },
-                    ]);
-                  }}
-                  className="px-4 py-2 rounded-full"
-                  style={{
-                    backgroundColor: fullscreenMode
-                      ? 'white/20'
-                      : theme.primary + '40',
-                  }}>
-                  <Text
-                    style={{color: fullscreenMode ? 'white' : theme.primary}}>
-                    {strings.common.retry}
-                  </Text>
+                  onPress={onClose}
+                  className="p-2.5 rounded-full"
+                  style={{backgroundColor: theme.surface}}
+                  accessible={true}
+                  accessibilityLabel={strings.imageViewer.closeHint}>
+                  <CloseIcon size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
             )}
-          </View>
 
-          {/* Exit fullscreen button - only in fullscreen mode */}
-          {fullscreenMode && (
-            <TouchableOpacity
-              onPress={() => {
-                triggerHaptic('selection');
-                setFullscreenMode(false);
-              }}
-              className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
-              style={{top: StatusBar.currentHeight || 40}}
-              accessible={true}
-              accessibilityLabel={strings.imageViewer.exitFullscreen}
-              accessibilityRole="button">
-              <CloseIcon size={28} color="white" />
-            </TouchableOpacity>
-          )}
-
-          {/* Metadata Panel - only visible in normal mode */}
-          {!fullscreenMode && (
+            {/* Image Display - takes full screen in fullscreen mode */}
             <View
-              className="rounded-3xl p-4 mb-4"
-              style={{backgroundColor: theme.background}}>
-              {/* Prompt with expansion toggle */}
-              <View className="flex-row justify-between items-start mb-4">
-                <Text
-                  className={`text-base font-semibold flex-1 ${
-                    !expandedPrompt ? 'max-h-[66px]' : ''
-                  }`}
-                  style={{color: theme.primary}}
-                  numberOfLines={expandedPrompt ? undefined : 3}
-                  onPress={togglePromptExpansion}
-                  accessible={true}
-                  accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
-                  accessibilityHint={strings.imageViewer.promptHint}>
-                  {image?.prompt || ''}
-                </Text>
-                <View className="flex-row items-center">
-                  <TouchableOpacity
-                    onPress={togglePromptExpansion}
-                    className="p-1"
-                    accessible={true}
-                    accessibilityLabel={
-                      expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
-                    }>
-                    {expandedPrompt ? (
-                      <ChevronUpIcon size={18} color={theme.secondaryText} />
-                    ) : (
-                      <ChevronDownIcon size={18} color={theme.secondaryText} />
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => copyToClipboard(image?.prompt || '')}
-                    className="p-1 ml-2"
-                    accessible={true}
-                    accessibilityLabel={strings.imageViewer.copyPrompt}>
-                    <ContentCopyIcon size={18} color={theme.secondaryText} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {/* Metadata Grid */}
-              <View className="flex-row flex-wrap gap-3">
-                {/* Engine - Top priority */}
-                <MetadataItem
-                  icon="tune"
-                  label="Engine"
-                  value={image?.engineType ? `${image.engineType}` : 'Quantum'}
+              className={`${
+                fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4'
+              } justify-center overflow-hidden`}
+              style={[!fullscreenMode && expandedPrompt ? {flex: 0.7} : {}]}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={toggleFullscreen}
+                className="w-full h-full justify-center items-center"
+                accessible={true}
+                accessibilityLabel={`Image of ${
+                  image?.prompt || 'generated content'
+                }`}
+                accessibilityHint="">
+                <FastImage
+                  source={{
+                    uri: imageUri,
+                    priority: FastImage.priority.high,
+                    cache: FastImage.cacheControl.immutable,
+                    headers: {'Cache-Control': 'max-age=31536000'},
+                  }}
+                  style={{
+                    borderRadius: fullscreenMode ? 0 : 24,
+                    width: '100%',
+                    height: '100%',
+                    aspectRatio: fullscreenMode ? undefined : getAspectRatio(),
+                    backgroundColor: 'transparent',
+                  }}
+                  resizeMode={FastImage.resizeMode.contain}
+                  onLoadStart={() => {
+                    console.log('Image load started');
+                    if (!imageLoaded) {
+                      setImageLoaded(false);
+                    }
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully');
+                    setImageLoaded(true);
+                    setImageLoadFailed(false);
+                  }}
+                  onError={() => {
+                    console.error('Image load error!');
+                    setImageLoadFailed(true);
+                    setImageLoaded(false);
+                  }}
                 />
-                {/* Image Dimensions - Top priority */}
-                <MetadataItem
-                  icon="dimensions"
-                  label="Dimensions"
-                  value={`${image?.width || 0} x ${image?.height || 0}`}
-                />
-                {/* Privacy Status */}
-                <MetadataItem
-                  icon="privacy"
-                  label="Visibility"
-                  value={image?.isPrivate ? 'Private' : 'Public'}
-                />
-                {/* Seed */}
-                <MetadataItem
-                  icon="seed"
-                  label={strings.advancedSettings.featureInfo.seed.title}
-                  value={image?.seed.toString() || ''}
-                  onCopy={() => copyToClipboard(image?.seed.toString() || '')}
-                />
-                {/* Aspect Ratio */}
-                <MetadataItem
-                  icon="aspect-ratio"
-                  label="Aspect Ratio"
-                  value={image?.aspectRatio || '1:1'}
-                />
-                {/* Created At */}
-                {image?.createdAt && (
-                  <MetadataItem
-                    icon="privacy"
-                    label="Created"
-                    value={new Date(image.createdAt).toLocaleDateString()}
-                  />
-                )}
-              </View>
-
-              {/* Negative Prompt Section */}
-              {image?.negativePrompt && image.negativePrompt.trim() && (
-                <View className="mt-4">
-                  <Text
-                    className="text-sm font-medium mb-2"
-                    style={{color: theme.text}}>
-                    Negative Prompt
-                  </Text>
-                  <View
-                    className="rounded-2xl p-3"
-                    style={{backgroundColor: theme.surface}}>
-                    <Text
-                      className="text-sm leading-5"
-                      style={{color: theme.secondaryText}}>
-                      {image.negativePrompt}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Style Chips */}
-              {image?.styles && image.styles.length > 0 && (
-                <View className="mt-4">
-                  {/* Header with expand/collapse toggle */}
-                  <View className="flex-row items-center justify-between mb-2">
-                    <Text
-                      className="text-sm font-medium"
-                      style={{color: theme.text}}>
-                      {strings.advancedSettings.featureInfo.artStyles.title} (
-                      {image.styles.length})
-                    </Text>
-                    {image.styles.length > 3 && (
+                {/* Overlay buttons - only in normal mode */}
+                {imageLoaded && !fullscreenMode && (
+                  <View className="absolute top-2.5 right-2.5 flex-row gap-2">
+                    {/* Favorite Button */}
+                    <View className="items-center">
                       <TouchableOpacity
-                        onPress={() => setExpandedStyles(!expandedStyles)}
-                        className="p-1"
+                        onPress={() => {
+                          triggerHaptic('light');
+                          if (onToggleFavorite) {
+                            onToggleFavorite();
+                          }
+                        }}
+                        className="bg-white rounded-2xl px-2.5 py-2 flex-row items-center gap-2 border-2 border-gray-900"
                         accessible={true}
                         accessibilityLabel={
-                          expandedStyles ? 'Collapse styles' : 'Expand styles'
+                          image?.isFavorite
+                            ? 'Remove from favorites'
+                            : 'Add to favorites'
                         }>
-                        {expandedStyles ? (
-                          <ChevronUpIcon
-                            size={18}
-                            color={theme.secondaryText}
-                          />
-                        ) : (
-                          <ChevronDownIcon
-                            size={18}
-                            color={theme.secondaryText}
-                          />
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* Style chips */}
-                  <View className="flex-row flex-wrap gap-2">
-                    {image.styles
-                      .slice(0, expandedStyles ? image.styles.length : 3)
-                      .map(style => (
-                        <View
-                          key={style}
-                          className="flex-row items-center rounded-full px-3 py-1.5"
-                          style={{backgroundColor: theme.primary + '20'}}>
-                          <PaletteIcon size={14} color={theme.primary} />
-                          <Text
-                            className="ml-1 text-sm"
-                            style={{color: theme.primary}}>
-                            {style}
-                          </Text>
-                        </View>
-                      ))}
-                    {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
-                    {!expandedStyles && image.styles.length > 3 && (
-                      <TouchableOpacity
-                        onPress={() => setExpandedStyles(true)}
-                        className="flex-row items-center rounded-full px-3 py-1.5"
-                        style={{backgroundColor: theme.secondaryText + '20'}}>
+                        <HeartIcon
+                          size={24}
+                          color={image?.isFavorite ? '#FF4B8C' : '#121212'}
+                          fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
+                        />
                         <Text
-                          className="text-sm"
-                          style={{color: theme.secondaryText}}>
-                          +{image.styles.length - 3} {strings.common.more}
+                          className="font-bold text-lg"
+                          style={{
+                            color: image?.isFavorite ? '#FF4B8C' : '#121212',
+                          }}>
+                          {image?.favoriteCount ? image.favoriteCount : 0}
                         </Text>
                       </TouchableOpacity>
-                    )}
+                    </View>
+                    {/* Privacy Button */}
+                    {image?.userId === user?.uid &&
+                      user?.planType !== 'free' && (
+                        <TouchableOpacity
+                          className="bg-white rounded-2xl p-2 border-2 border-gray-900 items-center justify-center"
+                          onPress={handlePrivacyUpdate}>
+                          <Text
+                            className="font-bold"
+                            style={{
+                              color: isPrivate ? '#FF4B8C' : '#14B8A6',
+                            }}>
+                            {isPrivate ? 'Private' : 'Public'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                   </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Loading indicator */}
+              {!imageLoaded && !imageLoadFailed && (
+                <View className="absolute inset-0 justify-center items-center">
+                  <ActivityIndicator
+                    color={fullscreenMode ? 'white' : theme.primary}
+                    size="large"
+                  />
+                  <Text
+                    className="mt-3 text-base"
+                    style={{color: fullscreenMode ? 'white' : theme.text}}>
+                    {strings.imageViewer.loading}
+                  </Text>
                 </View>
               )}
 
-              {/* Action Buttons */}
-              <View className="flex-row justify-between mt-5 gap-1.5">
-                {/* Delete Button - Only show if image belongs to current user */}
-                {user?.uid && image?.userId === user.uid && (
+              {/* Image load error */}
+              {imageLoadFailed && (
+                <View className="absolute inset-0 justify-center items-center">
+                  <Text
+                    style={{color: fullscreenMode ? 'white' : theme.text}}
+                    className="text-base mb-3">
+                    {strings.imageViewer.loadingError}
+                  </Text>
                   <TouchableOpacity
-                    onPress={handleDeletePress}
-                    disabled={deleting}
+                    onPress={() => {
+                      triggerHaptic('light');
+                      setImageLoadFailed(false);
+                      setImageLoaded(false);
+                      // Force reload
+                      FastImage.preload([
+                        {
+                          uri: imageUri + '?reload=' + Date.now(),
+                          priority: FastImage.priority.high,
+                        },
+                      ]);
+                    }}
+                    className="px-4 py-2 rounded-full"
+                    style={{
+                      backgroundColor: fullscreenMode
+                        ? 'white/20'
+                        : theme.primary + '40',
+                    }}>
+                    <Text
+                      style={{color: fullscreenMode ? 'white' : theme.primary}}>
+                      {strings.common.retry}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Exit fullscreen button - only in fullscreen mode */}
+            {fullscreenMode && (
+              <TouchableOpacity
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setFullscreenMode(false);
+                }}
+                className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
+                style={{top: StatusBar.currentHeight || 40}}
+                accessible={true}
+                accessibilityLabel={strings.imageViewer.exitFullscreen}
+                accessibilityRole="button">
+                <CloseIcon size={28} color="white" />
+              </TouchableOpacity>
+            )}
+
+            {/* Metadata Panel - only visible in normal mode */}
+            {!fullscreenMode && (
+              <View
+                className="rounded-3xl p-4 mb-4"
+                style={{backgroundColor: theme.background}}>
+                {/* Prompt with expansion toggle */}
+                <View className="flex-row justify-between items-start mb-4">
+                  <Text
+                    className={`text-base font-semibold flex-1 ${
+                      !expandedPrompt ? 'max-h-[66px]' : ''
+                    }`}
+                    style={{color: theme.primary}}
+                    numberOfLines={expandedPrompt ? undefined : 3}
+                    onPress={togglePromptExpansion}
+                    accessible={true}
+                    accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
+                    accessibilityHint={strings.imageViewer.promptHint}>
+                    {image?.prompt || ''}
+                  </Text>
+                  <View className="flex-row items-center">
+                    <TouchableOpacity
+                      onPress={togglePromptExpansion}
+                      className="p-1"
+                      accessible={true}
+                      accessibilityLabel={
+                        expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
+                      }>
+                      {expandedPrompt ? (
+                        <ChevronUpIcon size={18} color={theme.secondaryText} />
+                      ) : (
+                        <ChevronDownIcon
+                          size={18}
+                          color={theme.secondaryText}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => copyToClipboard(image?.prompt || '')}
+                      className="p-1 ml-2"
+                      accessible={true}
+                      accessibilityLabel={strings.imageViewer.copyPrompt}>
+                      <ContentCopyIcon size={18} color={theme.secondaryText} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {/* Metadata Grid */}
+                <View className="flex-row flex-wrap gap-3">
+                  {/* Engine - Top priority */}
+                  <MetadataItem
+                    icon="tune"
+                    label="Engine"
+                    value={
+                      image?.engineType ? `${image.engineType}` : 'Quantum'
+                    }
+                  />
+                  {/* Image Dimensions - Top priority */}
+                  <MetadataItem
+                    icon="dimensions"
+                    label="Dimensions"
+                    value={`${image?.width || 0} x ${image?.height || 0}`}
+                  />
+                  {/* Privacy Status */}
+                  <MetadataItem
+                    icon="privacy"
+                    label="Visibility"
+                    value={isPrivate ? 'Private' : 'Public'}
+                  />
+                  {/* Seed */}
+                  <MetadataItem
+                    icon="seed"
+                    label={strings.advancedSettings.featureInfo.seed.title}
+                    value={image?.seed.toString() || ''}
+                    onCopy={() => copyToClipboard(image?.seed.toString() || '')}
+                  />
+                  {/* Aspect Ratio */}
+                  <MetadataItem
+                    icon="aspect-ratio"
+                    label="Aspect Ratio"
+                    value={image?.aspectRatio || '1:1'}
+                  />
+                  {/* Created At */}
+                  {image?.createdAt && (
+                    <MetadataItem
+                      icon="privacy"
+                      label="Created"
+                      value={new Date(image.createdAt).toLocaleDateString()}
+                    />
+                  )}
+                </View>
+
+                {/* Negative Prompt Section */}
+                {image?.negativePrompt && image.negativePrompt.trim() && (
+                  <View className="mt-4">
+                    <Text
+                      className="text-sm font-medium mb-2"
+                      style={{color: theme.text}}>
+                      Negative Prompt
+                    </Text>
+                    <View
+                      className="rounded-2xl p-3"
+                      style={{backgroundColor: theme.surface}}>
+                      <Text
+                        className="text-sm leading-5"
+                        style={{color: theme.secondaryText}}>
+                        {image.negativePrompt}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Style Chips */}
+                {image?.styles && image.styles.length > 0 && (
+                  <View className="mt-4">
+                    {/* Header with expand/collapse toggle */}
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text
+                        className="text-sm font-medium"
+                        style={{color: theme.text}}>
+                        {strings.advancedSettings.featureInfo.artStyles.title} (
+                        {image.styles.length})
+                      </Text>
+                      {image.styles.length > 3 && (
+                        <TouchableOpacity
+                          onPress={() => setExpandedStyles(!expandedStyles)}
+                          className="p-1"
+                          accessible={true}
+                          accessibilityLabel={
+                            expandedStyles ? 'Collapse styles' : 'Expand styles'
+                          }>
+                          {expandedStyles ? (
+                            <ChevronUpIcon
+                              size={18}
+                              color={theme.secondaryText}
+                            />
+                          ) : (
+                            <ChevronDownIcon
+                              size={18}
+                              color={theme.secondaryText}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {/* Style chips */}
+                    <View className="flex-row flex-wrap gap-2">
+                      {image.styles
+                        .slice(0, expandedStyles ? image.styles.length : 3)
+                        .map(style => (
+                          <View
+                            key={style}
+                            className="flex-row items-center rounded-full px-3 py-1.5"
+                            style={{backgroundColor: theme.primary + '20'}}>
+                            <PaletteIcon size={14} color={theme.primary} />
+                            <Text
+                              className="ml-1 text-sm"
+                              style={{color: theme.primary}}>
+                              {style}
+                            </Text>
+                          </View>
+                        ))}
+                      {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
+                      {!expandedStyles && image.styles.length > 3 && (
+                        <TouchableOpacity
+                          onPress={() => setExpandedStyles(true)}
+                          className="flex-row items-center rounded-full px-3 py-1.5"
+                          style={{backgroundColor: theme.secondaryText + '20'}}>
+                          <Text
+                            className="text-sm"
+                            style={{color: theme.secondaryText}}>
+                            +{image.styles.length - 3} {strings.common.more}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Action Buttons */}
+                <View className="flex-row justify-between mt-5 gap-1.5">
+                  {/* Delete Button - Only show if image belongs to current user */}
+                  {user?.uid && image?.userId === user.uid && (
+                    <TouchableOpacity
+                      onPress={handleDeletePress}
+                      disabled={deleting}
+                      className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                      style={{backgroundColor: theme.surface}}
+                      accessible={true}
+                      accessibilityLabel={strings.imageViewer.deleteImage}
+                      accessibilityState={{disabled: deleting}}
+                      accessibilityHint={strings.imageViewer.deleteImageHint}>
+                      {deleting ? (
+                        <ActivityIndicator color="#ef4444" size="small" />
+                      ) : (
+                        <>
+                          <DeleteOutlineIcon size={22} color="#ef4444" />
+                          <Text
+                            className="font-bold"
+                            style={{color: '#ef4444'}}>
+                            {strings.imageViewer.delete}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Remix Button */}
+                  <TouchableOpacity
+                    onPress={handleRemix}
                     className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
                     style={{backgroundColor: theme.surface}}
                     accessible={true}
-                    accessibilityLabel={strings.imageViewer.deleteImage}
-                    accessibilityState={{disabled: deleting}}
-                    accessibilityHint={strings.imageViewer.deleteImageHint}>
-                    {deleting ? (
-                      <ActivityIndicator color="#ef4444" size="small" />
+                    accessibilityLabel="Remix this image"
+                    accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
+                    <RefreshIcon size={22} color={theme.text} />
+                    <Text className="font-bold" style={{color: theme.text}}>
+                      Remix
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Download Button */}
+                  <TouchableOpacity
+                    onPress={handleDownloadPress}
+                    disabled={downloading}
+                    className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                    style={{backgroundColor: theme.primary}}
+                    accessible={true}
+                    accessibilityLabel={strings.imageViewer.downloadImage}
+                    accessibilityState={{disabled: downloading}}
+                    accessibilityHint={strings.imageViewer.downloadImageHint}>
+                    {downloading ? (
+                      <ActivityIndicator color="white" />
                     ) : (
                       <>
-                        <DeleteOutlineIcon size={22} color="#ef4444" />
-                        <Text className="font-bold" style={{color: '#ef4444'}}>
-                          {strings.imageViewer.delete}
+                        <DownloadIcon size={22} color="white" />
+                        <Text className="text-white font-bold">
+                          {strings.imageViewer.download}
                         </Text>
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-
-                {/* Remix Button */}
-                <TouchableOpacity
-                  onPress={handleRemix}
-                  className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: theme.surface}}
-                  accessible={true}
-                  accessibilityLabel="Remix this image"
-                  accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
-                  <RefreshIcon size={22} color={theme.text} />
-                  <Text className="font-bold" style={{color: theme.text}}>
-                    Remix
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Download Button */}
-                <TouchableOpacity
-                  onPress={handleDownloadPress}
-                  disabled={downloading}
-                  className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                  style={{backgroundColor: theme.primary}}
-                  accessible={true}
-                  accessibilityLabel={strings.imageViewer.downloadImage}
-                  accessibilityState={{disabled: downloading}}
-                  accessibilityHint={strings.imageViewer.downloadImageHint}>
-                  {downloading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <>
-                      <DownloadIcon size={22} color="white" />
-                      <Text className="text-white font-bold">
-                        {strings.imageViewer.download}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          )}
-        </SafeAreaView>
+            )}
+          </SafeAreaView>
 
-        <Toaster
-          customColors={{
-            success: {background: '#E7F5E9', text: '#256029'},
-            error: {background: '#FDECEA', text: '#B3261E'},
-            info: {background: '#E3F2FD', text: '#1E88E5'},
-          }}
+          <Toaster
+            customColors={{
+              success: {background: '#E7F5E9', text: '#256029'},
+              error: {background: '#FDECEA', text: '#B3261E'},
+              info: {background: '#E3F2FD', text: '#1E88E5'},
+            }}
+          />
+        </Modal>
+      ) : (
+        <ImageView
+          images={[{uri: imageUri}]}
+          imageIndex={0}
+          visible={fullscreenMode}
+          onRequestClose={() => setFullscreenMode(false)}
         />
-      </Modal>
+      )}
 
       {/* Custom Delete Confirmation Dialog */}
       <Modal visible={showDeleteDialog} transparent animationType="fade">

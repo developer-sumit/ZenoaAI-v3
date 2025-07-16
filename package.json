@@ -1,6 +1,6 @@
 {
   "name": "zenoa-ai",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -32,7 +32,6 @@
     "@react-navigation/bottom-tabs": "^7.4.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/stack": "^7.4.2",
-    "@sentry/react-native": "^6.16.1",
     "@shopify/flash-list": "^1.8.3",
     "axios": "^1.10.0",
     "bad-words": "^4.0.0",
@@ -48,6 +47,7 @@
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.21.2",
     "react-native-haptic-feedback": "^2.3.3",
+    "react-native-image-viewing": "^0.2.2",
     "react-native-keyboard-controller": "^1.17.5",
     "react-native-localization": "^2.3.2",
     "react-native-mmkv": "^3.3.0",

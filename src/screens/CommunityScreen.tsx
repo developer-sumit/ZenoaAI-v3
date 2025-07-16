@@ -4,7 +4,6 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
   TextInput,
   RefreshControl,
   Animated,
@@ -16,43 +15,42 @@ import {useToast} from '@masumdev/rn-toast';
 
 import {useTheme} from '@src/store/themeStore';
 import {useImageStore} from '@src/store/imageStore';
-import {GeneratedImage} from '@src/types';
+import {GeneratedImage} from '@src/types/image';
 import ImageViewer from '@src/components/ImageViewer';
 import EmptyState from '@src/components/EmptyState';
 import UserAvatar from '@src/components/UserAvatar';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
+import {
+  COMMUNITY_FILTER_OPTIONS,
+  DEFAULT_COMMUNITY_FILTER,
+  SCREEN_WIDTH,
+} from '@src/constants';
 
 // Icons
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import CommunityIcon from '@src/assets/icons/CommunityIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
+import TuneIcon from '@src/assets/icons/TuneIcon';
 
-// Constants
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const NUM_COLUMNS = 2;
 const SPACING = 12;
 const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
 const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
-// Hardcoded filter options
-const FILTER_OPTIONS = [
-  {id: 'latest', label: 'Latest'},
-  {id: 'popular', label: 'Popular'},
-] as const;
-
-type FilterType = (typeof FILTER_OPTIONS)[number]['id'];
+type FilterType = (typeof COMMUNITY_FILTER_OPTIONS)[number]['id'];
 
 const CommunityScreen = () => {
   const {theme} = useTheme();
-  const {showToast} = useToast();
   const strings = useStrings();
-  const {publicImages, isLoadingPublic, fetchPublicImages, toggleFavorite} =
-    useImageStore();
+  const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
+  const {publicImages, isLoadingPublic, fetchPublicImages, toggleFavorite} =
+    useImageStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,7 +60,10 @@ const CommunityScreen = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeFilter, _] = useState<FilterType>('latest');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterType>(
+    DEFAULT_COMMUNITY_FILTER,
+  );
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -90,18 +91,15 @@ const CommunityScreen = () => {
     if (publicImages.length > 0) {
       let filtered = [...publicImages];
 
-      // Apply search query filter - search by prompt, ID, or user name
+      // Apply search query filter - search by prompt, or user name
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(img => {
-          const searchablePrompt = img.prompt || '';
-          const finalPrompt = img.prompt || '';
-          const userName = img.userName || 'Anonymous';
+          const prompt = img.prompt || '';
+          const userName = img.userName || '';
 
           return (
-            img.id.toLowerCase().includes(query) ||
-            searchablePrompt.toLowerCase().includes(query) ||
-            finalPrompt.toLowerCase().includes(query) ||
+            prompt.toLowerCase().includes(query) ||
             userName.toLowerCase().includes(query)
           );
         });
@@ -114,7 +112,6 @@ const CommunityScreen = () => {
   }, [publicImages, searchQuery]);
 
   const handleRefresh = useCallback(async () => {
-    triggerHaptic('light');
     setRefreshing(true);
     setCurrentPage(1);
     setHasMore(true);
@@ -163,27 +160,6 @@ const CommunityScreen = () => {
     activeFilter,
   ]);
 
-  // const handleFilterChange = useCallback(
-  //   async (newFilter: FilterType) => {
-  //     if (newFilter === activeFilter) {
-  //       return;
-  //     }
-
-  //     triggerHaptic('selection');
-  //     setActiveFilter(newFilter);
-  //     setCurrentPage(1);
-  //     setHasMore(true);
-
-  //     try {
-  //       await fetchPublicImages(1, 20, newFilter);
-  //     } catch (error) {
-  //       console.error('Failed to fetch images with new filter:', error);
-  //       showToast('Failed to load images', 'error');
-  //     }
-  //   },
-  //   [activeFilter, fetchPublicImages, triggerHaptic, showToast],
-  // );
-
   const calculateImageHeight = (item: GeneratedImage) => {
     // Use actual aspect ratio if available
     if (item.width && item.height) {
@@ -201,7 +177,7 @@ const CommunityScreen = () => {
         if (parts.length === 2) {
           const width = parseFloat(parts[0]);
           const height = parseFloat(parts[1]);
-          if (!isNaN(width) && !isNaN(height) && height > 0) {
+          if (!isNaN(width) && !isNaN(height) && height > 0 && width > 0) {
             const calculatedHeight = COLUMN_WIDTH / (width / height);
             console.log(
               `Image ${item.id}: ratio ${item.aspectRatio} -> height: ${calculatedHeight}`,
@@ -215,8 +191,7 @@ const CommunityScreen = () => {
     }
 
     // Default aspect ratio
-    const aspectRatio = 0.75; // Default 3:4 aspect ratio
-    const defaultHeight = COLUMN_WIDTH / aspectRatio;
+    const defaultHeight = COLUMN_WIDTH / 0.75; // 4:3 ratio
     console.log(`Image ${item.id}: using default height: ${defaultHeight}`);
     return defaultHeight;
   };
@@ -235,7 +210,7 @@ const CommunityScreen = () => {
           }}
           activeOpacity={0.9}
           accessible={true}
-          accessibilityLabel={`Community image ${item.id}`}
+          accessibilityLabel="Community image"
           accessibilityRole="button">
           <FastImage
             source={{uri: item.imageUrl}}
@@ -267,27 +242,18 @@ const CommunityScreen = () => {
                   {item.userName || 'Anonymous'}
                 </Text>
               </View>
-
-              {/* Favorite count */}
-              {(item.favoriteCount || 0) > 0 && (
-                <View className="flex-row items-center">
-                  <HeartIcon size={14} color="#FF6B6B" fill="#FF6B6B" />
-                  <Text
-                    className="text-sm font-medium ml-1"
-                    style={{color: theme.text}}>
-                    {item.favoriteCount}
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 
           {/* Favorite indicator */}
-          {item.isFavorite && (
-            <View className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl p-1">
-              <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
-            </View>
-          )}
+          <View className="flex-row absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl px-2.5 py-1 gap-1">
+            <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+            <Text
+              className="text-sm font-medium ml-1"
+              style={{color: theme.text}}>
+              {item.favoriteCount}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     );
@@ -351,44 +317,67 @@ const CommunityScreen = () => {
               <CloseIcon size={16} color={theme.secondaryText} />
             </TouchableOpacity>
           )}
+          {/* Filter Button */}
+          <TouchableOpacity
+            onPress={() => setShowFilterMenu(!showFilterMenu)}
+            className="p-3 ml-2 rounded-xl"
+            accessible={true}
+            accessibilityLabel="Open filter menu"
+            accessibilityRole="button"
+            style={{backgroundColor: theme.primary + '22'}}>
+            <TuneIcon size={20} color={theme.primary} />
+          </TouchableOpacity>
         </Animated.View>
-
-        {/* Filter Tabs */}
-        {/* <View
-          className="flex-row bg-opacity-50 rounded-2xl p-1"
-          style={{backgroundColor: theme.surface}}>
-          {FILTER_OPTIONS.map(filter => {
-            const isActive = activeFilter === filter.id;
-            const buttonBg = isActive ? theme.primary : 'transparent';
-            const textColor = isActive ? '#ffffff' : theme.text;
-
-            return (
-              <TouchableOpacity
-                key={filter.id}
-                onPress={() => handleFilterChange(filter.id)}
-                className={`flex-1 py-3 px-4 rounded-xl ${
-                  isActive ? 'shadow-sm' : ''
-                }`}
-                style={{
-                  backgroundColor: buttonBg,
-                }}
-                accessible={true}
-                accessibilityLabel={`Filter by ${filter.label}`}
-                accessibilityRole="button">
-                <Text
-                  className={`text-center font-semibold ${
-                    isActive ? 'text-white' : ''
-                  }`}
-                  style={{
-                    color: textColor,
-                  }}>
-                  {filter.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View> */}
       </Animated.View>
+
+      {/* Filter Menu Modal */}
+      {showFilterMenu && (
+        <View
+          className="absolute top-40 right-5 p-2.5 rounded-2xl bg-opacity-50 flex-1 justify-center items-center z-50"
+          style={{
+            backgroundColor: theme.surface,
+            elevation: 5,
+            shadowOffset: {width: 0, height: 2},
+            shadowOpacity: 0.1,
+            shadowRadius: 10,
+          }}>
+          {COMMUNITY_FILTER_OPTIONS.map(option => (
+            <TouchableOpacity
+              key={option.id}
+              onPress={() => {
+                triggerHaptic('selection');
+                setShowFilterMenu(false);
+                setActiveFilter(option.id);
+                setCurrentPage(1);
+                setHasMore(true);
+                fetchPublicImages(1, 20, option.id);
+              }}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                backgroundColor:
+                  activeFilter === option.id
+                    ? theme.primary + '22'
+                    : 'transparent',
+                borderRadius: 12,
+                marginVertical: 2,
+              }}
+              accessible={true}
+              accessibilityLabel={`Filter by ${option.label}`}
+              accessibilityRole="button">
+              <Text
+                style={{
+                  color:
+                    activeFilter === option.id ? theme.primary : theme.text,
+                  fontWeight: activeFilter === option.id ? 'bold' : 'normal',
+                  fontSize: 16,
+                }}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Images Grid */}
       {isLoadingPublic && filteredImages.length === 0 ? (
@@ -407,6 +396,7 @@ const CommunityScreen = () => {
           numColumns={NUM_COLUMNS}
           renderItem={renderImageItem}
           estimatedItemSize={200}
+          removeClippedSubviews={true}
           className="rounded-3xl"
           contentContainerStyle={{paddingHorizontal: SPACING}}
           contentContainerClassName="pb-24 pt-6"
