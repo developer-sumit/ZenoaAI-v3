@@ -354,9 +354,7 @@ const GalleryScreen = () => {
             }
             accessibilityRole="button">
             <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
-            <Text
-              className="text-sm font-medium ml-1"
-              style={{color: theme.text}}>
+            <Text className="text-sm font-medium ml-1 text-[#121212]">
               {item.favoriteCount ? item.favoriteCount : 0}
             </Text>
           </TouchableOpacity>
