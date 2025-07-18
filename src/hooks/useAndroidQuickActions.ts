@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
 import {Platform} from 'react-native';
-import QuickActions, {ShortcutItem} from 'react-native-quick-actions';
 import {useNavigation} from '@react-navigation/native';
-import {useAuthStore} from '@src/store/authStore';
+import QuickActions, {ShortcutItem} from 'react-native-quick-actions';
+
 import Routes from '@src/constants/routes';
+import {useAuthStore} from '@src/store/authStore';
 
 interface QuickActionData {
   type: string;

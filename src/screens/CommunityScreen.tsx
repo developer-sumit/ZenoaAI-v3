@@ -248,9 +248,7 @@ const CommunityScreen = () => {
           {/* Favorite indicator */}
           <View className="flex-row absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl px-2.5 py-1 gap-1">
             <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
-            <Text
-              className="text-sm font-medium ml-1"
-              style={{color: theme.text}}>
+            <Text className="text-sm font-medium ml-1 text-[#121212]">
               {item.favoriteCount}
             </Text>
           </View>
