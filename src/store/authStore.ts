@@ -13,7 +13,7 @@ interface AuthState {
   restoreSession: () => Promise<void>;
   login: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (updatedUser: User) => void;
+  updateUser: (updatedUser: Partial<User>) => void;
   getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
 }
 
@@ -206,16 +206,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // Update user data in the store and local storage
-  updateUser: async (updatedUser: User) => {
+  updateUser: async (updatedUser: Partial<User>) => {
     try {
-      const data = {
-        ...get().user,
-        ...updatedUser,
-      };
-      // Save updated user data
-      await userService.saveUser(data);
+      const {user} = get();
+      if (!user) {
+        console.warn('No user found to update');
+        return;
+      }
 
-      set({user: data});
+      const newUser = {
+        ...user,
+        ...updatedUser,
+        updatedAt: new Date(),
+      };
+      await userService.saveUser(newUser);
+      set({user: newUser});
       console.log('User data updated in store');
     } catch (error) {
       console.error('Error updating user in store:', error);

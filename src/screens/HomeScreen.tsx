@@ -66,7 +66,6 @@ const HomeScreen = () => {
   const {
     error,
     images: generatedImages,
-    currentGenerationBatch,
     isLoading: imageLoading,
     fetchImages,
     generateImage,
@@ -86,6 +85,8 @@ const HomeScreen = () => {
     setAspectRatio,
     setImageSize,
     setStyles,
+    imageWidth,
+    imageHeight,
     reset,
   } = useGenerationStore();
 
@@ -146,13 +147,13 @@ const HomeScreen = () => {
     }
 
     // Also check negative prompt if provided
-    if (negativePrompt && !contentFilter.isClean(negativePrompt)) {
-      showToast(
-        'Negative prompt contains inappropriate content. Please revise and try again.',
-        'error',
-      );
-      return;
-    }
+    // if (negativePrompt && !contentFilter.isClean(negativePrompt)) {
+    //   showToast(
+    //     'Negative prompt contains inappropriate content. Please revise and try again.',
+    //     'error',
+    //   );
+    //   return;
+    // }
 
     if (!user?.uid) {
       showToast(strings.home.signInRequired, 'error');
@@ -160,46 +161,37 @@ const HomeScreen = () => {
     }
 
     try {
-      console.log('Generating with:', {prompt, styles, aspectRatio});
-
-      // Convert our settings to the API format (matching web)
       const apiSettings: ImageGenerationRequest = {
         engineType: engine,
         prompt: prompt.trim(),
         styles: styles ? (Array.isArray(styles) ? styles : [styles]) : [],
         aspectRatio,
+        width: imageWidth || 512,
+        height: imageHeight || 512,
         imageSize: imageSize,
         seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
         negativePrompt,
         isPrivate,
         highQuality: isPremium,
-        batchCount: numberOfImages || 1,
       };
 
-      // Generate the batch using the store
-      const success = await generateImage(prompt, apiSettings);
+      console.log('Generating with:', {apiSettings});
 
-      if (error) {
-        showToast(error, 'error');
-        return;
-      }
-
-      if (success) {
-        console.log('Image generated successfully!');
-        triggerHaptic('success'); // Add success haptic feedback
-        // Scroll to top if needed
-        if (flashListRef.current) {
-          flashListRef.current.scrollToOffset({offset: 0, animated: true});
+      for (let i = 0; i < numberOfImages; i++) {
+        const success = await generateImage(apiSettings);
+        if (!success) {
+          showToast(error || strings.home.generationFailed, 'error');
+          return;
         }
-      } else {
-        console.error('Image generation failed');
-        triggerHaptic('error'); // Add error haptic feedback
-        showToast('Failed to generate image', 'error');
+
+        // Trigger haptic feedback for each successful generation
+        triggerHaptic('success');
+        showToast(strings.home.generationSuccess, 'success');
       }
-    } catch (error) {
-      console.error('Generation failed:', error);
+    } catch (err) {
+      console.error('Generation failed:', err);
       triggerHaptic('error'); // Add error haptic feedback
-      showToast('Failed to generate image', 'error');
+      showToast(error || 'Failed to generate image', 'error');
     }
   };
 
@@ -230,44 +222,10 @@ const HomeScreen = () => {
     }
   };
 
-  const getCombinedImages = () => {
-    // Filter out placeholder images from currentGenerationBatch if corresponding real images exist
-    const filteredBatch = currentGenerationBatch.filter(batchImage => {
-      // If this is a placeholder image, check if a real image exists
-      const isPlaceholder =
-        !batchImage.imageUrl ||
-        batchImage.imageUrl === 'placeholder' ||
-        batchImage.id?.startsWith('placeholder-');
-
-      if (isPlaceholder) {
-        // Look for a corresponding real image with the same exact batchTimestamp and prompt
-        const hasRealImage = generatedImages.some(
-          realImage =>
-            realImage.prompt === batchImage.prompt &&
-            realImage.batchTimestamp &&
-            batchImage.batchTimestamp &&
-            Math.abs(
-              realImage.batchTimestamp.getTime() -
-                batchImage.batchTimestamp.getTime(),
-            ) < 5000 && // Within 5 seconds
-            realImage.imageUrl &&
-            realImage.imageUrl !== 'placeholder' &&
-            !realImage.id?.startsWith('placeholder-'),
-        );
-        return !hasRealImage; // Only keep placeholder if no real image exists
-      }
-      return true; // Keep non-placeholder images
-    });
-
-    // Combine filtered placeholders with real generated images
-    const combinedImages = [...filteredBatch, ...generatedImages];
-    return combinedImages;
-  };
-
-  const groupImagesByParameters = (images: GeneratedImage[]) => {
+  const groupImagesByParameters = () => {
     const groups: {[key: string]: GeneratedImage[]} = {};
 
-    images.forEach(image => {
+    generatedImages.forEach(image => {
       // Group batch images by their exact batchTimestamp (for images generated together)
       // or by a time window for images from different sessions
       let groupingIdentifier;
@@ -586,7 +544,7 @@ const HomeScreen = () => {
         <View className="flex-1 pb-5">
           <FlashList
             ref={flashListRef}
-            data={groupImagesByParameters(getCombinedImages())}
+            data={groupImagesByParameters()}
             keyExtractor={(item, index) => `home-group-${item.key}-${index}`}
             estimatedItemSize={300}
             removeClippedSubviews={true}
@@ -603,11 +561,7 @@ const HomeScreen = () => {
                 />
               </View>
             }
-            ListHeaderComponent={
-              getCombinedImages().length > 0 && showOnboarding
-                ? renderGettingStarted()
-                : null
-            }
+            ListHeaderComponent={showOnboarding ? renderGettingStarted() : null}
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
           />
