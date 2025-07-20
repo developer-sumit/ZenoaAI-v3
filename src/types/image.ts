@@ -6,12 +6,14 @@ export interface ImageGenerationRequest {
   prompt: string;
   aspectRatio: string; // e.g., "1:1", "16:9", etc.
   imageSize: ImageSize; // e.g., "small", "medium", "large"
+  width: number;
+  height: number;
   styles?: string[];
   seed: number;
   negativePrompt?: string;
   isPrivate: boolean;
   highQuality: boolean;
-  batchCount: number;
+  // batchCount: number;
 }
 
 // Image response types

@@ -1,12 +1,13 @@
 import {create} from 'zustand';
 
-import imageService from '@src/services/imageService';
+import {useAuthStore} from './authStore';
 import {GeneratedImage} from '@src/types/image';
+import imageService from '@src/services/imageService';
+import {ImageGenerationRequest} from '@src/types/image';
 
 interface ImageState {
   images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
   publicImages: GeneratedImage[]; // Public images from all users (for community feed)
-  currentGenerationBatch: GeneratedImage[]; // Current batch being shown on Generate page
   isLoading: boolean;
   isLoadingPublic: boolean;
   isLoadingMore: boolean; // For loading more images pagination
@@ -26,21 +27,16 @@ interface ImageState {
     limit?: number,
     filter?: string,
   ) => Promise<void>;
-  generateImage: (
-    prompt: string,
-    settings: ImageGenerationRequest,
-  ) => Promise<boolean>;
+  generateImage: (settings: ImageGenerationRequest) => Promise<boolean>;
   deleteImage: (imageId: string) => Promise<boolean>;
   toggleFavorite: (imageId: string) => Promise<boolean>;
   updatePrivacy: (imageId: string, isPrivate: boolean) => Promise<boolean>;
-  clearCurrentBatch: () => void;
   clearImages: () => void;
 }
 
 export const useImageStore = create<ImageState>()((set, get) => ({
   images: [],
   publicImages: [],
-  currentGenerationBatch: [],
   isLoading: false,
   isLoadingPublic: false,
   isLoadingMore: false,
@@ -132,165 +128,39 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     }
   },
 
-  generateImage: async (prompt: string, settings: ImageGenerationRequest) => {
+  generateImage: async (settings: ImageGenerationRequest) => {
+    set({isLoading: true, error: null});
+
     try {
-      set({isLoading: true, error: null}); // Clear previous batch when starting new generation
-      set({currentGenerationBatch: []});
+      const {success, data, message} =
+        await imageService.generateImage(settings);
 
-      // Create a shared timestamp for the entire batch
-      const batchTimestamp = Date.now(); // Create placeholder images for the batch
-      const placeholderImages: GeneratedImage[] = [];
-
-      for (let i = 0; i < settings.batchCount; i++) {
-        // Calculate dimensions from aspect ratio
-        let width = 512;
-        let height = 512;
-
-        if (settings.aspectRatio) {
-          const [ratioWidth, ratioHeight] = settings.aspectRatio
-            .split(':')
-            .map(Number);
-          const aspectRatioValue = ratioWidth / ratioHeight;
-          // Base size for calculations
-          const baseSize =
-            settings.imageSize === 'large'
-              ? 1024
-              : settings.imageSize === 'small'
-                ? 512
-                : 768;
-
-          if (aspectRatioValue > 1) {
-            // Landscape
-            width = baseSize;
-            height = Math.round(baseSize / aspectRatioValue);
-          } else if (aspectRatioValue < 1) {
-            // Portrait
-            height = baseSize;
-            width = Math.round(baseSize * aspectRatioValue);
-          } else {
-            // Square
-            width = height = baseSize;
-          }
-        }
-
-        const placeholder: GeneratedImage = {
-          id: `placeholder-${batchTimestamp}-${i}`,
-          userId: '',
-          imageUrl: 'placeholder',
-          thumbnailUrl: 'placeholder',
-          prompt: prompt,
-          negativePrompt: settings.negativePrompt || '',
-          width: width,
-          height: height,
-          imageSize: settings.imageSize || 'medium',
-          aspectRatio: settings.aspectRatio || '1:1',
-          styles: settings.styles || [],
-          seed: settings.seed || 0,
-          engineType: settings.engineType || 'quantum',
-          createdAt: new Date(),
-          isFavorite: false,
-          isPrivate: settings.isPrivate || false,
-          userName: '',
-          userAvatar: '',
-          batchTimestamp: new Date(batchTimestamp),
-        };
-        placeholderImages.push(placeholder);
+      if (!success || !data) {
+        set({error: message || 'Failed to generate image'});
+        return false;
       }
 
-      // Set placeholder images immediately
-      set({currentGenerationBatch: placeholderImages});
-
-      const generatedImages: GeneratedImage[] = [];
-
-      // Generate images in the batch
-      for (let i = 0; i < settings.batchCount; i++) {
-        try {
-          const {success, data, message} = await imageService.generateImage(
-            prompt,
-            settings,
-          );
-
-          if (success && data) {
-            // Ensure the generated image has the same batch timestamp
-            const batchImage: GeneratedImage = {
-              ...data,
-              batchTimestamp: new Date(batchTimestamp),
-            };
-            generatedImages.push(batchImage);
-
-            const user = useAuthStore().user;
-            if (!user) {
-              set({error: 'Unauthenticated: User must be logged in'});
-              return false;
-            }
-
-            userService.saveUser({
-              ...user,
-              statistics: {
-                ...user.statistics,
-                imagesGenerated: user.statistics.imagesGenerated + 1,
-              },
-              quota: {
-                ...user.quota,
-                imagesRemaining: user.quota.imagesRemaining - 1,
-              },
-            });
-
-            // Replace the placeholder with the actual image
-            set(state => ({
-              currentGenerationBatch: state.currentGenerationBatch.map(
-                (img, index) => (index === i ? batchImage : img),
-              ),
-            }));
-          } else {
-            console.error(
-              `Failed to generate image ${i + 1} of ${settings.batchCount}:`,
-              message,
-            );
-            set(state => ({
-              error: message || 'Image generation failed',
-              currentGenerationBatch: state.currentGenerationBatch.map(
-                (img, index) => (index === i ? placeholderImages[i] : img),
-              ),
-            }));
-          }
-        } catch (imageError: any) {
-          console.error(
-            `Error generating image ${i + 1} of ${settings.batchCount}:`,
-            imageError,
-          );
-          set(state => ({
-            error: imageError.message || 'Image generation failed',
-            currentGenerationBatch: state.currentGenerationBatch.map(
-              (img, index) => (index === i ? placeholderImages[i] : img),
-            ),
-          }));
-        }
+      const user = useAuthStore().user;
+      if (user) {
+        useAuthStore.getState().updateUser({
+          statistics: {
+            ...user.statistics,
+            imagesGenerated: (user.statistics?.imagesGenerated || 0) + 1,
+          },
+          quota: {
+            ...user.quota,
+            imagesRemaining: (user.quota?.imagesRemaining || 0) - 1,
+          },
+        });
       }
 
-      // Only refresh images list if we successfully generated at least one image
-      if (generatedImages.length > 0) {
-        console.log(
-          '🏪 Store: Successfully generated',
-          generatedImages.length,
-          'images, refreshing list in 2 seconds...',
-        );
+      // Add the new image to the store
+      set(state => ({
+        images: [...state.images, data],
+        error: null,
+      }));
 
-        // Refresh the images list to get the proper server data
-        setTimeout(() => {
-          console.log('🏪 Store: Triggering image refresh after generation...');
-          get().fetchImages();
-          // Clear the current generation batch after successful generation and fetch
-          setTimeout(() => {
-            console.log(
-              '🏪 Store: Clearing generation batch after successful fetch...',
-            );
-            set({currentGenerationBatch: []});
-          }, 1000);
-        }, 2000); // Delay to ensure DB save is complete
-      }
-
-      return generatedImages.length > 0;
+      return true;
     } catch (error: any) {
       console.error('Failed to generate image batch:', error);
       set({error: 'Failed to generate image'});
@@ -307,9 +177,6 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       if (success) {
         set(state => ({
           images: state.images.filter(img => img.id !== imageId),
-          currentGenerationBatch: state.currentGenerationBatch.filter(
-            img => img.id !== imageId,
-          ),
         }));
         return true;
       }
@@ -324,22 +191,41 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   },
 
   toggleFavorite: async (imageId: string) => {
+    set(state => ({
+      images: state.images.map(img =>
+        img.id === imageId
+          ? {
+              ...img,
+              isFavorite: !img.isFavorite,
+              favoriteCount: img.isFavorite
+                ? (img.favoriteCount || 0) - 1
+                : (img.favoriteCount || 0) + 1,
+            }
+          : img,
+      ),
+    }));
+
     try {
       const success = await imageService.toggleFavorite(imageId);
 
-      if (success) {
+      if (!success) {
         set(state => ({
           images: state.images.map(img =>
-            img.id === imageId ? {...img, isFavorite: !img.isFavorite} : img,
-          ),
-          currentGenerationBatch: state.currentGenerationBatch.map(img =>
-            img.id === imageId ? {...img, isFavorite: !img.isFavorite} : img,
+            img.id === imageId
+              ? {
+                  ...img,
+                  isFavorite: !img.isFavorite,
+                  favoriteCount: img.isFavorite
+                    ? (img.favoriteCount || 0) + 1
+                    : (img.favoriteCount || 0) - 1,
+                }
+              : img,
           ),
         }));
-        return true;
+        return false;
       }
 
-      return false;
+      return true;
     } catch (error: any) {
       console.error('Failed to toggle favorite:', error);
       const message = error?.message || 'Failed to toggle favorite';
@@ -349,22 +235,25 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   },
 
   updatePrivacy: async (imageId: string, isPrivate: boolean) => {
+    set(state => ({
+      images: state.images.map(img =>
+        img.id === imageId ? {...img, isPrivate: !isPrivate} : img,
+      ),
+    }));
+
     try {
       const {success} = await imageService.updatePrivacy(imageId, isPrivate);
 
-      if (success) {
+      if (!success) {
         set(state => ({
           images: state.images.map(img =>
-            img.id === imageId ? {...img, isPrivate} : img,
-          ),
-          currentGenerationBatch: state.currentGenerationBatch.map(img =>
-            img.id === imageId ? {...img, isPrivate} : img,
+            img.id === imageId ? {...img, isPrivate: !isPrivate} : img,
           ),
         }));
-        return true;
+        return false;
       }
 
-      return false;
+      return true;
     } catch (error: any) {
       console.error('Failed to update privacy:', error);
       const message = error?.message || 'Failed to update privacy';
@@ -373,25 +262,15 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     }
   },
 
-  clearCurrentBatch: () => {
-    set({currentGenerationBatch: []});
-  },
-
   clearImages: () => {
     set({
       images: [],
       publicImages: [],
-      currentGenerationBatch: [],
       currentPage: 1,
       hasMoreImages: true,
     });
   },
 }));
-
-// Auto-clear images when auth state changes
-import {useAuthStore} from './authStore';
-import userService from '@src/services/userService';
-import {ImageGenerationRequest} from '@src/types/image';
 
 let lastAuthState = useAuthStore.getState().user;
 

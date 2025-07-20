@@ -62,6 +62,46 @@ const saveUser = async (userData: User): Promise<void> => {
 };
 
 /**
+ * Updates specific fields of a locally stored user object in encrypted storage.
+ *
+ * Retrieves the user data by `userId`, merges the provided `updates` into the existing user object,
+ * updates the `updatedAt` timestamp, and saves the updated user data back to encrypted storage.
+ *
+ * @param userId - The unique identifier of the user whose data will be updated.
+ * @param updates - An object containing the fields to update in the user data.
+ * @throws Will throw an error if no local user data is found or if an error occurs during the update process.
+ */
+const updateLocalUser = async (
+  userId: string,
+  updates: Partial<User>,
+): Promise<void> => {
+  try {
+    const localUserData = await EncryptedStorage.getItem(`user_${userId}`);
+    if (!localUserData) {
+      throw new Error('No local user data found');
+    }
+    const parsedData: User = JSON.parse(localUserData);
+
+    // Merge updates into existing user data
+    const updatedUser: User = {
+      ...parsedData,
+      ...updates,
+      // Optionally update updatedAt timestamp
+      updatedAt: new Date(),
+    };
+
+    await EncryptedStorage.setItem(
+      `user_${userId}`,
+      JSON.stringify(updatedUser),
+    );
+    console.log('Local user field(s) updated');
+  } catch (error) {
+    console.error('Error updating local user field:', error);
+    throw error;
+  }
+};
+
+/**
  * Retrieves user data with a cache-first strategy, falling back to API when network is available.
  *
  * This function implements a hybrid data fetching approach:
@@ -656,6 +696,7 @@ const removeEmailRestriction = async (email: string): Promise<void> => {
 
 const userService = {
   saveUser,
+  updateLocalUser,
   getUser,
   updateProfile,
   deleteUserAccount,

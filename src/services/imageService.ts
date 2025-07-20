@@ -1,6 +1,17 @@
 import {imageAPI} from '@src/services/axiosServer';
 import {ResponseData} from '@src/types/api';
 import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
+import {
+  getAspectRatio,
+  getEngineType,
+  getImageMetadata,
+  getImageSize,
+  getIsPrivate,
+  getNegativePrompt,
+  getPrompt,
+  getSeed,
+  getStyles,
+} from '@src/utils/getValues';
 
 /**
  * Generates a single image using the specified prompt and settings.
@@ -29,23 +40,18 @@ import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
  * ```
  */
 const generateImage = async (
-  prompt: string,
-  settings: ImageGenerationRequest,
+  params: ImageGenerationRequest,
 ): Promise<ResponseData<GeneratedImage>> => {
   try {
     const response = await imageAPI.generateImage({
-      prompt,
-      negativePrompt: settings.negativePrompt,
-      aspectRatio: settings.aspectRatio || '1:1',
-      imageSize: settings.imageSize || 'medium',
-      styles: settings.styles
-        ? Array.isArray(settings.styles)
-          ? settings.styles
-          : [settings.styles]
-        : [],
-      seed: settings.seed,
-      engineType: settings.engineType || 'quantum',
-      isPrivate: settings.isPrivate || false,
+      prompt: getPrompt(params.prompt),
+      negativePrompt: getNegativePrompt(params.negativePrompt),
+      aspectRatio: getAspectRatio(params.aspectRatio),
+      imageSize: getImageSize(params.imageSize),
+      styles: getStyles(params.styles),
+      seed: getSeed(params.seed),
+      engineType: getEngineType(params.engineType),
+      isPrivate: getIsPrivate(params.isPrivate),
     });
 
     if (!response.data.success || !response.data.data) {
@@ -57,27 +63,7 @@ const generateImage = async (
     }
 
     const metadata = response.data.data; // Create the image object, preferring server metadata when available
-    const generatedImage: GeneratedImage = {
-      id: metadata?.id || `temp-${Date.now()}`,
-      userId: metadata?.userId || '',
-      engineType: metadata?.engineType || settings.engineType || 'quantum',
-      prompt: response.data.prompts?.final || metadata?.finalPrompt || prompt,
-      negativePrompt: metadata?.negativePrompt || settings.negativePrompt || '',
-      imageUrl: metadata?.imageUrl || '', // Prefer response imageUrl over metadata
-      thumbnailUrl:
-        response.data.optimizedUrls?.thumbnail || metadata?.imageUrl || '',
-      width: metadata?.width || 512,
-      height: metadata?.height || 512,
-      imageSize: settings.imageSize || 'medium',
-      aspectRatio: settings.aspectRatio || '1:1',
-      styles: metadata?.styles || (settings.styles ? [settings.styles] : []),
-      seed: metadata?.seed || Math.floor(Math.random() * 1000000),
-      createdAt: metadata?.createdAt || new Date(),
-      isFavorite: metadata?.isFavorite || false,
-      isPrivate: metadata?.isPrivate || settings.isPrivate || false,
-      userName: metadata?.userName || '',
-      userAvatar: metadata?.userAvatar || '',
-    };
+    const generatedImage: GeneratedImage = getImageMetadata(metadata, params);
 
     return {
       success: true,
@@ -139,41 +125,9 @@ const getUserImages = async (params?: {
       };
     }
 
-    // Handle both paginated and simple array responses
-    const images = response.data.data || [];
-
-    const processedImages = images.map((serverImage: any): GeneratedImage => {
-      const styles = Array.isArray(serverImage.styles)
-        ? serverImage.styles
-        : [];
-
-      return {
-        id: String(serverImage.id || ''),
-        userId: String(serverImage.userId || ''),
-        engineType: serverImage.engineType || 'quantum',
-        prompt: String(serverImage.prompt || ''),
-        negativePrompt: String(serverImage.negativePrompt || ''),
-        imageUrl: String(serverImage.imageUrl || ''),
-        thumbnailUrl: String(
-          serverImage.thumbnailUrl || serverImage.imageUrl || '',
-        ),
-        width: Number(serverImage.width) || 512,
-        height: Number(serverImage.height) || 512,
-        styles: styles as string[],
-        seed: Number(serverImage.seed) || Math.floor(Math.random() * 1000000),
-        createdAt: serverImage.createdAt || new Date(),
-        isFavorite: Boolean(serverImage.favorite || serverImage.isFavorite),
-        favoriteCount: Number(serverImage.favoriteCount) || 0,
-        isPrivate: Boolean(serverImage.isPrivate),
-        imageSize: serverImage.imageSize || 'medium',
-        aspectRatio: serverImage.aspectRatio || '1:1',
-        userName: String(serverImage.userName || ''),
-        userAvatar: String(serverImage.userAvatar || ''),
-      };
-    });
     return {
       success: true,
-      data: processedImages,
+      data: response.data.data || [],
       message: '',
     };
   } catch (error: any) {
@@ -228,47 +182,8 @@ const getPublicImages = async (
         message: response.data.message || 'Failed to fetch public images',
       };
     }
-    // Handle both paginated and simple array responses
-    const images = response.data.data || [];
 
-    const data = images.map((serverImage: any): GeneratedImage => {
-      const styles = Array.isArray(serverImage.styles)
-        ? serverImage.styles
-        : [];
-
-      return {
-        id: String(serverImage.id || ''),
-        userId: String(serverImage.userId || ''),
-        engineType: serverImage.engineType || 'quantum',
-        prompt: String(
-          serverImage.finalPrompt ||
-            serverImage.originalPrompt ||
-            serverImage.prompt ||
-            '',
-        ),
-        negativePrompt: String(serverImage.negativePrompt || ''),
-        imageUrl: String(serverImage.imageUrl || ''),
-        thumbnailUrl: String(
-          serverImage.thumbnailUrl || serverImage.imageUrl || '',
-        ),
-        width: Number(serverImage.width) || 512,
-        height: Number(serverImage.height) || 512,
-        styles: styles as string[],
-        seed: Number(serverImage.seed) || Math.floor(Math.random() * 1000000),
-        createdAt: serverImage.createdAt || new Date(),
-        isFavorite: Boolean(serverImage.isFavorite),
-        favoriteCount: Number(serverImage.favoriteCount) || 0,
-        isPrivate: Boolean(serverImage.isPrivate),
-        imageSize: serverImage.imageSize || 'medium',
-        aspectRatio: serverImage.aspectRatio || '1:1',
-        userName: String(
-          serverImage.userName || serverImage.username || 'Anonymous',
-        ),
-        userAvatar: String(serverImage.userAvatar || serverImage.avatar || ''),
-      };
-    });
-
-    return {success: true, data, message: ''};
+    return {success: true, data: response.data.data || [], message: ''};
   } catch (error: any) {
     console.error('Failed to fetch public images:', error);
     return {
