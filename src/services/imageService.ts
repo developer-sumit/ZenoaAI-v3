@@ -4,7 +4,6 @@ import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
 import {
   getAspectRatio,
   getEngineType,
-  getImageMetadata,
   getImageSize,
   getIsPrivate,
   getNegativePrompt,
@@ -63,7 +62,26 @@ const generateImage = async (
     }
 
     const metadata = response.data.data; // Create the image object, preferring server metadata when available
-    const generatedImage: GeneratedImage = getImageMetadata(metadata, params);
+    const generatedImage: GeneratedImage = {
+      id: metadata.id,
+      userId: metadata.userId,
+      engineType: metadata.engineType || params.engineType,
+      prompt: params.prompt,
+      negativePrompt: metadata.negativePrompt || params.negativePrompt || '',
+      imageUrl: metadata.imageUrl || '',
+      thumbnailUrl: metadata.thumbnailUrl || '',
+      width: metadata.width || 512,
+      height: metadata.height || 512,
+      imageSize: getImageSize(params.imageSize),
+      aspectRatio: getAspectRatio(params.aspectRatio),
+      styles: metadata?.styles,
+      seed: metadata?.seed || Math.floor(Math.random() * 1000000),
+      createdAt: metadata?.createdAt || new Date(),
+      isFavorite: metadata?.isFavorite || false,
+      isPrivate: metadata?.isPrivate || params.isPrivate || false,
+      userName: metadata?.userName || '',
+      userAvatar: metadata?.userAvatar || '',
+    };
 
     return {
       success: true,

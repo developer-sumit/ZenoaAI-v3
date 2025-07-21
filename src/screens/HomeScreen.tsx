@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useRef} from 'react';
 import {
   View,
   Text,
@@ -50,12 +50,7 @@ const HomeScreen = () => {
   const navigator = useAppNavigation();
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
-  const {
-    error,
-    images: allImages,
-    fetchImages,
-    generateImage,
-  } = useImageStore();
+  const {error, generateImage} = useImageStore();
   const {
     prompt,
     engine,
@@ -74,8 +69,6 @@ const HomeScreen = () => {
     reset,
   } = useGenerationStore();
 
-  const flashListRef = useRef<FlashList<any>>(null);
-
   const [images, setImages] = React.useState<GeneratedImage[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [showPromptSuggestions, setShowPromptSuggestions] =
@@ -89,13 +82,6 @@ const HomeScreen = () => {
 
   // Android Quick Actions
   useAndroidQuickActions();
-
-  // Load user's images when component mounts
-  useEffect(() => {
-    if (user?.uid) {
-      fetchImages(1, 20, true); // Load first page
-    }
-  }, [user?.uid, fetchImages]);
 
   const handleImageGeneration = async () => {
     let tempImages = [];
@@ -111,8 +97,8 @@ const HomeScreen = () => {
         width: imageWidth || 512,
         height: imageHeight || 512,
         seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
-        imageSize: imageSize || '512x512',
-        aspectRatio: aspectRatio || '1:1',
+        imageSize: imageSize,
+        aspectRatio: aspectRatio,
         negativePrompt: negativePrompt || '',
         isFavorite: false,
         favoriteCount: 0,
@@ -384,11 +370,9 @@ const HomeScreen = () => {
         {/* Generated Images Grid */}
         <View className="flex-1 pb-5">
           <FlashList
-            ref={flashListRef}
             data={images}
             keyExtractor={item => item.id}
             estimatedItemSize={300}
-            removeClippedSubviews={true}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 215, paddingHorizontal: 10}}
             renderItem={renderItem}
@@ -405,7 +389,7 @@ const HomeScreen = () => {
             ListHeaderComponent={showOnboarding ? renderGettingStarted() : null}
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
-            extraData={allImages}
+            extraData={{images, isGenerating}}
           />
         </View>
 
@@ -580,7 +564,7 @@ const HomeScreen = () => {
           <ImageViewer
             image={selectedImage}
             onClose={() => setSelectedImage(null)}
-            onImageDeleted={fetchImages}
+            // onImageDeleted={fetchImages}
           />
         )}
       </View>

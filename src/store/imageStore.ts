@@ -192,7 +192,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   },
 
   generateImage: async (settings: ImageGenerationRequest) => {
-    set({isLoading: true, error: null});
+    set({error: null});
 
     try {
       const {success, data, message} =
@@ -207,7 +207,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         };
       }
 
-      const user = useAuthStore().user;
+      const user = useAuthStore.getState().user;
       if (user) {
         useAuthStore.getState().updateUser({
           statistics: {
@@ -240,8 +240,6 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         data: null,
         message: 'Failed to generate image',
       };
-    } finally {
-      set({isLoading: false});
     }
   },
 

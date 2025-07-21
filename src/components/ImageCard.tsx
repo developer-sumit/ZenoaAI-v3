@@ -68,8 +68,8 @@ const SkeletonLoader = ({width, height}: {width?: number; height?: number}) => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: theme.primary + '20',
-          opacity: shimmerOpacity,
+          // backgroundColor: theme.primary + '20',
+          // opacity: shimmerOpacity,
         }}
       />
       <ActivityIndicator color={theme.primary} size="large" />
