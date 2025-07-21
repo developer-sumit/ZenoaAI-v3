@@ -1,44 +1,25 @@
-import React, {useState, useCallback, useEffect, useMemo} from 'react';
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  Animated,
-  RefreshControl,
-} from 'react-native';
+import React, {useState, useCallback, useMemo} from 'react';
+import {View, Text, ActivityIndicator, RefreshControl} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
-import FastImage from 'react-native-fast-image';
 import {useToast} from '@masumdev/rn-toast';
 
-import {SCREEN_WIDTH} from '@src/constants';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types/image';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
+import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
-
-// Icons
-import GalleryIcon from '@src/assets/icons/GalleryIcon';
-import CloseIcon from '@src/assets/icons/CloseIcon';
-import SearchIcon from '@src/assets/icons/SearchIcon';
-import HeartIcon from '@src/assets/icons/HeartIcon';
-import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
 
 // Constants
 const NUM_COLUMNS = 2;
 const SPACING = 12;
-const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
-const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
 const GalleryScreen = () => {
   const strings = useStrings();
-  const {isDark, theme} = useTheme();
+  const {theme} = useTheme();
   const {user} = useAuthStore();
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
@@ -52,17 +33,10 @@ const GalleryScreen = () => {
     toggleFavorite: storeToggleFavorite,
   } = useImageStore();
 
-  // Animation for tab indicator
-  const tabIndicatorAnim = useState(new Animated.Value(0))[0];
-
-  const [filteredImages, setFilteredImages] = useState<GeneratedImage[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'favorites'>('all');
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -74,37 +48,6 @@ const GalleryScreen = () => {
       }
     }, [images.length]),
   );
-
-  // Filter images based on search and active tab
-  useEffect(() => {
-    if (images.length > 0) {
-      let filtered = [...images];
-
-      // Apply favorites filter if on favorites tab
-      if (activeTab === 'favorites') {
-        filtered = filtered.filter(img => img.isFavorite);
-      }
-
-      // Apply search query filter - search by prompt
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(img => {
-          return img.prompt.toLowerCase().includes(query);
-        });
-      }
-
-      // Apply style filter if selected
-      if (selectedFilter) {
-        filtered = filtered.filter(
-          img => img.styles && img.styles.includes(selectedFilter),
-        );
-      }
-
-      setFilteredImages(filtered);
-    } else {
-      setFilteredImages([]);
-    }
-  }, [images, searchQuery, activeTab]);
 
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMoreImages) {
@@ -193,393 +136,24 @@ const GalleryScreen = () => {
     [user?.uid, storeToggleFavorite, selectedImage],
   );
 
-  // Switch between All and Favorites tabs
-  const switchTab = useCallback(
-    (tab: 'all' | 'favorites') => {
-      // Haptic feedback for tab switch
-      triggerHaptic('selection');
-      setActiveTab(tab);
-      console.log(
-        `Switched to ${tab} tab, favorites count: ${
-          images.filter(img => img.isFavorite).length
-        }`,
-      );
-
-      // Animate tab indicator
-      Animated.spring(tabIndicatorAnim, {
-        toValue: tab === 'all' ? 0 : 1,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 50,
-      }).start();
-    },
-    [images, tabIndicatorAnim],
-  );
-
-  // Extract unique styles from all images for filtering
-  const uniqueStyles = useCallback(() => {
-    const styles = new Set<string>();
-    images.forEach(img => {
-      if (img.styles && Array.isArray(img.styles)) {
-        img.styles.forEach(style => styles.add(style));
-      }
-    });
-    return Array.from(styles);
-  }, [images]);
-
-  // Calculate dimensions for each image based on aspect ratio
-  const getItemDimensions = (item: GeneratedImage) => {
-    try {
-      // Use width and height from the image data with fallbacks
-      const imageWidth = item.width || 512;
-      const imageHeight = item.height || 512;
-      const aspectRatio = imageHeight / imageWidth;
-      const calculatedHeight = COLUMN_WIDTH * aspectRatio;
-
-      // Limit extreme aspect ratios for better layout
-      const minHeight = COLUMN_WIDTH * 0.5;
-      const maxHeight = COLUMN_WIDTH * 2;
-      const finalHeight = Math.max(
-        minHeight,
-        Math.min(maxHeight, calculatedHeight),
-      );
-
-      return {
-        width: COLUMN_WIDTH,
-        height: finalHeight,
-        aspectRatio,
-      };
-    } catch (error) {
-      console.warn('Error calculating dimensions for image:', item.id, error);
-      return {
-        width: COLUMN_WIDTH,
-        height: COLUMN_WIDTH,
-        aspectRatio: 1,
-      };
-    }
-  };
-
-  const preparedData = React.useMemo(() => {
-    return filteredImages.map(image => ({
-      ...image,
-      dimensions: getItemDimensions(image),
-    }));
-  }, [filteredImages]);
-
-  // Calculate stats for the tabs
-  const stats = useMemo(
-    () => ({
-      total: images.length,
-      favorites: images.filter(img => img.isFavorite).length,
-    }),
-    [images],
-  );
-
   // Render individual image card
   const renderItem = useCallback(
-    ({
-      item,
-    }: {
-      item: GeneratedImage & {
-        dimensions: {width: number; height: number; aspectRatio: number};
-      };
-    }) => {
-      // Get display prompt
-      const displayPrompt = item.prompt || 'Unknown prompt';
-
+    ({item}: {item: GeneratedImage}) => {
       return (
-        <View className="mb-3">
-          {/* Image Card */}
-          <TouchableOpacity
-            onPress={() => setSelectedImage(item)}
-            accessible={true}
-            accessibilityLabel={`Image generated from prompt: ${displayPrompt}`}
-            accessibilityHint={strings.imageViewer.imageHint}>
-            <View
-              className="overflow-hidden rounded-2xl"
-              style={{
-                width: item.dimensions.width,
-                height: item.dimensions.height,
-                backgroundColor: theme.surface,
-              }}>
-              {item.imageUrl ? (
-                <FastImage
-                  source={{uri: item.imageUrl}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode={FastImage.resizeMode.cover}
-                  onError={() => {
-                    console.warn('Image loading error');
-                  }}
-                />
-              ) : (
-                <View
-                  className="flex-1 justify-center items-center"
-                  style={{backgroundColor: theme.surface}}>
-                  <GalleryIcon size={40} color={theme.secondaryText} />
-                  <Text
-                    className="text-xs mt-2 text-center px-2"
-                    style={{color: theme.secondaryText}}>
-                    Image not available
-                  </Text>
-                </View>
-              )}
-              {/* Image Overlay for Style Tag */}
-              <View
-                className="absolute bottom-0 left-0 right-0 p-2 flex-row justify-between items-center"
-                style={{backgroundColor: theme.surface + 'df'}}>
-                {/* Style Tag */}
-                {item.styles && item.styles.length > 0 && (
-                  <Text
-                    className="text-xs font-semibold ml-1.5"
-                    style={{color: theme.text}}>
-                    {item.styles[0]}
-                    {item.styles.length > 1
-                      ? ` +${item.styles.length - 1}`
-                      : ''}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
-          {/* Favorite Button */}
-          <TouchableOpacity
-            onPress={() => handleToggleFavorite(item)}
-            className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
-            hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
-            accessible={true}
-            accessibilityLabel={
-              item.isFavorite
-                ? strings.imageViewer.removeFavourite
-                : strings.imageViewer.addFavourite
-            }
-            accessibilityRole="button">
-            <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
-            <Text className="text-sm font-medium ml-1 text-[#121212]">
-              {item.favoriteCount ? item.favoriteCount : 0}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <ImageCard
+          image={item}
+          onPress={() => {
+            triggerHaptic('light');
+            setSelectedImage(item);
+          }}
+        />
       );
     },
-    [theme, handleToggleFavorite, strings],
+    [triggerHaptic, setSelectedImage],
   );
-
-  // Empty state component
-  const EmptyState = useCallback(
-    () => (
-      <View className="flex-1 justify-center items-center px-8">
-        {activeTab === 'favorites' ? (
-          <>
-            <BookmarkIcon size={60} color={theme.primary} />
-            <Text
-              className="text-xl font-bold mt-4 mb-2"
-              style={{color: theme.text}}>
-              {strings.gallery.noFavorites}
-            </Text>
-            <Text
-              className="text-base text-center"
-              style={{color: theme.secondaryText}}>
-              {strings.gallery.tapHeart}
-            </Text>
-            <TouchableOpacity
-              className="mt-6 py-2.5 px-6 rounded-xl"
-              style={{backgroundColor: theme.primary}}
-              onPress={() => switchTab('all')}
-              accessible={true}
-              accessibilityLabel={strings.gallery.viewAllImages}>
-              <Text className="text-white font-medium">
-                {strings.gallery.viewAllImages}
-              </Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <GalleryIcon size={60} color={theme.primary} />
-            <Text
-              className="text-xl font-bold mt-4 mb-2"
-              style={{color: theme.text}}>
-              {searchQuery || selectedFilter
-                ? strings.gallery.noMatchingImages
-                : strings.gallery.noImages}
-            </Text>
-            <Text
-              className="text-base text-center"
-              style={{color: theme.secondaryText}}>
-              {searchQuery || selectedFilter
-                ? strings.gallery.tryAdjusting
-                : strings.gallery.imagesAppearHere}
-            </Text>
-
-            {(searchQuery || selectedFilter) && (
-              <TouchableOpacity
-                className="mt-6 py-2.5 px-6 rounded-xl"
-                style={{backgroundColor: theme.primary}}
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedFilter(null);
-                }}
-                accessible={true}
-                accessibilityLabel={strings.gallery.clearFilters}>
-                <Text className="text-white font-medium">
-                  {strings.gallery.clearFilters}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
-      </View>
-    ),
-    [theme, searchQuery, selectedFilter, activeTab, switchTab, strings],
-  );
-
-  // Animation for tab indicator position
-  const translateX = tabIndicatorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, SCREEN_WIDTH / 2 - 32],
-  });
 
   return (
     <View className="flex-1" style={{backgroundColor: theme.background}}>
-      {/* Header with persistent search */}
-      <View className="pt-6 pb-2 px-6">
-        <Text
-          className="text-3xl font-bold text-center mb-4"
-          style={{color: theme.text}}>
-          {strings.gallery.title}
-        </Text>
-
-        {/* Tab Bar */}
-        <View className="mb-4">
-          <View className="flex-row border-b border-gray-200 dark:border-gray-800">
-            <TouchableOpacity
-              className="flex-1 py-3"
-              onPress={() => switchTab('all')}
-              accessible={true}
-              accessibilityRole="tab"
-              accessibilityState={{selected: activeTab === 'all'}}
-              accessibilityLabel={strings.gallery.viewAllImages}>
-              <Text
-                className="text-center font-medium"
-                style={{
-                  color:
-                    activeTab === 'all' ? theme.primary : theme.secondaryText,
-                }}>
-                {strings.common.all} ({stats.total})
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="flex-1 py-3"
-              onPress={() => switchTab('favorites')}
-              accessible={true}
-              accessibilityRole="tab"
-              accessibilityState={{selected: activeTab === 'favorites'}}
-              accessibilityLabel={strings.gallery.viewAllFavorites}>
-              <Text
-                className="text-center font-medium"
-                style={{
-                  color:
-                    activeTab === 'favorites'
-                      ? theme.primary
-                      : theme.secondaryText,
-                }}>
-                {strings.imageViewer.favorite} ({stats.favorites})
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Animated indicator */}
-          <Animated.View
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              width: SCREEN_WIDTH / 2 - 32,
-              height: 3,
-              backgroundColor: theme.primary,
-              borderRadius: 3,
-              transform: [{translateX}],
-              left: 0,
-            }}
-          />
-        </View>
-
-        {/* Search Bar */}
-        <View
-          className="flex-row rounded-2xl overflow-hidden mb-3"
-          style={{backgroundColor: theme.surface}}>
-          <View className="px-3 justify-center">
-            <SearchIcon size={20} color={theme.secondaryText} />
-          </View>
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={
-              activeTab === 'favorites'
-                ? strings.gallery.searchFavorites
-                : strings.gallery.searchAll
-            }
-            placeholderTextColor={theme.secondaryText}
-            className="flex-1 py-3 h-14"
-            style={{color: theme.text}}
-            accessible={true}
-            accessibilityLabel={strings.gallery.searchImages}
-            accessibilityHint={strings.gallery.searchHint}
-          />
-          {searchQuery ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              className="px-3 justify-center"
-              accessible={true}
-              accessibilityLabel={strings.gallery.clearSearch}>
-              <CloseIcon size={18} color={theme.secondaryText} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Style Filters */}
-        {images.length > 0 && uniqueStyles().length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="pb-2"
-            removeClippedSubviews={true}
-            contentContainerStyle={{paddingHorizontal: 2}}>
-            {uniqueStyles().map(style => (
-              <TouchableOpacity
-                key={style}
-                onPress={() => {
-                  if (selectedFilter === style) {
-                    setSelectedFilter(null);
-                  } else {
-                    setSelectedFilter(style);
-                  }
-                }}
-                className="mr-2 py-2 px-3 rounded-full"
-                style={{
-                  backgroundColor:
-                    selectedFilter === style ? theme.primary : theme.surface,
-                }}
-                accessible={true}
-                accessibilityLabel={`Filter by ${style} style`}
-                accessibilityState={{selected: selectedFilter === style}}
-                accessibilityHint={
-                  selectedFilter === style
-                    ? strings.gallery.tapToRemoveFilter
-                    : strings.gallery.tapToApplyFilter
-                }>
-                <Text
-                  style={{
-                    color:
-                      selectedFilter === style ? 'white' : theme.secondaryText,
-                  }}>
-                  {style}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
       {/* Gallery Content */}
       {isLoading && !refreshing ? (
         <View className="flex-1 justify-center items-center">
@@ -588,11 +162,9 @@ const GalleryScreen = () => {
             {strings.imageViewer.loading}
           </Text>
         </View>
-      ) : filteredImages.length === 0 ? (
-        <EmptyState />
       ) : (
         <MasonryFlashList
-          data={preparedData}
+          data={images}
           keyExtractor={(item, index) =>
             `gallery-${item.id || 'temp'}-${index}`
           }
@@ -617,7 +189,6 @@ const GalleryScreen = () => {
               tintColor={theme.primary}
             />
           }
-          extraData={[isDark, searchQuery, selectedFilter, activeTab]}
           ListFooterComponent={LoadingFooter}
         />
       )}

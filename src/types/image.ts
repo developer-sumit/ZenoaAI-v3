@@ -37,8 +37,6 @@ export interface GeneratedImage {
   createdAt: Date;
   userName: string;
   userAvatar: string;
-  batchId?: string;
-  batchTimestamp?: Date;
 }
 
 export interface ImageResponse {

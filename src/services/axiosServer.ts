@@ -195,6 +195,10 @@ export const imageAPI = {
     return axiosServer.get('/api/images/public', {params});
   },
 
+  getFavoriteImages: (params?: any) => {
+    return axiosServer.get('/api/images/favorites', {params});
+  },
+
   getImage: (imageId: string) => {
     return axiosServer.get(`/api/images/${imageId}`);
   },

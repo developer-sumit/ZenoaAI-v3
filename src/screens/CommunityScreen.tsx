@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {MasonryFlashList} from '@shopify/flash-list';
-import FastImage from 'react-native-fast-image';
 import {useToast} from '@masumdev/rn-toast';
 
 import {useTheme} from '@src/store/themeStore';
@@ -18,27 +17,23 @@ import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types/image';
 import ImageViewer from '@src/components/ImageViewer';
 import EmptyState from '@src/components/EmptyState';
-import UserAvatar from '@src/components/UserAvatar';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
 import {
   COMMUNITY_FILTER_OPTIONS,
   DEFAULT_COMMUNITY_FILTER,
-  SCREEN_WIDTH,
 } from '@src/constants';
 
 // Icons
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import CommunityIcon from '@src/assets/icons/CommunityIcon';
-import HeartIcon from '@src/assets/icons/HeartIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
+import ImageCard from '@src/components/ImageCard';
 
 const NUM_COLUMNS = 2;
 const SPACING = 12;
-const TOTAL_SPACING = SPACING * (NUM_COLUMNS + 1);
-const COLUMN_WIDTH = (SCREEN_WIDTH - TOTAL_SPACING) / NUM_COLUMNS;
 
 type FilterType = (typeof COMMUNITY_FILTER_OPTIONS)[number]['id'];
 
@@ -160,102 +155,23 @@ const CommunityScreen = () => {
     activeFilter,
   ]);
 
-  const calculateImageHeight = (item: GeneratedImage) => {
-    // Use actual aspect ratio if available
-    if (item.width && item.height) {
-      const calculatedHeight = COLUMN_WIDTH / (item.width / item.height);
-      console.log(
-        `Image ${item.id}: ${item.width}x${item.height} -> height: ${calculatedHeight}`,
-      );
-      return calculatedHeight;
-    }
-
-    // Use aspectRatio field if available
-    if (item.aspectRatio) {
-      try {
-        const parts = item.aspectRatio.split(':');
-        if (parts.length === 2) {
-          const width = parseFloat(parts[0]);
-          const height = parseFloat(parts[1]);
-          if (!isNaN(width) && !isNaN(height) && height > 0 && width > 0) {
-            const calculatedHeight = COLUMN_WIDTH / (width / height);
-            console.log(
-              `Image ${item.id}: ratio ${item.aspectRatio} -> height: ${calculatedHeight}`,
-            );
-            return calculatedHeight;
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing aspect ratio:', error);
-      }
-    }
-
-    // Default aspect ratio
-    const defaultHeight = COLUMN_WIDTH / 0.75; // 4:3 ratio
-    console.log(`Image ${item.id}: using default height: ${defaultHeight}`);
-    return defaultHeight;
-  };
-
-  const renderImageItem = ({item}: {item: GeneratedImage}) => {
-    const imageHeight = calculateImageHeight(item);
-
-    return (
-      <View
-        className="rounded-xl overflow-hidden mb-3"
-        style={{width: COLUMN_WIDTH}}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerHaptic('light');
-            setSelectedImage(item);
+  const renderItem = useCallback(
+    ({item}: {item: GeneratedImage}) => {
+      return (
+        <ImageCard
+          image={item}
+          onPress={() => setSelectedImage(item)}
+          style={{
+            width: '100%',
+            height: undefined,
+            aspectRatio: item.aspectRatio || 1,
+            marginBottom: SPACING,
           }}
-          activeOpacity={0.9}
-          accessible={true}
-          accessibilityLabel="Community image"
-          accessibilityRole="button">
-          <FastImage
-            source={{uri: item.imageUrl}}
-            className="rounded-xl"
-            style={{
-              width: COLUMN_WIDTH,
-              height: imageHeight,
-              backgroundColor: theme.surface,
-            }}
-            resizeMode={FastImage.resizeMode.cover}
-          />
-
-          {/* Image overlay with basic info */}
-          <View
-            className="absolute bottom-0 left-0 right-0 p-3"
-            style={{backgroundColor: theme.surface + 'df'}}>
-            <View className="flex-row justify-between items-center">
-              <View className="flex-row items-center">
-                <UserAvatar
-                  size={18}
-                  userName={item.userName || 'Anonymous'}
-                  userAvatar={item.userAvatar}
-                  backgroundColor={theme.primary}
-                  textColor="#ffffff"
-                />
-                <Text
-                  className="text-sm font-semibold ml-1.5"
-                  style={{color: theme.text}}>
-                  {item.userName || 'Anonymous'}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Favorite indicator */}
-          <View className="flex-row absolute top-2 right-2 bg-white bg-opacity-90 rounded-xl px-2.5 py-1 gap-1">
-            <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
-            <Text className="text-sm font-medium ml-1 text-[#121212]">
-              {item.favoriteCount}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-    );
-  };
+        />
+      );
+    },
+    [publicImages, setSelectedImage],
+  );
 
   const renderEmptyState = () => (
     <EmptyState
@@ -392,7 +308,7 @@ const CommunityScreen = () => {
             `community-${item.id || 'temp'}-${index}`
           }
           numColumns={NUM_COLUMNS}
-          renderItem={renderImageItem}
+          renderItem={renderItem}
           estimatedItemSize={200}
           removeClippedSubviews={true}
           className="rounded-3xl"

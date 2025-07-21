@@ -1,9 +1,10 @@
 /**
  * App Name: Zenoa AI
- * Version: 3.0.0
+ * Version: 3.2.0
  * Company Name: Zenoa
  * Owner & Developer: Sumit Singh Rathore
  * Released on Indus App Store: 30 April 2025
+ * Released on Google Play Store: 08 June 2025
  *
  * License:
  * This software is proprietary and owned by Zenoa. Unauthorized distribution
@@ -46,7 +47,7 @@ import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
 import SettingsScreen from '@src/screens/SettingsScreen';
-import GalleryScreen from '@src/screens/GalleryScreen';
+import GalleryLayout from '@src/screens/GalleryLayout';
 import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
@@ -86,7 +87,7 @@ function HomeTabs() {
         tabBarHideOnKeyboard: true,
       }}>
       <Tab.Screen name={Routes.HOME} component={HomeScreen} />
-      <Tab.Screen name={Routes.GALLERY} component={GalleryScreen} />
+      <Tab.Screen name={Routes.GALLERY} component={GalleryLayout} />
       <Tab.Screen name={Routes.COMMUNITY} component={CommunityScreen} />
       <Tab.Screen name={Routes.SETTINGS} component={ProfileStack} />
     </Tab.Navigator>
