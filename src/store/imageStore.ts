@@ -153,7 +153,11 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   ) => {
     try {
       if (reset) {
-        set({isLoading: true, error: null, favoriteCurrentPage: 1});
+        set({
+          isLoadingMoreFavorites: true,
+          error: null,
+          favoriteCurrentPage: 1,
+        });
       } else {
         set({isLoadingMoreFavorites: true, error: null});
       }
@@ -178,7 +182,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       const message = error?.message || 'Failed to fetch favorite images';
       set({error: message});
     } finally {
-      set({isLoading: false, isLoadingMoreFavorites: false});
+      set({isLoadingMoreFavorites: false});
     }
   },
 
