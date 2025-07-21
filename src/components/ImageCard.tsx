@@ -106,7 +106,7 @@ const SyncIndicator = ({color}: {color: string}) => {
   );
 };
 
-const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress}) => {
+const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const strings = useStrings();
   const {theme} = useTheme();
   const {triggerHaptic} = useHaptics();
@@ -126,11 +126,14 @@ const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress}) => {
           onPress && onPress();
         }
       }}
-      style={{
-        aspectRatio: image.aspectRatio.replace(':', '/') || '1/1',
-        backgroundColor: isPlaceholder ? theme.surface : 'transparent',
-        marginBottom: 10,
-      }}
+      style={[
+        {
+          aspectRatio: image.aspectRatio.replace(':', '/') || '1/1',
+          backgroundColor: isPlaceholder ? theme.surface : 'transparent',
+          marginBottom: 10,
+        },
+        style,
+      ]}
       className="rounded-3xl overflow-hidden"
       disabled={isPlaceholder}
       accessible={true}

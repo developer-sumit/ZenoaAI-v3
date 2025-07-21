@@ -134,7 +134,6 @@ const FavoriteScreen = () => {
     );
   }, [isLoadingMoreFavorites, theme.primary, theme.secondaryText]);
 
-  // Render individual image card
   const renderItem = useCallback(
     ({item}: {item: GeneratedImage}) => {
       return (
@@ -150,7 +149,6 @@ const FavoriteScreen = () => {
     [triggerHaptic, setSelectedImage],
   );
 
-  // Empty state component
   const EmptyState = useCallback(
     () => (
       <View className="flex-1 justify-center items-center px-8">

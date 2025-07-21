@@ -33,7 +33,6 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
 
 // Icons
-import TipIcon from '@src/assets/icons/TipIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -54,7 +53,6 @@ const HomeScreen = () => {
   const {
     error,
     images: allImages,
-    isLoading: imageLoading,
     fetchImages,
     generateImage,
   } = useImageStore();
@@ -79,6 +77,7 @@ const HomeScreen = () => {
   const flashListRef = useRef<FlashList<any>>(null);
 
   const [images, setImages] = React.useState<GeneratedImage[]>([]);
+  const [isGenerating, setIsGenerating] = React.useState(false);
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
   const [selectedImage, setSelectedImage] =
@@ -98,7 +97,7 @@ const HomeScreen = () => {
     }
   }, [user?.uid, fetchImages]);
 
-  useEffect(() => {
+  const handleImageGeneration = async () => {
     let tempImages = [];
     for (let i = 0; i < numberOfImages; i++) {
       const placeholderImage: GeneratedImage = {
@@ -124,11 +123,8 @@ const HomeScreen = () => {
       };
       tempImages.push(placeholderImage);
     }
-
     setImages(tempImages);
-  }, [numberOfImages]);
 
-  const handleImageGeneration = async () => {
     // Haptic feedback for generation start
     triggerHaptic('medium');
 
@@ -143,19 +139,12 @@ const HomeScreen = () => {
       return;
     }
 
-    // Also check negative prompt if provided
-    // if (negativePrompt && !contentFilter.isClean(negativePrompt)) {
-    //   showToast(
-    //     'Negative prompt contains inappropriate content. Please revise and try again.',
-    //     'error',
-    //   );
-    //   return;
-    // }
-
     if (!user?.uid) {
       showToast(strings.home.signInRequired, 'error');
       return;
     }
+
+    setIsGenerating(true); // Start loading
 
     try {
       const apiSettings: ImageGenerationRequest = {
@@ -174,21 +163,53 @@ const HomeScreen = () => {
 
       console.log('Generating with:', {apiSettings});
 
-      for (let i = 0; i < numberOfImages; i++) {
-        const success = await generateImage(apiSettings);
-        if (!success) {
-          showToast(error || strings.home.generationFailed, 'error');
+      const promises = Array.from({length: numberOfImages}, () =>
+        generateImage(apiSettings),
+      );
+      const results = await Promise.all(promises);
+
+      results.forEach((result, i) => {
+        const {success, data, message} = result;
+        if (!success || !data) {
+          showToast(message || strings.home.generationFailed, 'error');
           return;
         }
 
-        // Trigger haptic feedback for each successful generation
+        const newData = {
+          id: data.id,
+          userId: data.userId,
+          prompt: prompt || data.prompt,
+          imageUrl: data.imageUrl,
+          thumbnailUrl: data.imageUrl,
+          engineType: data.engineType,
+          styles: data.styles,
+          width: data.width,
+          height: data.height,
+          seed: data.seed,
+          imageSize: data.imageSize,
+          aspectRatio: data.aspectRatio,
+          negativePrompt: data.negativePrompt,
+          isFavorite: data.isFavorite,
+          favoriteCount: data.favoriteCount,
+          isPrivate: data.isPrivate,
+          createdAt: new Date(),
+          userName: data.userName || user?.profile.name || 'Anonymous',
+          userAvatar: data.userAvatar || user?.profile.avatar || '',
+        };
+
+        setImages(prev =>
+          prev.map((img, idx) => (idx === i ? {...newData} : img)),
+        );
+
         triggerHaptic('success');
         showToast(strings.home.generationSuccess, 'success');
-      }
+      });
     } catch (err) {
       console.error('Generation failed:', err);
       triggerHaptic('error'); // Add error haptic feedback
       showToast(error || 'Failed to generate image', 'error');
+    } finally {
+      setIsGenerating(false); // End loading after all images are processed
     }
   };
 
@@ -206,30 +227,9 @@ const HomeScreen = () => {
   // Render getting started section with collapsible UI
   const renderGettingStarted = () => (
     <View
-      className="px-4 py-2 mb-2"
+      className="py-2 mb-2"
       accessible={true}
       accessibilityLabel={strings.home.gettingStartedGuide}>
-      {/* Collapsible header */}
-      <TouchableOpacity
-        onPress={() => setShowOnboarding(!showOnboarding)}
-        className="flex-row items-center justify-between mb-2"
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel={`${
-          showOnboarding ? strings.home.hide : strings.home.show
-        } ${strings.home.gettingStartedGuide}`}
-        accessibilityHint={strings.home.toggleGettingStartedHint}>
-        <View className="flex-row items-center">
-          <TipIcon size={20} color={theme.primary} />
-          <Text className="text-lg font-bold ml-2" style={{color: theme.text}}>
-            {strings.home.gettingStartedGuide}
-          </Text>
-        </View>
-        <Text style={{color: theme.secondaryText, fontSize: 13}}>
-          {showOnboarding ? strings.home.hide : strings.home.show}
-        </Text>
-      </TouchableOpacity>
-
       {/* Collapsible content */}
       {showOnboarding && (
         <View
@@ -307,8 +307,12 @@ const HomeScreen = () => {
 
   const renderItem = ({item}: {item: GeneratedImage}) => {
     return (
-      <View className="p-2.5">
-        <ImageCard image={item} onPress={() => setSelectedImage(item)} />
+      <View className="items-center justify-center w-full">
+        <ImageCard
+          image={item}
+          onPress={() => setSelectedImage(item)}
+          style={{width: '95%'}}
+        />
       </View>
     );
   };
@@ -382,11 +386,11 @@ const HomeScreen = () => {
           <FlashList
             ref={flashListRef}
             data={images}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
+            keyExtractor={item => item.id}
             estimatedItemSize={300}
             removeClippedSubviews={true}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 200}}
+            contentContainerStyle={{paddingBottom: 215, paddingHorizontal: 10}}
             renderItem={renderItem}
             numColumns={2}
             ListEmptyComponent={
@@ -401,6 +405,7 @@ const HomeScreen = () => {
             ListHeaderComponent={showOnboarding ? renderGettingStarted() : null}
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
+            extraData={allImages}
           />
         </View>
 
@@ -487,11 +492,11 @@ const HomeScreen = () => {
               <TouchableOpacity
                 onPress={clearInputs}
                 disabled={
-                  imageLoading || (prompt.length === 0 && styles.length === 0)
+                  isGenerating || (prompt.length === 0 && styles.length === 0)
                 }
                 style={{
                   opacity:
-                    imageLoading || (prompt.length === 0 && styles.length === 0)
+                    isGenerating || (prompt.length === 0 && styles.length === 0)
                       ? 0.5
                       : 1,
                   backgroundColor: theme.surface,
@@ -501,7 +506,7 @@ const HomeScreen = () => {
                 accessibilityLabel={strings.home.clearInputs}
                 accessibilityState={{
                   disabled:
-                    imageLoading ||
+                    isGenerating ||
                     (prompt.length === 0 && styles.length === 0),
                 }}
                 accessibilityRole="button"
@@ -533,10 +538,10 @@ const HomeScreen = () => {
                     animatePress(generateButtonScale);
                     handleImageGeneration();
                   }}
-                  disabled={imageLoading || prompt.trim().length === 0}
+                  disabled={isGenerating || prompt.trim().length === 0}
                   style={{
                     opacity:
-                      imageLoading || prompt.trim().length === 0 ? 0.5 : 1,
+                      isGenerating || prompt.trim().length === 0 ? 0.5 : 1,
                     backgroundColor: theme.primary,
                   }}
                   className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
@@ -544,11 +549,11 @@ const HomeScreen = () => {
                   accessibilityLabel={strings.home.generateImage}
                   accessibilityRole="button"
                   accessibilityState={{
-                    disabled: imageLoading || prompt.trim().length === 0,
-                    busy: imageLoading,
+                    disabled: isGenerating || prompt.trim().length === 0,
+                    busy: isGenerating,
                   }}
                   accessibilityHint={strings.home.generateImageHint}>
-                  {imageLoading ? (
+                  {isGenerating ? (
                     <ActivityIndicator color="white" />
                   ) : (
                     <>
