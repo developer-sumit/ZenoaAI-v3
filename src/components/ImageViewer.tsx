@@ -17,7 +17,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Toaster, useToast} from '@masumdev/rn-toast';
 import {useNavigation} from '@react-navigation/native';
-import ImageView from "react-native-image-viewing";
+import ImageView from 'react-native-image-viewing';
 
 import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
@@ -278,29 +278,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     }
   };
 
-  // Calculate aspect ratio safely
-  const getAspectRatio = () => {
-    // Fallback to ratio from metadata
-    if (image?.aspectRatio && typeof image.aspectRatio === 'string') {
-      try {
-        const parts = image.aspectRatio.split(':');
-        if (parts.length === 2) {
-          const width = parseFloat(parts[0]);
-          const height = parseFloat(parts[1]);
-
-          if (!isNaN(width) && !isNaN(height) && height > 0) {
-            return width / height;
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing aspect ratio:', error);
-      }
-    }
-
-    // Default fallback
-    return 1;
-  };
-
   const handleRemix = () => {
     if (!image) {
       return;
@@ -358,20 +335,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               paddingTop: fullscreenMode ? 0 : 0,
               backgroundColor: fullscreenMode ? 'black' : 'transparent',
             }}>
-            {/* Header - only visible in normal mode */}
-            {!fullscreenMode && (
-              <View className="flex-row justify-between items-center mb-4">
-                <TouchableOpacity
-                  onPress={onClose}
-                  className="p-2.5 rounded-full"
-                  style={{backgroundColor: theme.surface}}
-                  accessible={true}
-                  accessibilityLabel={strings.imageViewer.closeHint}>
-                  <CloseIcon size={24} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-            )}
-
             {/* Image Display - takes full screen in fullscreen mode */}
             <View
               className={`${
@@ -398,7 +361,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     borderRadius: fullscreenMode ? 0 : 24,
                     width: '100%',
                     height: '100%',
-                    aspectRatio: fullscreenMode ? undefined : getAspectRatio(),
+                    aspectRatio: fullscreenMode
+                      ? undefined
+                      : image?.aspectRatio.replace(':', '/') || '1/1',
                     backgroundColor: 'transparent',
                   }}
                   resizeMode={FastImage.resizeMode.contain}
@@ -419,6 +384,39 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     setImageLoaded(false);
                   }}
                 />
+
+                <View
+                  style={{backgroundColor: theme.surface}}
+                  className="rounded-full overflow-hidden absolute justify-self-center bottom-1.5 flex-row gap-2 px-3 py-1.5 items-center">
+                  <FastImage
+                    source={{
+                      uri: image?.userAvatar,
+                      priority: FastImage.priority.normal,
+                      cache: FastImage.cacheControl.immutable,
+                      headers: {'Cache-Control': 'max-age=31536000'},
+                    }}
+                    style={{width: 32, height: 32, borderRadius: 12}}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                  <Text
+                    className="text-sm font-semibold"
+                    style={{color: theme.text}}>
+                    {image?.userName || 'Anonymous'}
+                  </Text>
+                </View>
+
+                {/* Header - only visible in normal mode */}
+                {!fullscreenMode && (
+                  <TouchableOpacity
+                    onPress={onClose}
+                    className="absolute top-2.5 left-2.5 p-2.5 rounded-full"
+                    style={{backgroundColor: theme.surface}}
+                    accessible={true}
+                    accessibilityLabel={strings.imageViewer.closeHint}>
+                    <CloseIcon size={24} color={theme.text} />
+                  </TouchableOpacity>
+                )}
+
                 {/* Overlay buttons - only in normal mode */}
                 {imageLoaded && !fullscreenMode && (
                   <View className="absolute top-2.5 right-2.5 flex-row gap-2">
