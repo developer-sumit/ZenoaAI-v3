@@ -20,6 +20,7 @@ import SyncIcon from '@src/assets/icons/SyncIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
 import UserAvatar from './UserAvatar';
 import HeartIcon from '@src/assets/icons/HeartIcon';
+import {useImageStore} from '@src/store/imageStore';
 
 interface ImageCardProps {
   image: GeneratedImage;
@@ -109,6 +110,7 @@ const SyncIndicator = ({color}: {color: string}) => {
 const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const strings = useStrings();
   const {theme} = useTheme();
+  const {toggleFavorite} = useImageStore();
   const {triggerHaptic} = useHaptics();
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
@@ -226,6 +228,7 @@ const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       {/* Favorite indicator */}
       {!isPlaceholder && (
         <TouchableOpacity
+          onPress={() => toggleFavorite(image.id)}
           className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
           hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
           accessible={true}
