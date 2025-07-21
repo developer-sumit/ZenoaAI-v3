@@ -157,18 +157,7 @@ const CommunityScreen = () => {
 
   const renderItem = useCallback(
     ({item}: {item: GeneratedImage}) => {
-      return (
-        <ImageCard
-          image={item}
-          onPress={() => setSelectedImage(item)}
-          style={{
-            width: '100%',
-            height: undefined,
-            aspectRatio: item.aspectRatio || 1,
-            marginBottom: SPACING,
-          }}
-        />
-      );
+      return <ImageCard image={item} onPress={() => setSelectedImage(item)} />;
     },
     [publicImages, setSelectedImage],
   );
