@@ -368,7 +368,7 @@ const HomeScreen = () => {
         </View>
 
         {/* Generated Images Grid */}
-        <View className="flex-1 pb-5">
+        <View className="flex-1 pb-5 mt-3">
           <FlashList
             data={images}
             keyExtractor={item => item.id}
@@ -378,7 +378,7 @@ const HomeScreen = () => {
             renderItem={renderItem}
             numColumns={2}
             ListEmptyComponent={
-              <View style={{minHeight: SCREEN_HEIGHT - 150}}>
+              <View style={{minHeight: SCREEN_HEIGHT - 250}}>
                 <EmptyState
                   icon={<MagicWand size={48} color={theme.primary} />}
                   title="No images yet"
