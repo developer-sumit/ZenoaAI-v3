@@ -37,7 +37,11 @@ interface ImageState {
     reset?: boolean,
   ) => Promise<void>;
   loadMoreFavoriteImages: () => Promise<void>;
-  generateImage: (settings: ImageGenerationRequest) => Promise<boolean>;
+  generateImage: (settings: ImageGenerationRequest) => Promise<{
+    success: boolean;
+    data: GeneratedImage | null;
+    message: string;
+  }>;
   deleteImage: (imageId: string) => Promise<boolean>;
   toggleFavorite: (imageId: string) => Promise<boolean>;
   updatePrivacy: (imageId: string, isPrivate: boolean) => Promise<boolean>;
@@ -196,7 +200,11 @@ export const useImageStore = create<ImageState>()((set, get) => ({
 
       if (!success || !data) {
         set({error: message || 'Failed to generate image'});
-        return false;
+        return {
+          success: false,
+          data: null,
+          message: message || 'Failed to generate image',
+        };
       }
 
       const user = useAuthStore().user;
@@ -219,11 +227,19 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         error: null,
       }));
 
-      return true;
+      return {
+        success: true,
+        data,
+        message: 'Image generated successfully',
+      };
     } catch (error: any) {
       console.error('Failed to generate image batch:', error);
       set({error: 'Failed to generate image'});
-      return false;
+      return {
+        success: false,
+        data: null,
+        message: 'Failed to generate image',
+      };
     } finally {
       set({isLoading: false});
     }

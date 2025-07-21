@@ -15,6 +15,7 @@ import {useToast} from '@masumdev/rn-toast';
 import {useTheme} from '@src/store/themeStore';
 import {useImageStore} from '@src/store/imageStore';
 import {GeneratedImage} from '@src/types/image';
+import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
 import EmptyState from '@src/components/EmptyState';
 import {useStrings} from '@src/hooks/useStrings';
@@ -30,7 +31,6 @@ import SearchIcon from '@src/assets/icons/SearchIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import CommunityIcon from '@src/assets/icons/CommunityIcon';
 import TuneIcon from '@src/assets/icons/TuneIcon';
-import ImageCard from '@src/components/ImageCard';
 
 const NUM_COLUMNS = 2;
 const SPACING = 12;
