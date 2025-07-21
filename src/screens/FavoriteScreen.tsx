@@ -27,7 +27,6 @@ const FavoriteScreen = () => {
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const {
-    isLoading,
     favoriteImages,
     fetchFavoriteImages,
     loadMoreFavoriteImages,
@@ -171,7 +170,7 @@ const FavoriteScreen = () => {
   return (
     <View className="flex-1" style={{backgroundColor: theme.background}}>
       {/* Gallery Content */}
-      {isLoading && !refreshing ? (
+      {isLoadingMoreFavorites && !refreshing ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={theme.primary} />
           <Text className="mt-3" style={{color: theme.text}}>
