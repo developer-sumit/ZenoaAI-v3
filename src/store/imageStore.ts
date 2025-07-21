@@ -8,12 +8,16 @@ import {ImageGenerationRequest} from '@src/types/image';
 interface ImageState {
   images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
   publicImages: GeneratedImage[]; // Public images from all users (for community feed)
+  favoriteImages: GeneratedImage[]; // User's favorite images
   isLoading: boolean;
   isLoadingPublic: boolean;
   isLoadingMore: boolean; // For loading more images pagination
+  isLoadingMoreFavorites: boolean;
   error: string | null;
   hasMoreImages: boolean; // Indicates if there are more images to load
   currentPage: number; // Current page number for pagination
+  hasMoreFavoriteImages: boolean;
+  favoriteCurrentPage: number;
 
   // Actions
   fetchImages: (
@@ -27,6 +31,12 @@ interface ImageState {
     limit?: number,
     filter?: string,
   ) => Promise<void>;
+  fetchFavoriteImages: (
+    page?: number,
+    limit?: number,
+    reset?: boolean,
+  ) => Promise<void>;
+  loadMoreFavoriteImages: () => Promise<void>;
   generateImage: (settings: ImageGenerationRequest) => Promise<boolean>;
   deleteImage: (imageId: string) => Promise<boolean>;
   toggleFavorite: (imageId: string) => Promise<boolean>;
@@ -37,12 +47,16 @@ interface ImageState {
 export const useImageStore = create<ImageState>()((set, get) => ({
   images: [],
   publicImages: [],
+  favoriteImages: [],
   isLoading: false,
   isLoadingPublic: false,
   isLoadingMore: false,
   error: null,
   hasMoreImages: true,
   currentPage: 1,
+  isLoadingMoreFavorites: false,
+  hasMoreFavoriteImages: true,
+  favoriteCurrentPage: 1,
 
   fetchImages: async (
     page: number = 1,
@@ -126,6 +140,51 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     } finally {
       set({isLoadingPublic: false});
     }
+  },
+
+  fetchFavoriteImages: async (
+    page: number = 1,
+    limit: number = 20,
+    reset: boolean = true,
+  ) => {
+    try {
+      if (reset) {
+        set({isLoading: true, error: null, favoriteCurrentPage: 1});
+      } else {
+        set({isLoadingMoreFavorites: true, error: null});
+      }
+
+      const {success, data, message} = await imageService.getFavoriteImages(
+        page,
+        limit,
+      );
+
+      if (!success || !data) {
+        set({error: message || 'Failed to fetch favorite images'});
+        return;
+      }
+
+      set(state => ({
+        favoriteImages: reset ? data : [...state.favoriteImages, ...data],
+        hasMoreFavoriteImages: data.length === limit,
+        favoriteCurrentPage: page,
+      }));
+    } catch (error: any) {
+      console.error('Failed to fetch favorite images:', error);
+      const message = error?.message || 'Failed to fetch favorite images';
+      set({error: message});
+    } finally {
+      set({isLoading: false, isLoadingMoreFavorites: false});
+    }
+  },
+
+  loadMoreFavoriteImages: async () => {
+    const state = get();
+    if (state.isLoadingMoreFavorites || !state.hasMoreFavoriteImages) {
+      return;
+    }
+    const nextPage = state.favoriteCurrentPage + 1;
+    await get().fetchFavoriteImages(nextPage, 20, false);
   },
 
   generateImage: async (settings: ImageGenerationRequest) => {

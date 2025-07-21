@@ -406,6 +406,7 @@ const SettingsScreen = () => {
                 </View>
               </View>
               {/* Plan Type */}
+              {/* TODO: Change the color based on the plan type */}
               <View className="flex-row justify-between items-center">
                 <Text
                   style={{color: theme.text}}

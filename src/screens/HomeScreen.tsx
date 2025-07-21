@@ -22,23 +22,13 @@ import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
-import {
-  GeneratedImage,
-  ImageGenerationRequest,
-  ImageSize,
-} from '@src/types/image';
+import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import EmptyState from '@src/components/EmptyState';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
 import {contentFilter} from '@src/utils/contentFilter';
-import {
-  DEFAULT_ASPECT_RATIO,
-  DEFAULT_ENGINE_TYPE,
-  DEFAULT_IMAGE_SIZE,
-  SCREEN_HEIGHT,
-  SCREEN_WIDTH,
-} from '@src/constants';
+import {SCREEN_HEIGHT} from '@src/constants';
 import {useStrings} from '@src/hooks/useStrings';
 import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
 
@@ -51,13 +41,11 @@ import MagicWand from '@src/assets/icons/MagicWandIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import {useGenerationStore} from '@src/store/generationStore';
-
-const PADDING = 24;
-const COLUMN_WIDTH = (SCREEN_WIDTH - PADDING) / 2;
+import FastImage from 'react-native-fast-image';
 
 const HomeScreen = () => {
   const strings = useStrings();
-  const {theme} = useTheme();
+  const {isDark, theme} = useTheme();
   const {showToast} = useToast();
   const {user} = useAuthStore();
   const navigator = useAppNavigation();
@@ -65,7 +53,7 @@ const HomeScreen = () => {
   const {animatePress} = useAnimations();
   const {
     error,
-    images: generatedImages,
+    images: allImages,
     isLoading: imageLoading,
     fetchImages,
     generateImage,
@@ -82,8 +70,6 @@ const HomeScreen = () => {
     styles,
     seed,
     setPrompt,
-    setAspectRatio,
-    setImageSize,
     setStyles,
     imageWidth,
     imageHeight,
@@ -92,6 +78,7 @@ const HomeScreen = () => {
 
   const flashListRef = useRef<FlashList<any>>(null);
 
+  const [images, setImages] = React.useState<GeneratedImage[]>([]);
   const [showPromptSuggestions, setShowPromptSuggestions] =
     React.useState(false);
   const [selectedImage, setSelectedImage] =
@@ -111,25 +98,35 @@ const HomeScreen = () => {
     }
   }, [user?.uid, fetchImages]);
 
-  const getAspectRatio = (image: GeneratedImage): number => {
-    // Use actual image dimensions if available
-    if (image.width && image.height) {
-      return image.width / image.height;
-    } // Fall back to aspectRatio if dimensions not available
-    if (image?.aspectRatio) {
-      const [width, height] = image.aspectRatio.split(':').map(Number);
-      return width / height;
+  useEffect(() => {
+    let tempImages = [];
+    for (let i = 0; i < numberOfImages; i++) {
+      const placeholderImage: GeneratedImage = {
+        id: `placeholder-${i}`,
+        userId: user?.uid || '',
+        prompt: prompt || '',
+        imageUrl: 'placeholder', // Placeholder URL
+        thumbnailUrl: '', // Placeholder thumbnail
+        engineType: engine,
+        styles: styles || [],
+        width: imageWidth || 512,
+        height: imageHeight || 512,
+        seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
+        imageSize: imageSize || '512x512',
+        aspectRatio: aspectRatio || '1:1',
+        negativePrompt: negativePrompt || '',
+        isFavorite: false,
+        favoriteCount: 0,
+        isPrivate: isPrivate || false,
+        createdAt: new Date(),
+        userName: user?.profile.name || 'Anonymous',
+        userAvatar: user?.profile.avatar || '',
+      };
+      tempImages.push(placeholderImage);
     }
 
-    // Default to 1:1 if nothing available
-    return 1;
-  };
-
-  // Get the height for an image based on its aspect ratio
-  const getImageHeight = (image: GeneratedImage): number => {
-    const ratio = getAspectRatio(image);
-    return COLUMN_WIDTH / ratio;
-  };
+    setImages(tempImages);
+  }, [numberOfImages]);
 
   const handleImageGeneration = async () => {
     // Haptic feedback for generation start
@@ -194,192 +191,6 @@ const HomeScreen = () => {
       showToast(error || 'Failed to generate image', 'error');
     }
   };
-
-  const reusePromptAndSettings = (item: {
-    parameters: {
-      prompt: string;
-      styles: string[];
-      aspectRatio: string;
-      imageSize: ImageSize;
-    };
-  }) => {
-    setPrompt(item.parameters.prompt);
-    setStyles(item.parameters.styles);
-    setAspectRatio(item.parameters.aspectRatio);
-    setImageSize(item.parameters.imageSize || DEFAULT_IMAGE_SIZE);
-
-    // Auto scroll to input
-    setTimeout(() => {
-      if (flashListRef.current) {
-        flashListRef.current.scrollToOffset({offset: 0, animated: true});
-      }
-    }, 300);
-
-    if (Platform.OS === 'android') {
-      ToastAndroid.show(strings.home.promptApplied, ToastAndroid.SHORT);
-    } else {
-      showToast(strings.home.promptApplied, 'success');
-    }
-  };
-
-  const groupImagesByParameters = () => {
-    const groups: {[key: string]: GeneratedImage[]} = {};
-
-    generatedImages.forEach(image => {
-      // Group batch images by their exact batchTimestamp (for images generated together)
-      // or by a time window for images from different sessions
-      let groupingIdentifier;
-
-      if (image.batchTimestamp) {
-        // For batch images, use the exact batchTimestamp (they should all have the same timestamp)
-        // But also include prompt to separate different batches with same timestamp
-        groupingIdentifier = `${image.batchTimestamp.getTime()}-${
-          image.prompt || ''
-        }`;
-      } else if (image.createdAt) {
-        // For server images, use a 30-second window
-        const createdTime = new Date(image.createdAt).getTime();
-        const timeWindow = Math.floor(createdTime / 30000) * 30000;
-        groupingIdentifier = `${timeWindow}-${image.prompt || ''}`;
-      } else {
-        // Fallback
-        groupingIdentifier = `${Date.now()}-${image.prompt || ''}`;
-      }
-
-      // Create grouping key based on prompt and basic generation settings
-      const groupKey = [
-        image.prompt || '',
-        (image.styles || []).sort().join(','),
-        image.engineType || DEFAULT_ENGINE_TYPE,
-        groupingIdentifier,
-      ].join('|');
-
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
-      groups[groupKey].push(image);
-    });
-
-    return Object.entries(groups)
-      .map(([key, items]) => ({
-        key,
-        items: items.sort((a, b) => {
-          // Sort by batchTimestamp or createdAt, newest first
-          const timeA = a.batchTimestamp
-            ? a.batchTimestamp.getTime()
-            : new Date(a.createdAt).getTime() || 0;
-          const timeB = b.batchTimestamp
-            ? b.batchTimestamp.getTime()
-            : new Date(b.createdAt).getTime() || 0;
-          return timeB - timeA;
-        }),
-        parameters: {
-          prompt: items[0].prompt || '',
-          styles: items[0].styles || [],
-          aspectRatio: items[0].aspectRatio || DEFAULT_ASPECT_RATIO,
-          imageSize: items[0].imageSize || DEFAULT_IMAGE_SIZE,
-          timestamp: items[0].batchTimestamp
-            ? items[0].batchTimestamp.getTime()
-            : new Date(items[0].createdAt).getTime(),
-        },
-      }))
-      .sort((a, b) => b.parameters.timestamp - a.parameters.timestamp); // Sort groups by timestamp, newest first
-  };
-
-  // Render image content using ImageCard (which handles skeleton internally)
-  const renderImageContent = (image: GeneratedImage) => {
-    const imageHeight = getImageHeight(image);
-    const imageWidth = COLUMN_WIDTH - 12; // Account for padding (p-1.5 = 6px on each side)
-
-    return (
-      <ImageCard
-        image={image}
-        onPress={() => setSelectedImage(image)}
-        style={{width: imageWidth, height: imageHeight}}
-      />
-    );
-  };
-
-  const renderGroup = ({
-    item,
-  }: {
-    item: ReturnType<typeof groupImagesByParameters>[number];
-  }) => (
-    <View className="mb-8">
-      {/* Header with Prompt Info and Action Buttons */}
-      <View className="px-4">
-        <View className="flex-row items-center justify-between gap-3">
-          <View className="flex-1">
-            <Text
-              style={{color: theme.text}}
-              className="text-lg font-semibold mb-1"
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {item.parameters.prompt}
-            </Text>
-            {item.items.length > 1 && (
-              <Text style={{color: theme.secondaryText}} className="text-xs">
-                {item.items.length} images generated
-              </Text>
-            )}
-          </View>
-
-          <TouchableOpacity
-            onPress={() => reusePromptAndSettings(item)}
-            className="py-2 px-3 rounded-lg flex-row items-center"
-            style={{backgroundColor: theme.surface}}
-            accessible={true}
-            accessibilityLabel={strings.home.reusePrompt}
-            accessibilityHint={strings.home.reusePromptHint}>
-            <RefreshIcon size={16} color={theme.primary} />
-            <Text
-              style={{
-                color: theme.primary,
-                marginLeft: 4,
-                fontWeight: '500',
-                fontSize: 13,
-              }}>
-              {strings.home.reuse}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tags/Styles */}
-        {item.parameters.styles.length > 0 && (
-          <View className="flex-row flex-wrap gap-1.5 my-2">
-            {item.parameters.styles.map(style => (
-              <TouchableOpacity
-                key={style}
-                style={{backgroundColor: theme.primary + '15'}}
-                onPress={() => {
-                  const newStyles = styles.filter(s => s !== style);
-                  setStyles(newStyles);
-                }}
-                className="py-1 px-3 rounded-full flex-row items-center"
-                accessible={true}
-                accessibilityLabel={`Remove ${style} style`}>
-                <Text style={{color: theme.primary}} className="text-xs">
-                  {style}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-      {/* Grid Layout with proper aspect ratio */}
-      <View className="px-4">
-        <View className="flex-row flex-wrap">
-          {item.items.map((image, index) => (
-            <View
-              key={`${image.id || 'temp'}-${index}-${item.key}`}
-              className="w-1/2 p-1.5">
-              {renderImageContent(image)}
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
 
   const clearInputs = () => {
     triggerHaptic('light');
@@ -494,6 +305,14 @@ const HomeScreen = () => {
     </View>
   );
 
+  const renderItem = ({item}: {item: GeneratedImage}) => {
+    return (
+      <View className="p-2.5">
+        <ImageCard image={item} onPress={() => setSelectedImage(item)} />
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={{flex: 1, backgroundColor: theme.background}}
@@ -503,12 +322,30 @@ const HomeScreen = () => {
       <View className="flex-1">
         {/* Header with App Name, Version Badge and Help Icon */}
         <View className="flex-row justify-between items-center p-4">
-          <Text
-            className="text-3xl font-bold"
-            style={{color: theme.text}}
-            accessibilityRole="header">
-            {appConfig.name}
-          </Text>
+          <View className="flex-row items-center gap-2.5">
+            <FastImage
+              source={isDark ? appConfig.lightFavicon : appConfig.darkFavicon}
+              style={{
+                width: 40,
+                height: 40,
+                borderWidth: 1,
+                borderColor: theme.text,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'white' : '#121212',
+              }}
+              resizeMode="contain"
+              accessible={true}
+              accessibilityLabel={appConfig.name}
+              accessibilityRole="image"
+              importantForAccessibility="yes"
+            />
+            <Text
+              className="text-3xl font-bold"
+              style={{color: theme.text}}
+              accessibilityRole="header">
+              {appConfig.name}
+            </Text>
+          </View>
 
           <View className="flex-row items-center gap-3">
             {/* Version badge */}
@@ -540,20 +377,20 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Generated Images Grid with optional Getting Started for new users */}
+        {/* Generated Images Grid */}
         <View className="flex-1 pb-5">
           <FlashList
             ref={flashListRef}
-            data={groupImagesByParameters()}
-            keyExtractor={(item, index) => `home-group-${item.key}-${index}`}
+            data={images}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             estimatedItemSize={300}
             removeClippedSubviews={true}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{paddingBottom: 200}}
-            renderItem={renderGroup}
+            renderItem={renderItem}
+            numColumns={2}
             ListEmptyComponent={
               <View style={{minHeight: SCREEN_HEIGHT - 150}}>
-                {showOnboarding && renderGettingStarted()}
                 <EmptyState
                   icon={<MagicWand size={48} color={theme.primary} />}
                   title="No images yet"

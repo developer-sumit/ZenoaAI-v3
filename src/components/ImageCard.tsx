@@ -18,14 +18,16 @@ import {useHaptics} from '@src/hooks/useHaptics';
 // Icons
 import SyncIcon from '@src/assets/icons/SyncIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
+import UserAvatar from './UserAvatar';
+import HeartIcon from '@src/assets/icons/HeartIcon';
 
 interface ImageCardProps {
   image: GeneratedImage;
-  onPress: () => void;
+  onPress?: () => void;
   style?: ViewStyle;
 }
 
-const SkeletonLoader = ({width, height}: {width: number; height: number}) => {
+const SkeletonLoader = ({width, height}: {width?: number; height?: number}) => {
   const {theme} = useTheme();
   const shimmerOpacity = React.useRef(new Animated.Value(0.3)).current;
 
@@ -55,8 +57,8 @@ const SkeletonLoader = ({width, height}: {width: number; height: number}) => {
     <View
       className="justify-center items-center"
       style={{
-        width,
-        height,
+        width: width || '100%',
+        height: height || '100%',
         backgroundColor: theme.surface,
       }}>
       <Animated.View
@@ -104,7 +106,7 @@ const SyncIndicator = ({color}: {color: string}) => {
   );
 };
 
-const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
+const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const strings = useStrings();
   const {theme} = useTheme();
   const {triggerHaptic} = useHaptics();
@@ -113,35 +115,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
 
   // Check if this is a placeholder/skeleton image
   const isPlaceholder =
-    !image.imageUrl ||
-    image.imageUrl === 'placeholder' ||
-    image.id?.startsWith('placeholder-');
-
-  const getAspectRatio = (): number => {
-    // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio) {
-      return 1;
-    }
-
-    try {
-      const [width, height] = image.aspectRatio.split(':').map(Number);
-      return width / height;
-    } catch (e) {
-      console.warn('Error parsing aspect ratio:', e);
-      return 1; // Default to square if parsing fails
-    }
-  };
-
-  const contentStyle = React.useMemo(() => {
-    if (isPlaceholder) {
-      // For placeholder, we use flexible height based on aspect ratio
-      const aspectRatio = getAspectRatio();
-      return {aspectRatio};
-    }
-
-    // For loaded images, we just fill the container (which is sized by the parent)
-    return {width: '100%', height: '100%', flex: 1} as any;
-  }, [isPlaceholder, image.aspectRatio]);
+    image.imageUrl === 'placeholder' || image.id?.startsWith('placeholder-');
 
   return (
     <TouchableOpacity
@@ -149,11 +123,16 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       onPress={() => {
         if (!isPlaceholder) {
           triggerHaptic('light'); // Add haptic feedback for image tap
-          onPress();
+          onPress && onPress();
         }
       }}
-      className="rounded-2xl overflow-hidden bg-[#f0f0f0]"
-      style={style}
+      style={{
+        width: style?.width || '100%',
+        height: style?.height || '100%',
+        aspectRatio: image.aspectRatio.replace(':', '/') || '1/1',
+        backgroundColor: isPlaceholder ? theme.surface : 'transparent',
+      }}
+      className="rounded-3xl overflow-hidden"
       disabled={isPlaceholder}
       accessible={true}
       accessibilityLabel={
@@ -170,10 +149,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       }>
       {/* Show skeleton for placeholder images */}
       {isPlaceholder ? (
-        <SkeletonLoader
-          width={(style?.width as number) || 200}
-          height={(style?.height as number) || 200}
-        />
+        <SkeletonLoader />
       ) : (
         <>
           {/* Loading indicator for real images */}
@@ -204,7 +180,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
           {/* The actual image */}
           <FastImage
             source={{uri: image.imageUrl}}
-            style={contentStyle}
+            style={{width: '100%', height: '100%'}}
             resizeMode={FastImage.resizeMode.cover}
             onLoadStart={() => setIsLoading(true)}
             onLoadEnd={() => setIsLoading(false)}
@@ -221,8 +197,60 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
           )}
         </>
       )}
+
+      {!isPlaceholder && (
+        <View
+          className="absolute bottom-0 left-0 right-0 p-3"
+          style={{backgroundColor: theme.surface}}>
+          <View className="flex-row justify-between items-center">
+            <View className="flex-row items-center">
+              <UserAvatar
+                size={18}
+                userName={image.userName || 'Anonymous'}
+                userAvatar={image.userAvatar}
+                backgroundColor={theme.primary}
+                textColor="#ffffff"
+              />
+              <Text
+                className="text-sm font-semibold ml-1.5"
+                style={{color: theme.text}}>
+                {image.userName || 'Anonymous'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Favorite indicator */}
+      {!isPlaceholder && (
+        <TouchableOpacity
+          className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
+          hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+          accessible={true}
+          accessibilityLabel={
+            image.isFavorite
+              ? strings.imageViewer.removeFavourite
+              : strings.imageViewer.addFavourite
+          }
+          accessibilityRole="button">
+          <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+          <Text className="text-sm font-medium ml-1 text-[#121212]">
+            {image.favoriteCount ? image.favoriteCount : 0}
+          </Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
+
+const ImageCard = React.memo(BaseImageCard, (prevProps, nextProps) => {
+  // Only re-render if the image URL, aspect ratio, and style dimensions change
+  return (
+    prevProps.image.imageUrl === nextProps.image.imageUrl &&
+    prevProps.image.aspectRatio === nextProps.image.aspectRatio &&
+    prevProps.style?.width === nextProps.style?.width &&
+    prevProps.style?.height === nextProps.style?.height
+  );
+});
 
 export default ImageCard;

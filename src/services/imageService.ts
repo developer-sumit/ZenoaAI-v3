@@ -323,10 +323,39 @@ const updatePrivacy = async (
   }
 };
 
+const getFavoriteImages = async (
+  page: number = 1,
+  limit: number = 20,
+): Promise<ResponseData<GeneratedImage[]>> => {
+  try {
+    const response = await imageAPI.getFavoriteImages({page, limit});
+    if (!response.data.success || !response.data.data) {
+      return {
+        success: false,
+        data: [],
+        message: response.data.message || 'Failed to fetch favorite images',
+      };
+    }
+
+    return {success: true, data: response.data.data || [], message: ''};
+  } catch (error: any) {
+    console.error('Failed to fetch favorite images:', error);
+    return {
+      success: false,
+      data: [],
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to fetch favorite images',
+    };
+  }
+};
+
 const imageService = {
   generateImage,
   getUserImages,
   getPublicImages,
+  getFavoriteImages,
   deleteImage,
   toggleFavorite,
   updatePrivacy,
