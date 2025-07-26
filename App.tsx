@@ -46,9 +46,9 @@ import {notificationService} from '@src/services/notificationService';
 import SplashScreen from '@src/screens/SplashScreen';
 import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
+import GenerateScreen from '@src/screens/GenerateScreen';
 import SettingsScreen from '@src/screens/SettingsScreen';
 import GalleryLayout from '@src/screens/GalleryLayout';
-import CommunityScreen from '@src/screens/CommunityScreen';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
 
@@ -81,14 +81,15 @@ function HomeTabs() {
   return (
     <Tab.Navigator
       tabBar={props => <CustomTabBar {...props} />}
+      detachInactiveScreens={false}
       screenOptions={{
         headerShown: false,
-        // Disable swipe gesture on tabs to prevent interference
         tabBarHideOnKeyboard: true,
+        animation: 'shift',
       }}>
       <Tab.Screen name={Routes.HOME} component={HomeScreen} />
+      <Tab.Screen name={Routes.GENERATE} component={GenerateScreen} />
       <Tab.Screen name={Routes.GALLERY} component={GalleryLayout} />
-      <Tab.Screen name={Routes.COMMUNITY} component={CommunityScreen} />
       <Tab.Screen name={Routes.SETTINGS} component={ProfileStack} />
     </Tab.Navigator>
   );

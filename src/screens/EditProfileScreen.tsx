@@ -39,7 +39,7 @@ if (Platform.OS === 'android') {
 }
 
 const EditProfileScreen = () => {
-  const strings = useStrings();
+  const t = useStrings();
   const navigation = useNavigation();
   const {isDark, theme} = useTheme();
   const {user, logout, updateUser} = useAuthStore();
@@ -96,7 +96,7 @@ const EditProfileScreen = () => {
   const saveProfile = async () => {
     if (!user) {
       triggerHaptic('error');
-      showToast(strings.editProfile.pleaseLogin, 'error');
+      showToast(t('errors.unauthorized'), 'error');
       return;
     }
 
@@ -105,10 +105,8 @@ const EditProfileScreen = () => {
       triggerHaptic('selection');
       animatePress(saveButtonScale, 150);
 
-      console.log('Starting profile update with user ID:', user.uid);
       if (name !== user.profile.username || bio !== user.profile.bio) {
         try {
-          // Prepare updated user data with proper type structure matching web API
           const updatedUserData: Partial<User> = {
             profile: {
               ...user.profile,
@@ -117,39 +115,32 @@ const EditProfileScreen = () => {
             },
           };
 
-          // Use userService to update profile via API - this matches web updateProfile structure
           const {success, data, message} = await userService.updateProfile(
             user.uid,
             updatedUserData,
           );
 
           if (success && data) {
-            // Update auth store with the new user data
             updateUser(data);
-            console.log('Profile successfully updated via API');
           } else {
             throw new Error('Failed to update profile - no response data');
           }
 
           showToast(message, success ? 'success' : 'error');
         } catch (updateError) {
-          console.error('API update error:', updateError);
-          showToast(strings.editProfile.updateFailed, 'error');
+          showToast(t('errors.failedToUpdate'), 'error');
         }
-      } else {
-        console.log('No changes to save');
       }
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setIsSaving(false);
       triggerHaptic('success');
-      showToast(strings.editProfile.profileUpdated, 'success');
+      showToast(t('profile.profileUpdated'), 'success');
       navigation.goBack();
     } catch (error) {
-      console.error('Error updating profile:', error);
       setIsSaving(false);
       triggerHaptic('error');
-      showToast(strings.editProfile.updateFailed, 'error');
+      showToast(t('errors.failedToUpdate'), 'error');
     }
   };
 
@@ -158,35 +149,32 @@ const EditProfileScreen = () => {
     animatePress(avatarScale, 200);
     // TODO: Implement image picker for avatar upload
     // For now, show info message that this feature will be added
-    showToast(strings.editProfile.uploadPhoto, 'info');
+    showToast(t('profile.uploadPhoto'), 'info');
   };
 
   const handleAccountDeletion = async () => {
     try {
       triggerHaptic('warning');
       if (user?.uid) {
-        showToast(strings.editProfile.deletingAccount, 'info');
-
-        // Get the final reason - either selected option or custom reason
+        showToast(t('profile.deletingAccount'), 'info');
         const deletionReason =
-          selectedReason === 'Other' ? customReason : selectedReason;
+          selectedReason === t('profile.deleteReasonOther')
+            ? customReason
+            : selectedReason;
 
-        // Use userService to mark account as deleted via API
         const {success, message} = await userService.deleteUserAccount(
           user.uid,
           deletionReason,
         );
 
         showToast(message, success ? 'success' : 'error');
-
         triggerHaptic('success');
-        showToast(strings.editProfile.accountDeleted, 'success');
+        showToast(t('profile.accountDeleted'), 'success');
         await logout();
       }
     } catch (error) {
-      console.error('Error deleting account:', error);
       triggerHaptic('error');
-      showToast(strings.editProfile.accountDeleteFailed, 'error');
+      showToast(t('errors.failedToDeleteAccount'), 'error');
     }
   };
 
@@ -199,9 +187,10 @@ const EditProfileScreen = () => {
   const handleReasonNext = () => {
     if (
       !selectedReason ||
-      (selectedReason === 'Other' && !customReason.trim())
+      (selectedReason === t('profile.deleteReasonOther') &&
+        !customReason.trim())
     ) {
-      showToast(strings.editProfile.selectReasonError, 'error');
+      showToast(t('errors.selectReasonError'), 'error');
       return;
     }
     setShowReasonModal(false);
@@ -213,9 +202,7 @@ const EditProfileScreen = () => {
       <View
         className="flex-1 justify-center items-center"
         style={{backgroundColor: theme.background}}>
-        <Text style={{color: theme.text}}>
-          {strings.editProfile.pleaseLogin}
-        </Text>
+        <Text style={{color: theme.text}}>{t('errors.unauthorized')}</Text>
       </View>
     );
   }
@@ -235,13 +222,13 @@ const EditProfileScreen = () => {
             style={{backgroundColor: theme.surface}}
             onPress={handleBackPress}
             accessible={true}
-            accessibilityLabel={strings.common.goBack}>
+            accessibilityLabel={t('common.back')}>
             <ArrowBackIcon size={20} color={theme.text} />
           </TouchableOpacity>
           <Text
             className="text-xl font-semibold tracking-tight"
             style={{color: theme.text}}>
-            {strings.editProfile.title}
+            {t('profile.title')}
           </Text>
           <TouchableOpacity
             className="rounded-full px-5 py-2.5"
@@ -252,10 +239,10 @@ const EditProfileScreen = () => {
             onPress={saveProfile}
             disabled={isSaving}
             accessible={true}
-            accessibilityLabel={strings.editProfile.saveChanges}
+            accessibilityLabel={t('profile.saveChanges')}
             accessibilityState={{disabled: isSaving}}>
             <Text className="text-white font-medium text-sm">
-              {isSaving ? strings.editProfile.saving : strings.common.save}
+              {isSaving ? t('profile.saving') : t('common.save')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -299,14 +286,14 @@ const EditProfileScreen = () => {
                   }}
                   onPress={handleAvatarPress}
                   accessible={true}
-                  accessibilityLabel="Change profile photo">
+                  accessibilityLabel={t('profile.uploadPhoto')}>
                   <CameraIcon size={20} color="white" />
                 </TouchableOpacity>
               </Animated.View>
             </View>
 
             <Text className="text-sm mt-4" style={{color: theme.secondaryText}}>
-              {strings.editProfile.tapCamera}
+              {t('profile.tapCamera')}
             </Text>
           </View>
 
@@ -320,7 +307,7 @@ const EditProfileScreen = () => {
                 <Text
                   className="text-lg font-semibold"
                   style={{color: theme.text}}>
-                  {strings.editProfile.personalInfo}
+                  {t('profile.personalInfo')}
                 </Text>
               </View>
 
@@ -337,7 +324,7 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xs mb-1"
                     style={{color: theme.secondaryText}}>
-                    {strings.editProfile.fullName}
+                    {t('profile.fullName')}
                   </Text>
                   <TextInput
                     value={name}
@@ -348,11 +335,11 @@ const EditProfileScreen = () => {
                       borderBottomWidth: 1,
                       borderBottomColor: theme.secondaryText + '30',
                     }}
-                    placeholder={strings.editProfile.yourName}
+                    placeholder={t('profile.yourName')}
                     placeholderTextColor={theme.secondaryText}
                     accessible={true}
-                    accessibilityLabel={strings.editProfile.yourName}
-                    accessibilityHint={strings.editProfile.fullNameHint}
+                    accessibilityLabel={t('profile.yourName')}
+                    accessibilityHint={t('profile.fullNameHint')}
                   />
                 </View>
               </View>
@@ -370,7 +357,7 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xs mb-1"
                     style={{color: theme.secondaryText}}>
-                    {strings.editProfile.bio}
+                    {t('profile.bio')}
                   </Text>
                   <TextInput
                     value={bio}
@@ -382,14 +369,14 @@ const EditProfileScreen = () => {
                       borderBottomColor: theme.secondaryText + '30',
                       minHeight: 60,
                     }}
-                    placeholder={strings.editProfile.bioPlaceholder}
+                    placeholder={t('profile.bioPlaceholder')}
                     placeholderTextColor={theme.secondaryText}
                     multiline={true}
                     numberOfLines={3}
                     textAlignVertical="top"
                     accessible={true}
-                    accessibilityLabel={strings.editProfile.bio}
-                    accessibilityHint={strings.editProfile.bioHint}
+                    accessibilityLabel={t('profile.bio')}
+                    accessibilityHint={t('profile.bioHint')}
                   />
                 </View>
               </View>
@@ -405,7 +392,7 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xs mb-1"
                     style={{color: theme.secondaryText}}>
-                    {strings.editProfile.email}
+                    {t('profile.email')}
                   </Text>
                   <Text
                     className="text-base py-1"
@@ -426,7 +413,7 @@ const EditProfileScreen = () => {
                 <Text
                   className="text-lg font-semibold"
                   style={{color: theme.text}}>
-                  {strings.editProfile.accountManagement}
+                  {t('profile.accountManagement')}
                 </Text>
               </View>
 
@@ -435,8 +422,8 @@ const EditProfileScreen = () => {
                 className="px-5 py-4 flex-row items-center"
                 onPress={handleDeleteAccountPress}
                 accessible={true}
-                accessibilityLabel={strings.editProfile.deleteMyAccount}
-                accessibilityHint={strings.editProfile.deleteAccountHint}>
+                accessibilityLabel={t('profile.deleteAccount')}
+                accessibilityHint={t('profile.deleteAccountHint')}>
                 <Animated.View
                   style={{transform: [{scale: deleteButtonScale}]}}>
                   <View
@@ -447,7 +434,7 @@ const EditProfileScreen = () => {
                 </Animated.View>
                 <View className="flex-1">
                   <Text className="text-base" style={{color: '#e11d48'}}>
-                    {strings.editProfile.deleteMyAccount}
+                    {t('profile.deleteAccount')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -482,27 +469,21 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-xl font-semibold mb-2 text-center"
                     style={{color: theme.text}}>
-                    {strings.editProfile.deleteReasonTitle ||
-                      'Why are you deleting your account?'}
+                    {t('profile.deleteReasonTitle')}
                   </Text>
                   <Text
                     className="text-sm mb-4 text-center leading-5"
                     style={{color: theme.secondaryText}}>
-                    {strings.editProfile.deleteReasonSubtitle ||
-                      "Help us improve by letting us know why you're leaving"}
+                    {t('profile.deleteReasonSubtitle')}
                   </Text>
                 </View>
                 <View className="space-y-3 mb-6">
                   {[
-                    strings.editProfile.deleteReasonOption1 ||
-                      'No longer using the app',
-                    strings.editProfile.deleteReasonOption2 ||
-                      'Privacy concerns',
-                    strings.editProfile.deleteReasonOption3 ||
-                      'Found a better alternative',
-                    strings.editProfile.deleteReasonOption4 ||
-                      'Technical issues',
-                    strings.editProfile.deleteReasonOther || 'Other',
+                    t('profile.deleteReasonOption1'),
+                    t('profile.deleteReasonOption2'),
+                    t('profile.deleteReasonOption3'),
+                    t('profile.deleteReasonOption4'),
+                    t('profile.deleteReasonOther'),
                   ].map((option, index) => (
                     <TouchableOpacity
                       key={index}
@@ -518,37 +499,34 @@ const EditProfileScreen = () => {
                             ? theme.primary
                             : 'transparent',
                       }}
-                      onPress={() => {
-                        triggerHaptic('selection');
-                        setSelectedReason(option);
-                        if (option !== 'Other') {
-                          setCustomReason('');
-                        }
-                      }}>
+                      onPress={() => setSelectedReason(option)}>
                       <View
-                        className="w-5 h-5 rounded-full mr-3 items-center justify-center"
+                        className="w-5 h-5 rounded-full border mr-3"
                         style={{
+                          borderColor:
+                            selectedReason === option
+                              ? theme.primary
+                              : theme.secondaryText,
                           backgroundColor:
                             selectedReason === option
                               ? theme.primary
                               : 'transparent',
-                          borderWidth: selectedReason === option ? 0 : 2,
-                          borderColor: theme.secondaryText,
+                        }}
+                      />
+                      <Text
+                        className="text-base"
+                        style={{
+                          color:
+                            selectedReason === option
+                              ? theme.primary
+                              : theme.text,
                         }}>
-                        {selectedReason === option && (
-                          <View
-                            className="w-2 h-2 rounded-full"
-                            style={{backgroundColor: 'white'}}
-                          />
-                        )}
-                      </View>
-                      <Text className="text-base" style={{color: theme.text}}>
                         {option}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-                {selectedReason === 'Other' && (
+                {selectedReason === t('profile.deleteReasonOther') && (
                   <TextInput
                     className="p-4 rounded-xl mb-6"
                     style={{
@@ -559,7 +537,7 @@ const EditProfileScreen = () => {
                       minHeight: 80,
                       textAlignVertical: 'top',
                     }}
-                    placeholder={strings.editProfile.deleteReasonPlaceholder}
+                    placeholder={t('profile.deleteReasonPlaceholder')}
                     placeholderTextColor={theme.secondaryText}
                     value={customReason}
                     onChangeText={setCustomReason}
@@ -571,16 +549,11 @@ const EditProfileScreen = () => {
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
                     style={{backgroundColor: theme.surface}}
-                    onPress={() => {
-                      triggerHaptic('selection');
-                      setShowReasonModal(false);
-                      setSelectedReason('');
-                      setCustomReason('');
-                    }}>
+                    onPress={() => setShowReasonModal(false)}>
                     <Text
-                      className="text-center font-medium"
+                      className="text-base text-center"
                       style={{color: theme.text}}>
-                      {strings.editProfile.deleteReasonBack}
+                      {t('profile.deleteReasonBack')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -588,17 +561,28 @@ const EditProfileScreen = () => {
                     style={{
                       backgroundColor:
                         !selectedReason ||
-                        (selectedReason === 'Other' && !customReason.trim())
+                        (selectedReason === t('profile.deleteReasonOther') &&
+                          !customReason.trim())
                           ? theme.secondaryText + '50'
                           : theme.primary,
                     }}
                     onPress={handleReasonNext}
                     disabled={
                       !selectedReason ||
-                      (selectedReason === 'Other' && !customReason.trim())
+                      (selectedReason === t('profile.deleteReasonOther') &&
+                        !customReason.trim())
                     }>
-                    <Text className="text-white font-medium text-center">
-                      {strings.editProfile.deleteReasonNext}
+                    <Text
+                      className="text-base text-center"
+                      style={{
+                        color:
+                          !selectedReason ||
+                          (selectedReason === t('profile.deleteReasonOther') &&
+                            !customReason.trim())
+                            ? theme.text
+                            : 'white',
+                      }}>
+                      {t('profile.deleteReasonNext')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -639,12 +623,12 @@ const EditProfileScreen = () => {
                   <Text
                     className="text-2xl font-semibold mb-2 text-center"
                     style={{color: theme.text}}>
-                    {strings.editProfile.deleteMyAccount}?
+                    {t('profile.deleteAccountWarning')}
                   </Text>
                   <Text
                     className="text-base mb-6 text-center leading-6"
                     style={{color: theme.secondaryText}}>
-                    {strings.editProfile.deleteAccountWarning}
+                    {t('profile.deleteAccountHint')}
                   </Text>
                 </View>
 
@@ -652,35 +636,25 @@ const EditProfileScreen = () => {
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
                     style={{backgroundColor: theme.surface}}
-                    onPress={() => {
-                      triggerHaptic('selection');
-                      setShowDeleteModal(false);
-                    }}
+                    onPress={() => setShowDeleteModal(false)}
                     accessible={true}
-                    accessibilityLabel={
-                      strings.editProfile.cancelAccountDelete
-                    }>
+                    accessibilityLabel={t('profile.cancelAccountDelete')}>
                     <Text
-                      className="text-center font-medium"
+                      className="text-base text-center"
                       style={{color: theme.text}}>
-                      {strings.common.cancel}
+                      {t('profile.cancelAccountDelete')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1"
                     style={{backgroundColor: '#e11d48'}}
-                    onPress={() => {
-                      triggerHaptic('heavy');
-                      handleAccountDeletion();
-                      setShowDeleteModal(false);
-                    }}
+                    onPress={handleAccountDeletion}
                     accessible={true}
-                    accessibilityLabel={
-                      strings.editProfile.confirmAccountDelete
-                    }
-                    accessibilityHint={strings.editProfile.deleteAccountHint}>
-                    <Text className="text-white font-medium text-center">
-                      {strings.common.delete}
+                    accessibilityLabel={t('profile.confirmAccountDelete')}>
+                    <Text
+                      className="text-base text-center"
+                      style={{color: 'white'}}>
+                      {t('profile.confirmAccountDelete')}
                     </Text>
                   </TouchableOpacity>
                 </View>

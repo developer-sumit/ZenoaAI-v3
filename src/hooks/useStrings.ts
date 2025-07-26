@@ -1,15 +1,15 @@
-import {useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
 import {useLanguageStore} from '@src/store/languageStore';
-import strings from '@src/localization';
 
 export const useStrings = () => {
   const {language, refreshKey} = useLanguageStore();
-  const [currentStrings, setCurrentStrings] = useState(strings);
+  const {t, i18n} = useTranslation();
 
-  useEffect(() => {
-    strings.setLanguage(language);
-    setCurrentStrings({...strings}); // Create new object reference to force re-render
-  }, [language, refreshKey]);
+  // Ensure language is synced
+  if (i18n.language !== language) {
+    i18n.changeLanguage(language);
+  }
 
-  return currentStrings;
+  // Return t function for translations
+  return t;
 };

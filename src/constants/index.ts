@@ -20,8 +20,8 @@ export const PLAN_TYPES = {
 } as const;
 
 export const COMMUNITY_FILTER_OPTIONS = [
-  {id: 'latest', label: 'Latest'},
   {id: 'popular', label: 'Popular'},
+  {id: 'latest', label: 'Latest'},
 ] as const;
 
 export const DEFAULT_PLAN_TYPE = PLAN_TYPES.FREE as PlanType;

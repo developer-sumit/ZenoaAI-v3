@@ -1,4 +1,8 @@
-import LocalizedStrings from 'react-native-localization';
+import i18n from 'i18next';
+import {initReactI18next} from 'react-i18next';
+import {findBestLanguageTag} from 'react-native-localize';
+
+// Translataions
 import {en} from './translations/en';
 import {hi} from './translations/hi';
 import {pa} from './translations/pa';
@@ -13,23 +17,34 @@ import {ta} from './translations/ta';
 import {te} from './translations/te';
 import {ar} from './translations/ar';
 
-// Create the localization object with all supported languages
-const strings = new LocalizedStrings({
-  en,
-  hi,
-  pa,
-  mr,
-  es,
-  de,
-  id,
-  zh,
-  pt,
-  fr,
-  ta,
-  te,
-  ar,
+// Map translations for i18next
+const resources = {
+  en: {translation: en},
+  hi: {translation: hi},
+  pa: {translation: pa},
+  mr: {translation: mr},
+  es: {translation: es},
+  de: {translation: de},
+  id: {translation: id},
+  zh: {translation: zh},
+  pt: {translation: pt},
+  fr: {translation: fr},
+  ta: {translation: ta},
+  te: {translation: te},
+  ar: {translation: ar},
+};
+
+// Detect device language
+const fallbackLng = 'en';
+const bestLang =
+  findBestLanguageTag(Object.keys(resources))?.languageTag || fallbackLng;
+
+i18n.use(initReactI18next).init({
+  resources,
+  lng: bestLang,
+  fallbackLng,
+  compatibilityJSON: 'v4',
+  interpolation: {escapeValue: false},
 });
 
-export const LocalizationProps = typeof strings;
-
-export default strings;
+export default i18n;

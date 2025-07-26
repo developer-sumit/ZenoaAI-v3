@@ -14,13 +14,13 @@ import {
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
 import {Toaster, useToast} from '@masumdev/rn-toast';
+import {BlurView} from '@react-native-community/blur';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
 import appConfig from '@src/config/app.config';
 import {useTheme} from '@src/store/themeStore';
-import {BlurView} from '@react-native-community/blur';
 import Routes from '@src/constants/routes';
 import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
@@ -54,7 +54,7 @@ if (Platform.OS === 'android') {
 }
 
 const SettingsScreen = () => {
-  const strings = useStrings();
+  const t = useStrings();
   const navigation = useNavigation();
   const {user, updateUser, logout} = useAuthStore();
   const {isDark, theme, toggleTheme} = useTheme();
@@ -130,7 +130,7 @@ const SettingsScreen = () => {
         const granted = await notificationService.requestPermissions();
         if (granted) {
           setNotificationsEnabled(true);
-          showToast(strings.settings.notificationsEnabled, 'success');
+          showToast(t('settings.notificationsEnabled'), 'success');
 
           // Send token to server
           try {
@@ -140,16 +140,16 @@ const SettingsScreen = () => {
           }
         } else {
           setNotificationsEnabled(false);
-          showToast(strings.settings.notificationsPermissionDenied, 'error');
+          showToast(t('settings.notificationsPermissionDenied'), 'error');
         }
       } else {
         // User wants to disable notifications
         setNotificationsEnabled(false);
-        showToast(strings.settings.notificationsDisabled, 'info');
+        showToast(t('settings.notificationsDisabled'), 'info');
       }
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      showToast(strings.settings.notificationsUpdateFailed, 'error');
+      showToast(t('settings.notificationsUpdateFailed'), 'error');
     } finally {
       setNotificationLoading(false);
     }
@@ -186,12 +186,12 @@ const SettingsScreen = () => {
 
   const handleSubmitFeedback = async () => {
     if (feedbackRating === 0) {
-      showToast(strings.settings.selectRating, 'error');
+      showToast(t('settings.selectRating'), 'error');
       return;
     }
 
     if (!feedbackText.trim()) {
-      showToast(strings.settings.enterFeedback, 'error');
+      showToast(t('settings.enterFeedback'), 'error');
       return;
     }
 
@@ -208,13 +208,13 @@ const SettingsScreen = () => {
       );
 
       // Success handling
-      showToast(strings.settings.greetForFeedback, 'success');
+      showToast(t('settings.greetForFeedback'), 'success');
       setShowFeedbackModal(false);
       setFeedbackText('');
       setFeedbackRating(0);
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      showToast(strings.settings.feedbackFailed, 'error');
+      showToast(t('settings.feedbackFailed'), 'error');
     } finally {
       setSubmittingFeedback(false);
     }
@@ -226,11 +226,11 @@ const SettingsScreen = () => {
 
     Linking.openURL(urls.playstore)
       .then(() => {
-        showToast(strings.settings.thankYouForRating, 'success');
+        showToast(t('settings.thankYouForRating'), 'success');
       })
       .catch(error => {
         console.error('Error opening Play Store:', error);
-        showToast(strings.settings.somethingWentWrong, 'error');
+        showToast(t('errors.somethingWentWrong'), 'error');
       });
   };
 
@@ -334,7 +334,7 @@ const SettingsScreen = () => {
               <Text
                 className="text-lg font-semibold"
                 style={{color: theme.secondaryText}}>
-                {strings.settings.quotaTitle}
+                {t('settings.quotaTitle')}
               </Text>
               <TouchableOpacity
                 onPress={fetchQuota}
@@ -363,7 +363,7 @@ const SettingsScreen = () => {
                   <Text
                     style={{color: theme.text}}
                     className="text-base font-medium">
-                    {strings.settings.imagesRemaining}
+                    {t('settings.images')}
                   </Text>
                   <Text
                     style={{color: theme.primary}}
@@ -411,7 +411,7 @@ const SettingsScreen = () => {
                 <Text
                   style={{color: theme.text}}
                   className="text-base font-medium">
-                  {strings.settings.planType}
+                  {t('settings.planType')}
                 </Text>
                 <View
                   className="py-1 px-3 rounded-full"
@@ -447,7 +447,7 @@ const SettingsScreen = () => {
             <Text
               className="text-lg font-semibold"
               style={{color: theme.secondaryText}}>
-              {strings.settings.account}
+              {t('settings.account')}
             </Text>
           </View>
           {/* Edit Profile Option */}
@@ -456,8 +456,8 @@ const SettingsScreen = () => {
             style={{borderColor: theme.secondaryText + '20'}}
             onPress={handleEditProfile}
             accessible={true}
-            accessibilityLabel={strings.settings.editProfile}
-            accessibilityHint={strings.settings.editProfileHint}>
+            accessibilityLabel={t('settings.editProfile')}
+            accessibilityHint={t('settings.editProfileHint')}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -465,7 +465,7 @@ const SettingsScreen = () => {
                 <PersonIcon size={20} color={theme.primary} />
               </View>
               <Text style={{color: theme.text}} className="text-base">
-                {strings.settings.editProfile}
+                {t('settings.editProfile')}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={theme.secondaryText} />
@@ -474,8 +474,8 @@ const SettingsScreen = () => {
           <TouchableOpacity
             className="px-5 py-4 border-b flex-row justify-between items-center"
             accessible={true}
-            accessibilityLabel={strings.settings.changeLanguage}
-            accessibilityHint={strings.settings.changeLanguageHint}
+            accessibilityLabel={t('settings.changeLanguage')}
+            accessibilityHint={t('settings.changeLanguageHint')}
             style={{borderColor: theme.secondaryText + '20'}}
             onPress={() => {
               triggerHaptic('light');
@@ -488,7 +488,7 @@ const SettingsScreen = () => {
                 <LanguageIcon size={20} color={theme.primary} />
               </View>
               <Text style={{color: theme.text}} className="text-base">
-                {strings.settings.language}
+                {t('settings.language')}
               </Text>
             </View>
             <LanguageSelector ref={languageSelectorRef} />
@@ -506,10 +506,10 @@ const SettingsScreen = () => {
               </View>
               <View>
                 <Text style={{color: theme.text}} className="text-base">
-                  {strings.settings.notifications}
+                  {t('settings.notifications')}
                 </Text>
                 <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {strings.settings.notificationsDesc}
+                  {t('settings.notificationsDesc')}
                 </Text>
               </View>
             </View>
@@ -527,8 +527,8 @@ const SettingsScreen = () => {
               accessible={true}
               accessibilityLabel={
                 notificationsEnabled
-                  ? strings.settings.notificationsDisabled
-                  : strings.settings.notificationsEnabled
+                  ? t('settings.notificationsDisabled')
+                  : t('settings.notificationsEnabled')
               }
               accessibilityRole="switch"
               accessibilityState={{checked: notificationsEnabled}}>
@@ -553,7 +553,7 @@ const SettingsScreen = () => {
                 )}
               </View>
               <Text style={{color: theme.text}} className="text-base">
-                {strings.settings.darkMode}
+                {t('settings.darkMode')}
               </Text>
             </View>
             <TouchableOpacity
@@ -567,13 +567,13 @@ const SettingsScreen = () => {
               accessible={true}
               accessibilityLabel={
                 isDark
-                  ? strings.settings.switchLightMode
-                  : strings.settings.switchDarkMode
+                  ? t('settings.switchLightMode')
+                  : t('settings.switchDarkMode')
               }
               accessibilityHint={
                 isDark
-                  ? strings.settings.switchLightModeHint
-                  : strings.settings.switchDarkModeHint
+                  ? t('settings.switchLightModeHint')
+                  : t('settings.switchDarkModeHint')
               }
               accessibilityRole="switch"
               accessibilityState={{checked: isDark}}>
@@ -596,7 +596,7 @@ const SettingsScreen = () => {
             <Text
               className="text-lg font-semibold"
               style={{color: theme.secondaryText}}>
-              {strings.settings.helpImprove}
+              {t('settings.helpImprove')}
             </Text>
           </View>
 
@@ -608,8 +608,8 @@ const SettingsScreen = () => {
               setShowFeedbackModal(true);
             }}
             accessible={true}
-            accessibilityLabel={strings.settings.shareFeedback}
-            accessibilityHint={strings.settings.shareFeedbackHint}>
+            accessibilityLabel={t('settings.shareFeedback')}
+            accessibilityHint={t('settings.shareFeedbackHint')}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -617,7 +617,7 @@ const SettingsScreen = () => {
                 <FeedbackIcon size={20} color={theme.primary} />
               </View>
               <Text className="text-base" style={{color: theme.text}}>
-                {strings.settings.shareFeedback}
+                {t('settings.shareFeedback')}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={theme.secondaryText} />
@@ -630,8 +630,8 @@ const SettingsScreen = () => {
               handleRateApp();
             }}
             accessible={true}
-            accessibilityLabel={strings.settings.rateApp}
-            accessibilityHint={strings.settings.rateAppHint}>
+            accessibilityLabel={t('settings.rateApp')}
+            accessibilityHint={t('settings.rateAppHint')}>
             <View className="flex-row items-center flex-1">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -640,12 +640,12 @@ const SettingsScreen = () => {
               </View>
               <View className="flex-1">
                 <Text className="text-base" style={{color: theme.text}}>
-                  {strings.settings.rateApp}
+                  {t('settings.rateApp')}
                 </Text>
                 <Text
                   className="text-sm mt-1"
                   style={{color: theme.secondaryText}}>
-                  {strings.settings.rateAppDesc}
+                  {t('settings.rateAppDesc')}
                 </Text>
               </View>
             </View>
@@ -662,7 +662,7 @@ const SettingsScreen = () => {
             <Text
               className="text-lg font-semibold"
               style={{color: theme.secondaryText}}>
-              {strings.settings.about}
+              {t('settings.about')}
             </Text>
           </View>
 
@@ -697,8 +697,8 @@ const SettingsScreen = () => {
               Linking.openURL(urls.privacyPolicy);
             }}
             accessible={true}
-            accessibilityLabel={strings.settings.privacyPolicy}
-            accessibilityHint={strings.settings.privacyPolicyHint}>
+            accessibilityLabel={t('settings.privacyPolicy')}
+            accessibilityHint={t('settings.privacyPolicyHint')}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -706,7 +706,7 @@ const SettingsScreen = () => {
                 <ShieldIcon size={20} color={theme.primary} />
               </View>
               <Text className="text-base" style={{color: theme.text}}>
-                {strings.settings.privacyPolicy}
+                {t('settings.privacyPolicy')}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={theme.secondaryText} />
@@ -716,8 +716,8 @@ const SettingsScreen = () => {
             className="px-5 py-4 flex-row justify-between items-center"
             onPress={() => Linking.openURL(urls.termsOfService)}
             accessible={true}
-            accessibilityLabel={strings.settings.termsOfService}
-            accessibilityHint={strings.settings.termsOfServiceHint}>
+            accessibilityLabel={t('settings.termsOfService')}
+            accessibilityHint={t('settings.termsOfServiceHint')}>
             <View className="flex-row items-center">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -725,7 +725,7 @@ const SettingsScreen = () => {
                 <ShieldIcon size={20} color={theme.primary} />
               </View>
               <Text className="text-base" style={{color: theme.text}}>
-                {strings.settings.termsOfService}
+                {t('settings.termsOfService')}
               </Text>
             </View>
             <ChevronRightIcon size={20} color={theme.secondaryText} />
@@ -741,11 +741,11 @@ const SettingsScreen = () => {
             logout();
           }}
           accessible={true}
-          accessibilityLabel={strings.auth.signOut}
-          accessibilityHint={strings.auth.signOutHint}>
+          accessibilityLabel={t('auth.signOut')}
+          accessibilityHint={t('auth.signOutHint')}>
           <ExitToAppIcon size={20} color="#e11d48" style={{marginRight: 8}} />
           <Text style={{color: '#e11d48'}} className="font-medium text-base">
-            {strings.auth.signOut}
+            {t('auth.signOut')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -787,14 +787,14 @@ const SettingsScreen = () => {
                     <Text
                       className="text-2xl font-semibold"
                       style={{color: theme.text}}>
-                      {strings.settings.shareFeedback}
+                      {t('settings.shareFeedback')}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setShowFeedbackModal(false)}
                       className="p-1 rounded-full"
                       style={{backgroundColor: theme.surface}}
                       accessible={true}
-                      accessibilityLabel={strings.settings.closeFeedback}
+                      accessibilityLabel={t('settings.closeFeedback')}
                       accessibilityRole="button">
                       <CloseIcon size={20} color={theme.text} />
                     </TouchableOpacity>
@@ -803,7 +803,7 @@ const SettingsScreen = () => {
                   <Text
                     className="text-base mb-2"
                     style={{color: theme.secondaryText}}>
-                    {strings.settings.rateExperience}
+                    {t('settings.rateExperience')}
                   </Text>
 
                   {renderRatingStars()}
@@ -811,7 +811,7 @@ const SettingsScreen = () => {
                   <Text
                     className="text-base mb-2 mt-4"
                     style={{color: theme.secondaryText}}>
-                    {strings.settings.whatToImprove}
+                    {t('settings.whatToImprove')}
                   </Text>
 
                   <TextInput
@@ -826,11 +826,11 @@ const SettingsScreen = () => {
                       height: 130,
                       textAlignVertical: 'top',
                     }}
-                    placeholder={strings.settings.feedbackPlaceholder}
+                    placeholder={t('settings.feedbackPlaceholder')}
                     placeholderTextColor={theme.secondaryText}
                     accessible={true}
-                    accessibilityLabel={strings.settings.feedbackPlaceholder}
-                    accessibilityHint={strings.settings.feedbackHint}
+                    accessibilityLabel={t('settings.feedbackPlaceholder')}
+                    accessibilityHint={t('settings.feedbackHint')}
                   />
 
                   <TouchableOpacity
@@ -839,17 +839,17 @@ const SettingsScreen = () => {
                     onPress={handleSubmitFeedback}
                     disabled={submittingFeedback}
                     accessible={true}
-                    accessibilityLabel={strings.settings.submitFeedback}
+                    accessibilityLabel={t('settings.submitFeedback')}
                     accessibilityState={{disabled: submittingFeedback}}
-                    accessibilityHint={strings.settings.submitFeedbackHint}>
+                    accessibilityHint={t('settings.submitFeedbackHint')}>
                     {submittingFeedback ? (
                       <Text className="text-white font-medium text-base">
-                        {strings.settings.submitting}
+                        {t('settings.submitting')}
                       </Text>
                     ) : (
                       <>
                         <Text className="text-white font-medium text-base mr-2">
-                          {strings.settings.submitFeedback}
+                          {t('settings.submitFeedback')}
                         </Text>
                         <SendIcon size={18} color="white" />
                       </>

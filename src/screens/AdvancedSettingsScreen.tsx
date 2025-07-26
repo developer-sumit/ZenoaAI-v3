@@ -32,6 +32,7 @@ import {Theme, useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useHaptics} from '@src/hooks/useHaptics';
 import InfoDialog from '@src/components/InfoDialog';
+import {planLimits} from '@src/constants/planLimits';
 import {ArtStyleType, ImageSize} from '@src/types/image';
 import {useGenerationStore} from '@src/store/generationStore';
 
@@ -42,7 +43,6 @@ import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
-import {planLimits} from '@src/constants/planLimits';
 import LockIcon from '@src/assets/icons/LockIcon';
 
 // Enable LayoutAnimation for Android
@@ -173,7 +173,7 @@ const StylesGrid = memo(
     numColumns?: number;
     scrollEnabled?: boolean;
   }) => {
-    const strings = useStrings();
+    const t = useStrings();
 
     // Memoize the render item function to prevent recreations
     const renderItem = useCallback(
@@ -217,7 +217,7 @@ const StylesGrid = memo(
             <Text
               style={{color: theme.primary}}
               className="font-bold text-base">
-              {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
+              {`${t('common.all')} ${t('advanced.featureInfo.artStyles.title')}`}
             </Text>
             <ChevronDownIcon size={16} color={theme.primary} />
           </TouchableOpacity>
@@ -252,7 +252,7 @@ const ArtStylesDialog = memo(
     selectedStyles: string[];
     toggleStyle: (styleName: string) => void;
   }) => {
-    const strings = useStrings();
+    const t = useStrings();
     const {triggerHaptic} = useHaptics();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -289,7 +289,7 @@ const ArtStylesDialog = memo(
               <ArrowBackIcon size={20} color={theme.text} />
             </TouchableOpacity>
             <Text style={{color: theme.text}} className="font-bold text-xl">
-              {`${strings.common.all} ${strings.advancedSettings.featureInfo.artStyles.title}`}
+              {`${t('common.all')} ${t('advanced.featureInfo.artStyles.title')}`}
             </Text>
             <View style={{width: 40}} />
           </View>
@@ -303,7 +303,7 @@ const ArtStylesDialog = memo(
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFocus={() => triggerHaptic('light')}
-              placeholder={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}...`}
+              placeholder={`${t('common.search')} ${t('advanced.featureInfo.artStyles.title')}...`}
               placeholderTextColor={theme.secondaryText}
               className="flex-1 py-3 px-2 h-12 text-lg"
               style={{color: theme.text}}
@@ -312,8 +312,8 @@ const ArtStylesDialog = memo(
               clearButtonMode="while-editing"
               returnKeyType="search"
               accessible={true}
-              accessibilityLabel={`${strings.common.search} ${strings.advancedSettings.featureInfo.artStyles.title}`}
-              accessibilityHint={strings.advancedSettings.filterArtStylesHint}
+              accessibilityLabel={`${t('common.search')} ${t('advanced.featureInfo.artStyles.title')}`}
+              accessibilityHint={t('advanced.filterArtStylesHint')}
               accessibilityRole="search"
             />
             {searchQuery ? (
@@ -323,7 +323,7 @@ const ArtStylesDialog = memo(
                   setSearchQuery('');
                 }}
                 accessible={true}
-                accessibilityLabel={`${strings.common.clear} ${strings.advancedSettings.featureInfo.artStyles.title}`}
+                accessibilityLabel={`${t('common.clear')} ${t('advanced.featureInfo.artStyles.title')}`}
                 accessibilityRole="button">
                 <CloseIcon size={18} color={theme.secondaryText} />
               </TouchableOpacity>
@@ -366,7 +366,7 @@ const ArtStylesDialog = memo(
                 }}
                 className="bg-white py-2.5 px-4 rounded-full">
                 <Text className="font-bold text-[#f97316]">
-                  {strings.common.done}
+                  {t('common.done')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -380,7 +380,7 @@ const ArtStylesDialog = memo(
 );
 
 const AdvancedSettingsScreen: React.FC = () => {
-  const strings = useStrings();
+  const t = useStrings();
   const navigation = useNavigation();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
@@ -448,13 +448,15 @@ const AdvancedSettingsScreen: React.FC = () => {
   const showInfoDialog = useCallback(
     (title: string) => {
       triggerHaptic('light');
-      const featureInfo = strings.advancedSettings.featureInfo;
+      const featureInfo = t('advanced.featureInfo', {
+        returnObjects: true,
+      }) as any;
       if (title in featureInfo) {
-        setDialogContent(featureInfo[title as keyof typeof featureInfo]);
+        setDialogContent(featureInfo[title]);
         setDialogVisible(true);
       }
     },
-    [strings.advancedSettings.featureInfo],
+    [t],
   );
 
   // Split art styles into initial and selected that aren't in initial
@@ -498,11 +500,11 @@ const AdvancedSettingsScreen: React.FC = () => {
           }}
           className="p-2"
           accessible={true}
-          accessibilityLabel={strings.common.goBack}>
+          accessibilityLabel={t('common.back')}>
           <ArrowBackIcon size={24} color={theme.text} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{color: theme.text}}>
-          {strings.advancedSettings.title}
+          {t('advanced.title')}
         </Text>
         <View style={{width: 40}} />
       </View>
@@ -524,8 +526,8 @@ const AdvancedSettingsScreen: React.FC = () => {
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title="AI Engine"
-              showInfoDialog={() => showInfoDialog('AI Engine')}
+              title={t('advanced.featureInfo.aiEngine.title')}
+              showInfoDialog={() => showInfoDialog('aiEngine')}
               theme={theme}
             />
 
@@ -565,7 +567,7 @@ const AdvancedSettingsScreen: React.FC = () => {
                         : theme.secondaryText,
                   }}
                   className="text-xs text-center mt-1">
-                  Fast & efficient
+                  {t('advanced.quantumEngineHint')}
                 </Text>
               </TouchableOpacity>
 
@@ -604,7 +606,7 @@ const AdvancedSettingsScreen: React.FC = () => {
                         : theme.secondaryText,
                   }}
                   className="text-xs text-center mt-1">
-                  Advanced control
+                  {t('advanced.nebulaEngineHint')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -615,8 +617,8 @@ const AdvancedSettingsScreen: React.FC = () => {
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title={strings.advancedSettings.featureInfo.artStyles.title}
-              subtitle={strings.advancedSettings.artStylesSubtitle}
+              title={t('advanced.featureInfo.artStyles.title')}
+              subtitle={t('advanced.featureInfo.artStyles.subtitle')}
               showInfoDialog={() => showInfoDialog('artStyles')}
               theme={theme}
             />
@@ -639,7 +641,7 @@ const AdvancedSettingsScreen: React.FC = () => {
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title={strings.advancedSettings.featureInfo.batchCount.title}
+              title={t('advanced.featureInfo.batchCount.title')}
               showInfoDialog={() => showInfoDialog('batchCount')}
               theme={theme}
             />
@@ -707,10 +709,9 @@ const AdvancedSettingsScreen: React.FC = () => {
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
-            {/* Aspect Ratio Section */}
             <View className="mb-5">
               <SectionHeader
-                title={strings.advancedSettings.featureInfo.aspectRatio.title}
+                title={t('advanced.featureInfo.aspectRatio.title')}
                 showInfoDialog={() => showInfoDialog('aspectRatio')}
                 theme={theme}
               />
@@ -808,7 +809,7 @@ const AdvancedSettingsScreen: React.FC = () => {
             {/* Size Selection */}
             <View>
               <SectionHeader
-                title={strings.advancedSettings.featureInfo.imageSize.title}
+                title={t('advanced.featureInfo.imageSize.title')}
                 showInfoDialog={() => showInfoDialog('imageSize')}
                 theme={theme}
               />
@@ -847,7 +848,7 @@ const AdvancedSettingsScreen: React.FC = () => {
                               : theme.secondaryText,
                         }}
                         className="text-center text-lg">
-                        {strings.common[size as keyof typeof strings.common] ||
+                        {t(`common.${size.toLowerCase()}`) ||
                           size.charAt(0).toUpperCase() + size.slice(1)}
                       </Text>
                       <Text
@@ -890,7 +891,7 @@ const AdvancedSettingsScreen: React.FC = () => {
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title={strings.advancedSettings.privacy}
+              title={t('advanced.privacy')}
               showInfoDialog={() => showInfoDialog('privacy')}
               theme={theme}
             />
@@ -898,7 +899,7 @@ const AdvancedSettingsScreen: React.FC = () => {
               <View className="flex-1 mr-4">
                 <View className="flex-row items-center">
                   <Text style={{color: theme.text}} className="text-lg">
-                    {strings.advancedSettings.privateImages}
+                    {t('advanced.privateImages')}
                   </Text>
                   {user?.planType === 'free' && (
                     <View className="ml-2 bg-yellow-500 px-2 py-1 rounded-full">
@@ -910,10 +911,10 @@ const AdvancedSettingsScreen: React.FC = () => {
                 </View>
                 <Text style={{color: theme.secondaryText}} className="text-xs">
                   {user?.planType === 'free'
-                    ? strings.advancedSettings.upgradeToMakePrivate
+                    ? t('advanced.upgradeToMakePrivate')
                     : isPrivate
-                      ? strings.advancedSettings.imagesWillBePrivate
-                      : strings.advancedSettings.imagesWillBePublic}
+                      ? t('advanced.imagesWillBePrivate')
+                      : t('advanced.imagesWillBePublic')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -929,22 +930,15 @@ const AdvancedSettingsScreen: React.FC = () => {
                   if (user?.planType === 'free') {
                     return;
                   }
-                  triggerHaptic('selection');
-                  LayoutAnimation.spring();
-                  const newValue = !isPrivate;
-                  setIsPrivate(newValue);
+                  setIsPrivate(!isPrivate);
                 }}
                 accessible={true}
-                accessibilityLabel={
-                  isPrivate
-                    ? strings.advancedSettings.turnOffPrivateHint
-                    : strings.advancedSettings.turnOnPrivateHint
-                }
+                accessibilityLabel={t('advanced.privacy')}
                 accessibilityRole="switch"
                 accessibilityState={{checked: isPrivate}}>
                 <View
                   className={`w-5 h-5 rounded-full bg-white ${
-                    isPrivate && user?.planType !== 'free' ? 'ml-6' : 'ml-0'
+                    isPrivate ? 'ml-6' : 'ml-0'
                   }`}
                 />
               </TouchableOpacity>
@@ -956,37 +950,29 @@ const AdvancedSettingsScreen: React.FC = () => {
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
             <SectionHeader
-              title={strings.advancedSettings.featureInfo.quality.title}
+              title={t('advanced.featureInfo.quality.title')}
               showInfoDialog={() => showInfoDialog('quality')}
               theme={theme}
             />
-
             <View className="flex-row justify-between items-center py-2">
-              <View>
-                <Text style={{color: theme.text}} className="text-lg">
-                  {strings.advancedSettings.premiumImages}
+              <View className="flex-1">
+                <Text style={{color: theme.text}}>
+                  {t('advanced.premiumImages')}
                 </Text>
                 <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {strings.advancedSettings.generateHigherQualityImages}
+                  {isPremium
+                    ? t('advanced.imagesWillBePremium')
+                    : t('advanced.imagesWillBeStandard')}
                 </Text>
               </View>
-
               <TouchableOpacity
+                onPress={() => setIsPremium(!isPremium)}
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
                   backgroundColor: isPremium ? theme.primary : '#cbd5e1',
                 }}
-                onPress={() => {
-                  triggerHaptic('selection');
-                  LayoutAnimation.spring();
-                  setIsPremium(!isPremium);
-                }}
                 accessible={true}
-                accessibilityLabel={
-                  isPremium
-                    ? strings.advancedSettings.turnOffPremiumHint
-                    : strings.advancedSettings.turnOnPremiumHint
-                }
+                accessibilityLabel={t('advanced.quality')}
                 accessibilityRole="switch"
                 accessibilityState={{checked: isPremium}}>
                 <View
@@ -1002,54 +988,43 @@ const AdvancedSettingsScreen: React.FC = () => {
           <View
             className="py-4 px-3 mt-4 rounded-2xl"
             style={{backgroundColor: theme.surface}}>
-            {/* Seed Input */}
             <View className="mb-5">
               <SectionHeader
-                title={strings.advancedSettings.featureInfo.seed.title}
+                title={t('advanced.featureInfo.seed.title')}
                 showInfoDialog={() => showInfoDialog('seed')}
                 theme={theme}
               />
               <TextInput
                 ref={seedInputRef}
                 value={seed}
-                onChangeText={text => {
-                  setSeed(text);
-                }}
+                onChangeText={setSeed}
                 onFocus={() => triggerHaptic('light')}
-                placeholder={strings.advancedSettings.seedPlaceholder}
+                placeholder={t('advanced.seedPlaceholder')}
                 keyboardType="numeric"
                 className="p-4 rounded-xl text-lg"
                 style={{backgroundColor: theme.background, color: theme.text}}
                 placeholderTextColor="#6B7280"
                 accessible={true}
-                accessibilityLabel={
-                  strings.advancedSettings.featureInfo.seed.title
-                }
-                accessibilityHint={strings.advancedSettings.seedHint}
+                accessibilityLabel={t('advanced.featureInfo.seed.title')}
+                accessibilityHint={t('advanced.seedHint')}
                 blurOnSubmit={false}
                 caretHidden={false}
                 autoCorrect={false}
                 spellCheck={false}
               />
             </View>
-
-            {/* Negative Prompt */}
             <View>
               <SectionHeader
-                title={
-                  strings.advancedSettings.featureInfo.negativePrompt.title
-                }
+                title={t('advanced.featureInfo.negativePrompt.title')}
                 showInfoDialog={() => showInfoDialog('negativePrompt')}
                 theme={theme}
               />
               <TextInput
                 ref={negativePromptRef}
                 value={negativePrompt}
-                onChangeText={text => {
-                  setNegativePrompt(text);
-                }}
+                onChangeText={setNegativePrompt}
                 onFocus={() => triggerHaptic('light')}
-                placeholder={strings.advancedSettings.negativePromptPlaceholder}
+                placeholder={t('advanced.negativePromptPlaceholder')}
                 multiline
                 numberOfLines={4}
                 className="p-4 rounded-xl text-lg"
@@ -1061,10 +1036,10 @@ const AdvancedSettingsScreen: React.FC = () => {
                 }}
                 placeholderTextColor="#6B7280"
                 accessible={true}
-                accessibilityLabel={
-                  strings.advancedSettings.featureInfo.negativePrompt.title
-                }
-                accessibilityHint={strings.advancedSettings.negativePromptHint}
+                accessibilityLabel={t(
+                  'advanced.featureInfo.negativePrompt.title',
+                )}
+                accessibilityHint={t('advanced.negativePromptHint')}
                 blurOnSubmit={false}
                 scrollEnabled={true}
                 maxLength={500}
