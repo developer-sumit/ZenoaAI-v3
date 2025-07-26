@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   Linking,
+  Image,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
@@ -27,7 +28,6 @@ import userService from '@src/services/userService';
 
 // Icons
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
-import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
 
 const LoginScreen = () => {
@@ -237,8 +237,18 @@ const LoginScreen = () => {
         <Animated.View
           className="items-center mb-16"
           style={{transform: [{scale: logoScale}]}}>
-          <View className="mb-4">
-            <SparklesIcon size={64} color={theme.primary} />
+          <View
+            className="w-28 h-28 rounded-[28px] mb-8 items-center justify-center shadow-lg"
+            style={{
+              backgroundColor: isDark ? '#121212' : 'white',
+              shadowColor: isDark ? 'white' : theme.primary,
+              elevation: 12,
+            }}>
+            <Image
+              source={isDark ? appConfig.darkFavicon : appConfig.lightFavicon}
+              className="w-full h-full"
+              resizeMode="contain"
+            />
           </View>
           <Text
             className="text-4xl font-bold text-center mb-4"
@@ -279,13 +289,6 @@ const LoginScreen = () => {
               )}
             </TouchableOpacity>
           </Animated.View>
-
-          {/* Switch Account Note */}
-          <Text
-            style={{color: theme.secondaryText}}
-            className="text-center text-sm mt-4">
-            {t('auth.switchAccount')}
-          </Text>
         </View>
 
         {/* Privacy Notice */}
