@@ -129,7 +129,6 @@ const GalleryScreen = () => {
         <ImageViewer
           image={selectedImage}
           onClose={() => setSelectedImage(null)}
-          onImageDeleted={fetchImages}
         />
       )}
     </View>

@@ -136,7 +136,6 @@ const FavoriteScreen = () => {
         <ImageViewer
           image={selectedImage}
           onClose={() => setSelectedImage(null)}
-          onImageDeleted={fetchFavoriteImages}
         />
       )}
     </View>

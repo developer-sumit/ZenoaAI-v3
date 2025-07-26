@@ -1,11 +1,10 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import RNFS from 'react-native-fs';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
 import {
   ActivityIndicator,
   BackHandler,
-  Clipboard,
   Modal,
   Platform,
   Text,
@@ -14,6 +13,7 @@ import {
   StatusBar,
   ToastAndroid,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Toaster, useToast} from '@masumdev/rn-toast';
 import {useNavigation} from '@react-navigation/native';
@@ -56,14 +56,9 @@ type IconName =
 interface ImageViewerProps {
   image: GeneratedImage | null;
   onClose?: () => void;
-  onImageDeleted?: () => void;
 }
 
-const ImageViewer: React.FC<ImageViewerProps> = ({
-  image,
-  onClose,
-  onImageDeleted,
-}) => {
+const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
   const t = useStrings();
   const {isDark, theme} = useTheme();
   const {showToast} = useToast();
@@ -80,12 +75,23 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     setAspectRatio,
   } = useGenerationStore();
   const navigation = useNavigation();
-  const imageUri = image?.imageUrl || '';
+
+  const storedImage = useImageStore(state =>
+    image?.id
+      ? state.images.find(img => img.id === image.id) ||
+        state.publicImages.find(img => img.id === image.id) ||
+        state.popularImages.find(img => img.id === image.id) ||
+        state.favoriteImages.find(img => img.id === image.id)
+      : null,
+  );
+
+  // Use the storedImage for all rendering and data access if available, fallback to prop.
+  const displayImage = storedImage || image;
+  const imageUri = displayImage?.imageUrl || '';
 
   // Track if component is mounted to prevent state updates after unmount
   const isMounted = useRef(true);
 
-  const [isPrivate, setIsPrivate] = useState(image?.isPrivate || false);
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
@@ -114,7 +120,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   // Handle back button
   useEffect(() => {
-    if (!image) return;
+    if (!displayImage) return;
 
     const backAction = () => {
       if (fullscreenMode) {
@@ -128,7 +134,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         setShowDeleteDialog(false);
         return true;
       }
-      if (image) {
+      if (displayImage) {
         onClose?.();
         return true;
       }
@@ -141,7 +147,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     );
 
     return () => backHandler.remove();
-  }, [image, onClose, fullscreenMode, showDeleteDialog]);
+  }, [displayImage, onClose, fullscreenMode, showDeleteDialog]);
 
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen mode, current mode:', fullscreenMode);
@@ -150,11 +156,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const handlePrivacyUpdate = async () => {
     triggerHaptic('light');
-    if (image) {
-      const res = await updatePrivacy(image?.id, !image.isPrivate);
+    if (displayImage) {
+      const res = await updatePrivacy(
+        displayImage?.id,
+        !displayImage.isPrivate,
+      );
       if (res) {
         showToast('Privacy updated successfully', 'success');
-        setIsPrivate(!image.isPrivate);
       } else {
         showToast('Failed to update privacy', 'error');
       }
@@ -162,7 +170,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDownloadPress = () => {
-    if (!image || !imageUri) {
+    if (!displayImage || !imageUri) {
       console.log('No image to download');
       return;
     }
@@ -185,7 +193,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleDeleteImage = async () => {
-    if (!user?.uid || !image?.id) {
+    if (!user?.uid || !displayImage?.id) {
       return;
     }
 
@@ -193,14 +201,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
       setDeleting(true);
 
       // Use the image store to delete the image
-      const success = await deleteImage(image.id);
+      const success = await deleteImage(displayImage.id);
 
       if (success) {
         showToast(t('imageViewer.imageDeleted'), 'success');
-
-        if (onImageDeleted) {
-          onImageDeleted();
-        }
         onClose?.();
       } else {
         showToast(t('imageViewer.failedToDelete'), 'error');
@@ -278,18 +282,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const handleToggleFavorite = async () => {
     triggerHaptic('light');
-    if (!image) return;
+    if (!displayImage) return;
 
     try {
-      const success = await toggleFavorite(image.id);
-      if (success) {
-        showToast(
-          !image.isFavorite
-            ? t('gallery.addedToFavorites')
-            : t('gallery.removedFromFavorites'),
-          'success',
-        );
-      } else {
+      const success = await toggleFavorite(displayImage.id);
+      if (!success) {
         showToast(t('gallery.failedToUpdateFavorite'), 'error');
       }
     } catch (error) {
@@ -299,7 +296,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleRemix = () => {
-    if (!image) {
+    if (!displayImage) {
       return;
     }
 
@@ -308,23 +305,26 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Navigate to home screen with a slight delay to ensure modal is closed
     setTimeout(() => {
-      setPrompt(image.prompt);
-      setNegativePrompt(image.negativePrompt || '');
-      setEngine(image.engineType);
-      setStyles(image.styles || []);
-      setImageWidth(image.width);
-      setImageHeight(image.height);
-      setAspectRatio(image.aspectRatio);
+      setPrompt(displayImage.prompt);
+      setNegativePrompt(displayImage.negativePrompt || '');
+      setEngine(displayImage.engineType);
+      setStyles(displayImage.styles || []);
+      setImageWidth(displayImage.width);
+      setImageHeight(displayImage.height);
+      setAspectRatio(displayImage.aspectRatio);
 
       navigation.navigate(Routes.GENERATE as never);
     }, 100);
   };
 
+  // Check if the Modal should be visible based on `displayImage` existence
+  const isModalVisible = useMemo(() => !!displayImage, [displayImage]);
+
   return (
     <>
       {!fullscreenMode ? (
         <Modal
-          visible={!!image}
+          visible={isModalVisible}
           transparent
           animationType="fade"
           onRequestClose={() => {
@@ -345,29 +345,23 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               bottom: 0,
             }}
             blurType={isDark ? 'dark' : 'light'}
-            blurAmount={fullscreenMode ? 0 : 20}
+            blurAmount={20}
           />
 
-          <SafeAreaView
-            className="flex-1"
-            style={{
-              padding: fullscreenMode ? 0 : 16,
-              paddingTop: fullscreenMode ? 0 : 0,
-              backgroundColor: fullscreenMode ? 'black' : 'transparent',
-            }}>
-            {/* Image Display - takes full screen in fullscreen mode */}
+          <SafeAreaView className="flex-1 p-4">
+            {/* Image Display */}
             <View
-              className={`${
-                fullscreenMode ? 'flex-1' : 'flex-1 rounded-3xl mb-4'
-              } justify-center overflow-hidden`}
-              style={[!fullscreenMode && expandedPrompt ? {flex: 0.7} : {}]}>
+              className="flex-1 rounded-3xl mb-4 justify-center overflow-hidden"
+              style={[expandedPrompt ? {flex: 0.7} : {}]}>
               <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={toggleFullscreen}
+                onLongPress={handleToggleFavorite}
+                delayLongPress={300}
                 className="w-full h-full justify-center items-center"
                 accessible={true}
                 accessibilityLabel={`Image of ${
-                  image?.prompt || 'generated content'
+                  displayImage?.prompt || 'generated content'
                 }`}
                 accessibilityHint="">
                 <FastImage
@@ -378,12 +372,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                     headers: {'Cache-Control': 'max-age=31536000'},
                   }}
                   style={{
-                    borderRadius: fullscreenMode ? 0 : 24,
+                    borderRadius: 24,
                     width: '100%',
                     height: '100%',
-                    aspectRatio: fullscreenMode
-                      ? undefined
-                      : image?.aspectRatio.replace(':', '/') || '1/1',
+                    aspectRatio:
+                      displayImage?.aspectRatio.replace(':', '/') || '1/1',
                     backgroundColor: 'transparent',
                   }}
                   resizeMode={FastImage.resizeMode.contain}
@@ -410,7 +403,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   className="rounded-full overflow-hidden absolute justify-self-center bottom-1.5 flex-row gap-2 px-3 py-1.5 items-center">
                   <FastImage
                     source={{
-                      uri: image?.userAvatar,
+                      uri: displayImage?.userAvatar,
                       priority: FastImage.priority.normal,
                       cache: FastImage.cacheControl.immutable,
                       headers: {'Cache-Control': 'max-age=31536000'},
@@ -421,24 +414,22 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   <Text
                     className="text-sm font-semibold"
                     style={{color: theme.text}}>
-                    {image?.userName || 'Anonymous'}
+                    {displayImage?.userName || 'Anonymous'}
                   </Text>
                 </View>
 
-                {/* Header - only visible in normal mode */}
-                {!fullscreenMode && (
-                  <TouchableOpacity
-                    onPress={onClose}
-                    className="absolute top-2.5 left-2.5 p-2.5 rounded-full"
-                    style={{backgroundColor: theme.surface}}
-                    accessible={true}
-                    accessibilityLabel={t('imageViewer.closeHint')}>
-                    <CloseIcon size={24} color={theme.text} />
-                  </TouchableOpacity>
-                )}
+                {/* Close Button */}
+                <TouchableOpacity
+                  onPress={onClose}
+                  className="absolute top-2.5 left-2.5 p-2.5 rounded-full"
+                  style={{backgroundColor: theme.surface}}
+                  accessible={true}
+                  accessibilityLabel={t('imageViewer.closeHint')}>
+                  <CloseIcon size={24} color={theme.text} />
+                </TouchableOpacity>
 
-                {/* Overlay buttons - only in normal mode */}
-                {imageLoaded && !fullscreenMode && (
+                {/* Overlay buttons */}
+                {imageLoaded && (
                   <View className="absolute top-2.5 right-2.5 flex-row gap-2">
                     {/* Favorite Button */}
                     <View className="items-center">
@@ -447,26 +438,34 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                         className="bg-white rounded-2xl px-2.5 py-2 flex-row items-center gap-2 border-2 border-gray-900"
                         accessible={true}
                         accessibilityLabel={
-                          image?.isFavorite
+                          displayImage?.isFavorite
                             ? 'Remove from favorites'
                             : 'Add to favorites'
                         }>
                         <HeartIcon
                           size={24}
-                          color={image?.isFavorite ? '#FF4B8C' : '#121212'}
-                          fill={image?.isFavorite ? '#FF4B8C' : 'transparent'}
+                          color={
+                            displayImage?.isFavorite ? '#FF4B8C' : '#121212'
+                          }
+                          fill={
+                            displayImage?.isFavorite ? '#FF4B8C' : 'transparent'
+                          }
                         />
                         <Text
                           className="font-bold text-lg"
                           style={{
-                            color: image?.isFavorite ? '#FF4B8C' : '#121212',
+                            color: displayImage?.isFavorite
+                              ? '#FF4B8C'
+                              : '#121212',
                           }}>
-                          {image?.favoriteCount ? image.favoriteCount : 0}
+                          {displayImage?.favoriteCount
+                            ? displayImage.favoriteCount
+                            : 0}
                         </Text>
                       </TouchableOpacity>
                     </View>
                     {/* Privacy Button */}
-                    {image?.userId === user?.uid &&
+                    {displayImage?.userId === user?.uid &&
                       user?.planType !== 'free' && (
                         <TouchableOpacity
                           className="bg-white rounded-2xl p-2 border-2 border-gray-900 items-center justify-center"
@@ -474,9 +473,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                           <Text
                             className="font-bold"
                             style={{
-                              color: isPrivate ? '#FF4B8C' : '#14B8A6',
+                              color: displayImage?.isPrivate
+                                ? '#FF4B8C'
+                                : '#14B8A6',
                             }}>
-                            {isPrivate
+                            {displayImage?.isPrivate
                               ? t('imageViewer.private')
                               : t('imageViewer.public')}
                           </Text>
@@ -489,13 +490,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               {/* Loading indicator */}
               {!imageLoaded && !imageLoadFailed && (
                 <View className="absolute inset-0 justify-center items-center">
-                  <ActivityIndicator
-                    color={fullscreenMode ? 'white' : theme.primary}
-                    size="large"
-                  />
-                  <Text
-                    className="mt-3 text-base"
-                    style={{color: fullscreenMode ? 'white' : theme.text}}>
+                  <ActivityIndicator color={theme.primary} size="large" />
+                  <Text className="mt-3 text-base" style={{color: theme.text}}>
                     {t('imageViewer.loading')}
                   </Text>
                 </View>
@@ -504,9 +500,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               {/* Image load error */}
               {imageLoadFailed && (
                 <View className="absolute inset-0 justify-center items-center">
-                  <Text
-                    style={{color: fullscreenMode ? 'white' : theme.text}}
-                    className="text-base mb-3">
+                  <Text style={{color: theme.text}} className="text-base mb-3">
                     {t('imageViewer.loadingError')}
                   </Text>
                   <TouchableOpacity
@@ -523,13 +517,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       ]);
                     }}
                     className="px-4 py-2 rounded-full"
-                    style={{
-                      backgroundColor: fullscreenMode
-                        ? 'white/20'
-                        : theme.primary + '40',
-                    }}>
-                    <Text
-                      style={{color: fullscreenMode ? 'white' : theme.primary}}>
+                    style={{backgroundColor: theme.primary + '40'}}>
+                    <Text style={{color: theme.primary}}>
                       {t('common.retry')}
                     </Text>
                   </TouchableOpacity>
@@ -537,114 +526,101 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               )}
             </View>
 
-            {/* Exit fullscreen button - only in fullscreen mode */}
-            {fullscreenMode && (
-              <TouchableOpacity
-                onPress={() => {
-                  triggerHaptic('selection');
-                  setFullscreenMode(false);
-                }}
-                className="absolute top-10 right-5 bg-black/50 rounded-3xl p-2 z-10"
-                style={{top: StatusBar.currentHeight || 40}}
-                accessible={true}
-                accessibilityLabel={t('imageViewer.exitFullscreen')}
-                accessibilityRole="button">
-                <CloseIcon size={28} color="white" />
-              </TouchableOpacity>
-            )}
-
-            {/* Metadata Panel - only visible in normal mode */}
-            {!fullscreenMode && (
-              <View
-                className="rounded-3xl p-4 mb-4"
-                style={{backgroundColor: theme.background}}>
-                {/* Prompt with expansion toggle */}
-                <View className="flex-row justify-between items-start mb-4">
-                  <Text
-                    className={`text-base font-semibold flex-1 ${
-                      !expandedPrompt ? 'max-h-[66px]' : ''
-                    }`}
-                    style={{color: theme.primary}}
-                    numberOfLines={expandedPrompt ? undefined : 3}
+            {/* Metadata Panel */}
+            <View
+              className="rounded-3xl p-4 mb-4"
+              style={{backgroundColor: theme.background}}>
+              {/* Prompt with expansion toggle */}
+              <View className="flex-row justify-between items-start mb-4">
+                <Text
+                  className={`text-base font-semibold flex-1 ${
+                    !expandedPrompt ? 'max-h-[66px]' : ''
+                  }`}
+                  style={{color: theme.primary}}
+                  numberOfLines={expandedPrompt ? undefined : 3}
+                  onPress={togglePromptExpansion}
+                  accessible={true}
+                  accessibilityLabel={`Prompt: ${displayImage?.prompt || ''}`}
+                  accessibilityHint={t('imageViewer.promptHint')}>
+                  {displayImage?.prompt || ''}
+                </Text>
+                <View className="flex-row items-center">
+                  <TouchableOpacity
                     onPress={togglePromptExpansion}
+                    className="p-1"
                     accessible={true}
-                    accessibilityLabel={`Prompt: ${image?.prompt || ''}`}
-                    accessibilityHint={t('imageViewer.promptHint')}>
-                    {image?.prompt || ''}
-                  </Text>
-                  <View className="flex-row items-center">
-                    <TouchableOpacity
-                      onPress={togglePromptExpansion}
-                      className="p-1"
-                      accessible={true}
-                      accessibilityLabel={
-                        expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
-                      }>
-                      {expandedPrompt ? (
-                        <ChevronUpIcon size={18} color={theme.secondaryText} />
-                      ) : (
-                        <ChevronDownIcon
-                          size={18}
-                          color={theme.secondaryText}
-                        />
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => copyToClipboard(image?.prompt || '')}
-                      className="p-1 ml-2"
-                      accessible={true}
-                      accessibilityLabel={t('imageViewer.copyPrompt')}>
-                      <ContentCopyIcon size={18} color={theme.secondaryText} />
-                    </TouchableOpacity>
-                  </View>
+                    accessibilityLabel={
+                      expandedPrompt ? 'Collapse prompt' : 'Expand prompt'
+                    }>
+                    {expandedPrompt ? (
+                      <ChevronUpIcon size={18} color={theme.secondaryText} />
+                    ) : (
+                      <ChevronDownIcon size={18} color={theme.secondaryText} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => copyToClipboard(displayImage?.prompt || '')}
+                    className="p-1 ml-2"
+                    accessible={true}
+                    accessibilityLabel={t('imageViewer.copyPrompt')}>
+                    <ContentCopyIcon size={18} color={theme.secondaryText} />
+                  </TouchableOpacity>
                 </View>
-                {/* Metadata Grid */}
-                <View className="flex-row flex-wrap gap-3">
-                  {/* Engine - Top priority */}
-                  <MetadataItem
-                    icon="tune"
-                    label={t('imageViewer.engine')}
-                    value={
-                      image?.engineType ? `${image.engineType}` : 'Quantum'
-                    }
-                  />
-                  {/* Image Dimensions - Top priority */}
-                  <MetadataItem
-                    icon="dimensions"
-                    label={t('imageViewer.dimensions')}
-                    value={`${image?.width || 0} x ${image?.height || 0}`}
-                  />
-                  {/* Privacy Status */}
+              </View>
+              {/* Metadata Grid */}
+              <View className="flex-row flex-wrap gap-3">
+                {/* Engine - Top priority */}
+                <MetadataItem
+                  icon="tune"
+                  label={t('imageViewer.engine')}
+                  value={
+                    displayImage?.engineType
+                      ? `${displayImage.engineType}`
+                      : 'Quantum'
+                  }
+                />
+                {/* Image Dimensions - Top priority */}
+                <MetadataItem
+                  icon="dimensions"
+                  label={t('imageViewer.dimensions')}
+                  value={`${displayImage?.width || 0} x ${displayImage?.height || 0}`}
+                />
+                {/* Privacy Status */}
+                <MetadataItem
+                  icon="privacy"
+                  label={t('imageViewer.visibility')}
+                  value={displayImage?.isPrivate ? 'Private' : 'Public'}
+                />
+                {/* Seed */}
+                <MetadataItem
+                  icon="seed"
+                  label={t('advanced.featureInfo.seed.title')}
+                  value={displayImage?.seed?.toString() || ''}
+                  onCopy={() =>
+                    copyToClipboard(displayImage?.seed?.toString() || '')
+                  }
+                />
+                {/* Aspect Ratio */}
+                <MetadataItem
+                  icon="aspect-ratio"
+                  label={t('advanced.featureInfo.aspectRatio.title')}
+                  value={displayImage?.aspectRatio || '1:1'}
+                />
+                {/* Created At */}
+                {displayImage?.createdAt && (
                   <MetadataItem
                     icon="privacy"
-                    label={t('imageViewer.visibility')}
-                    value={isPrivate ? 'Private' : 'Public'}
+                    label={t('imageViewer.created')}
+                    value={new Date(
+                      displayImage.createdAt,
+                    ).toLocaleDateString()}
                   />
-                  {/* Seed */}
-                  <MetadataItem
-                    icon="seed"
-                    label={t('advanced.featureInfo.seed.title')}
-                    value={image?.seed.toString() || ''}
-                    onCopy={() => copyToClipboard(image?.seed.toString() || '')}
-                  />
-                  {/* Aspect Ratio */}
-                  <MetadataItem
-                    icon="aspect-ratio"
-                    label={t('advanced.featureInfo.aspectRatio.title')}
-                    value={image?.aspectRatio || '1:1'}
-                  />
-                  {/* Created At */}
-                  {image?.createdAt && (
-                    <MetadataItem
-                      icon="privacy"
-                      label={t('imageViewer.created')}
-                      value={new Date(image.createdAt).toLocaleDateString()}
-                    />
-                  )}
-                </View>
+                )}
+              </View>
 
-                {/* Negative Prompt Section */}
-                {image?.negativePrompt && image.negativePrompt.trim() && (
+              {/* Negative Prompt Section */}
+              {displayImage?.negativePrompt &&
+                displayImage.negativePrompt.trim() && (
                   <View className="mt-4">
                     <Text
                       className="text-sm font-medium mb-2"
@@ -657,146 +633,145 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                       <Text
                         className="text-sm leading-5"
                         style={{color: theme.secondaryText}}>
-                        {image.negativePrompt}
+                        {displayImage.negativePrompt}
                       </Text>
                     </View>
                   </View>
                 )}
 
-                {/* Style Chips */}
-                {image?.styles && image.styles.length > 0 && (
-                  <View className="mt-4">
-                    {/* Header with expand/collapse toggle */}
-                    <View className="flex-row items-center justify-between mb-2">
-                      <Text
-                        className="text-sm font-medium"
-                        style={{color: theme.text}}>
-                        {t('advanced.featureInfo.artStyles.title')} (
-                        {image.styles.length})
-                      </Text>
-                      {image.styles.length > 3 && (
-                        <TouchableOpacity
-                          onPress={() => setExpandedStyles(!expandedStyles)}
-                          className="p-1"
-                          accessible={true}
-                          accessibilityLabel={
-                            expandedStyles ? 'Collapse styles' : 'Expand styles'
-                          }>
-                          {expandedStyles ? (
-                            <ChevronUpIcon
-                              size={18}
-                              color={theme.secondaryText}
-                            />
-                          ) : (
-                            <ChevronDownIcon
-                              size={18}
-                              color={theme.secondaryText}
-                            />
-                          )}
-                        </TouchableOpacity>
-                      )}
-                    </View>
+              {/* Style Chips */}
+              {displayImage?.styles && displayImage.styles.length > 0 && (
+                <View className="mt-4">
+                  {/* Header with expand/collapse toggle */}
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text
+                      className="text-sm font-medium"
+                      style={{color: theme.text}}>
+                      {t('advanced.featureInfo.artStyles.title')} (
+                      {displayImage.styles.length})
+                    </Text>
+                    {displayImage.styles.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setExpandedStyles(!expandedStyles)}
+                        className="p-1"
+                        accessible={true}
+                        accessibilityLabel={
+                          expandedStyles ? 'Collapse styles' : 'Expand styles'
+                        }>
+                        {expandedStyles ? (
+                          <ChevronUpIcon
+                            size={18}
+                            color={theme.secondaryText}
+                          />
+                        ) : (
+                          <ChevronDownIcon
+                            size={18}
+                            color={theme.secondaryText}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-                    {/* Style chips */}
-                    <View className="flex-row flex-wrap gap-2">
-                      {image.styles
-                        .slice(0, expandedStyles ? image.styles.length : 3)
-                        .map(style => (
-                          <View
-                            key={style}
-                            className="flex-row items-center rounded-full px-3 py-1.5"
-                            style={{backgroundColor: theme.primary + '20'}}>
-                            <PaletteIcon size={14} color={theme.primary} />
-                            <Text
-                              className="ml-1 text-sm"
-                              style={{color: theme.primary}}>
-                              {style}
-                            </Text>
-                          </View>
-                        ))}
-                      {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
-                      {!expandedStyles && image.styles.length > 3 && (
-                        <TouchableOpacity
-                          onPress={() => setExpandedStyles(true)}
+                  {/* Style chips */}
+                  <View className="flex-row flex-wrap gap-2">
+                    {displayImage.styles
+                      .slice(0, expandedStyles ? displayImage.styles.length : 3)
+                      .map(style => (
+                        <View
+                          key={style}
                           className="flex-row items-center rounded-full px-3 py-1.5"
-                          style={{backgroundColor: theme.secondaryText + '20'}}>
+                          style={{backgroundColor: theme.primary + '20'}}>
+                          <PaletteIcon size={14} color={theme.primary} />
                           <Text
-                            className="text-sm"
-                            style={{color: theme.secondaryText}}>
-                            +{image.styles.length - 3} {t('common.more')}
+                            className="ml-1 text-sm"
+                            style={{color: theme.primary}}>
+                            {style}
                           </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                        </View>
+                      ))}
+                    {/* Show "+X more" indicator when collapsed and there are more than 3 styles */}
+                    {!expandedStyles && displayImage.styles.length > 3 && (
+                      <TouchableOpacity
+                        onPress={() => setExpandedStyles(true)}
+                        className="flex-row items-center rounded-full px-3 py-1.5"
+                        style={{
+                          backgroundColor: theme.secondaryText + '20',
+                        }}>
+                        <Text
+                          className="text-sm"
+                          style={{color: theme.secondaryText}}>
+                          +{displayImage.styles.length - 3} {t('common.more')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                )}
+                </View>
+              )}
 
-                {/* Action Buttons */}
-                <View className="flex-row justify-between mt-5 gap-1.5">
-                  {/* Delete Button - Only show if image belongs to current user */}
-                  {user?.uid && image?.userId === user.uid && (
-                    <TouchableOpacity
-                      onPress={handleDeletePress}
-                      disabled={deleting}
-                      className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                      style={{backgroundColor: theme.surface}}
-                      accessible={true}
-                      accessibilityLabel={t('imageViewer.deleteImage')}
-                      accessibilityState={{disabled: deleting}}
-                      accessibilityHint={t('imageViewer.deleteImageHint')}>
-                      {deleting ? (
-                        <ActivityIndicator color="#ef4444" size="small" />
-                      ) : (
-                        <>
-                          <DeleteOutlineIcon size={22} color="#ef4444" />
-                          <Text
-                            className="font-bold"
-                            style={{color: '#ef4444'}}>
-                            {t('common.delete')}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Remix Button */}
+              {/* Action Buttons */}
+              <View className="flex-row justify-between mt-5 gap-1.5">
+                {/* Delete Button - Only show if image belongs to current user */}
+                {user?.uid && displayImage?.userId === user.uid && (
                   <TouchableOpacity
-                    onPress={handleRemix}
+                    onPress={handleDeletePress}
+                    disabled={deleting}
                     className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
                     style={{backgroundColor: theme.surface}}
                     accessible={true}
-                    accessibilityLabel="Remix this image"
-                    accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
-                    <RefreshIcon size={22} color={theme.text} />
-                    <Text className="font-bold" style={{color: theme.text}}>
-                      Remix
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Download Button */}
-                  <TouchableOpacity
-                    onPress={handleDownloadPress}
-                    disabled={downloading}
-                    className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                    style={{backgroundColor: theme.primary}}
-                    accessible={true}
-                    accessibilityLabel={t('imageViewer.download')}
-                    accessibilityState={{disabled: downloading}}
-                    accessibilityHint={t('imageViewer.downloadHint')}>
-                    {downloading ? (
-                      <ActivityIndicator color="white" />
+                    accessibilityLabel={t('imageViewer.deleteImage')}
+                    accessibilityState={{disabled: deleting}}
+                    accessibilityHint={t('imageViewer.deleteImageHint')}>
+                    {deleting ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
                     ) : (
                       <>
-                        <DownloadIcon size={22} color="white" />
-                        <Text className="text-white font-bold">
-                          {t('common.download')}
+                        <DeleteOutlineIcon size={22} color="#ef4444" />
+                        <Text className="font-bold" style={{color: '#ef4444'}}>
+                          {t('common.delete')}
                         </Text>
                       </>
                     )}
                   </TouchableOpacity>
-                </View>
+                )}
+
+                {/* Remix Button */}
+                <TouchableOpacity
+                  onPress={handleRemix}
+                  className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                  style={{backgroundColor: theme.surface}}
+                  accessible={true}
+                  accessibilityLabel="Remix this image"
+                  accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
+                  <RefreshIcon size={22} color={theme.text} />
+                  <Text className="font-bold" style={{color: theme.text}}>
+                    Remix
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Download Button */}
+                <TouchableOpacity
+                  onPress={handleDownloadPress}
+                  disabled={downloading}
+                  className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
+                  style={{backgroundColor: theme.primary}}
+                  accessible={true}
+                  accessibilityLabel={t('imageViewer.download')}
+                  accessibilityState={{disabled: downloading}}
+                  accessibilityHint={t('imageViewer.downloadHint')}>
+                  {downloading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <DownloadIcon size={22} color="white" />
+                      <Text className="text-white font-bold">
+                        {t('common.download')}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
-            )}
+            </View>
           </SafeAreaView>
 
           <Toaster
