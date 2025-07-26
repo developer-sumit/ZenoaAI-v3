@@ -8,6 +8,7 @@ import {ImageGenerationRequest} from '@src/types/image';
 interface ImageState {
   images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
   publicImages: GeneratedImage[]; // Public images from all users (for community feed)
+  popularImages: GeneratedImage[]; // Popular images (if needed)
   favoriteImages: GeneratedImage[]; // User's favorite images
   isLoading: boolean;
   isLoadingPublic: boolean;
@@ -48,9 +49,13 @@ interface ImageState {
   clearImages: () => void;
 }
 
+// Debounce utility (simple version)
+let favoriteTimeouts: {[key: string]: NodeJS.Timeout} = {};
+
 export const useImageStore = create<ImageState>()((set, get) => ({
   images: [],
   publicImages: [],
+  popularImages: [],
   favoriteImages: [],
   isLoading: false,
   isLoadingPublic: false,
@@ -131,11 +136,21 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       // If it's the first page, replace all images
       // Otherwise, append to existing images
       if (page === 1) {
-        set({publicImages: data});
+        if (filter === 'popular') {
+          set({popularImages: data});
+        } else {
+          set({publicImages: data});
+        }
       } else {
-        set(state => ({
-          publicImages: [...state.publicImages, ...data],
-        }));
+        if (filter === 'popular') {
+          set(state => ({
+            popularImages: [...state.popularImages, ...data],
+          }));
+        } else {
+          set(state => ({
+            publicImages: [...state.publicImages, ...data],
+          }));
+        }
       }
     } catch (error: any) {
       console.error('Failed to fetch public images:', error);
@@ -268,47 +283,135 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   },
 
   toggleFavorite: async (imageId: string) => {
-    set(state => ({
-      images: state.images.map(img =>
-        img.id === imageId
-          ? {
-              ...img,
-              isFavorite: !img.isFavorite,
-              favoriteCount: img.isFavorite
-                ? (img.favoriteCount || 0) - 1
-                : (img.favoriteCount || 0) + 1,
-            }
-          : img,
-      ),
-    }));
+    const currentImage =
+      get().images.find(img => img.id === imageId) ||
+      get().publicImages.find(img => img.id === imageId) ||
+      get().popularImages.find(img => img.id === imageId) ||
+      get().favoriteImages.find(img => img.id === imageId);
 
-    try {
-      const success = await imageService.toggleFavorite(imageId);
-
-      if (!success) {
-        set(state => ({
-          images: state.images.map(img =>
-            img.id === imageId
-              ? {
-                  ...img,
-                  isFavorite: !img.isFavorite,
-                  favoriteCount: img.isFavorite
-                    ? (img.favoriteCount || 0) + 1
-                    : (img.favoriteCount || 0) - 1,
-                }
-              : img,
-          ),
-        }));
-        return false;
-      }
-
-      return true;
-    } catch (error: any) {
-      console.error('Failed to toggle favorite:', error);
-      const message = error?.message || 'Failed to toggle favorite';
-      set({error: message});
+    if (!currentImage) {
+      console.warn('Image not found for toggling favorite:', imageId);
       return false;
     }
+
+    const wasFavorite = currentImage.isFavorite;
+
+    // Helper to update favorite in all arrays
+    const updateFavoriteInArrays = (state: ImageState, revert = false) => {
+      const update = (img: GeneratedImage) => {
+        if (img.id === imageId) {
+          const newIsFavorite = revert ? wasFavorite : !wasFavorite;
+          let newFavoriteCount = img.favoriteCount || 0;
+
+          if (revert) {
+            // Revert: if it was favorited, decrement. If it was unfavorited, increment.
+            newFavoriteCount = wasFavorite
+              ? newFavoriteCount - 1
+              : newFavoriteCount + 1;
+          } else {
+            // Optimistic: if it was favorited, decrement. If it was unfavorited, increment.
+            newFavoriteCount = wasFavorite
+              ? newFavoriteCount - 1
+              : newFavoriteCount + 1;
+          }
+          // Ensure count doesn't go below zero
+          newFavoriteCount = Math.max(0, newFavoriteCount);
+
+          return {
+            ...img,
+            isFavorite: newIsFavorite,
+            favoriteCount: newFavoriteCount,
+          };
+        }
+        return img;
+      };
+
+      const updatedImages = state.images.map(update);
+      const updatedPublicImages = state.publicImages.map(update);
+      const updatedPopularImages = state.popularImages.map(update);
+      // For favoriteImages, if we are unfavoriting, we should remove it from the list
+      const updatedFavoriteImages = revert
+        ? state.favoriteImages.map(update)
+        : wasFavorite
+          ? state.favoriteImages.filter(img => img.id !== imageId)
+          : [
+              ...state.favoriteImages,
+              {
+                ...currentImage,
+                isFavorite: true,
+                favoriteCount: (currentImage.favoriteCount || 0) + 1,
+              },
+            ];
+      // When adding to favorites, ensure we don't add duplicates and update if already there
+      if (!revert && !wasFavorite) {
+        const existingFavoriteIndex = updatedFavoriteImages.findIndex(
+          img => img.id === imageId,
+        );
+        if (existingFavoriteIndex === -1) {
+          updatedFavoriteImages.push({
+            ...currentImage,
+            isFavorite: true,
+            favoriteCount: (currentImage.favoriteCount || 0) + 1,
+          });
+        } else {
+          updatedFavoriteImages[existingFavoriteIndex] = {
+            ...currentImage,
+            isFavorite: true,
+            favoriteCount: (currentImage.favoriteCount || 0) + 1,
+          };
+        }
+      }
+
+      return {
+        images: updatedImages,
+        publicImages: updatedPublicImages,
+        popularImages: updatedPopularImages,
+        favoriteImages: updatedFavoriteImages,
+      };
+    };
+
+    // Optimistic UI update
+    set(state => updateFavoriteInArrays(state));
+
+    // Debounce backend requests per imageId
+    if (favoriteTimeouts[imageId]) {
+      clearTimeout(favoriteTimeouts[imageId]);
+    }
+
+    return new Promise<boolean>(resolve => {
+      favoriteTimeouts[imageId] = setTimeout(async () => {
+        try {
+          const result = await imageService.toggleFavorite(imageId);
+
+          if (!result.success) {
+            // Revert UI if backend fails
+            set(state => updateFavoriteInArrays(state, true));
+            resolve(false);
+          } else {
+            // If the backend call was successful, and we were trying to unfavorite,
+            // we should remove it from the favoriteImages list if it's there.
+            if (wasFavorite) {
+              set(state => ({
+                favoriteImages: state.favoriteImages.filter(
+                  img => img.id !== imageId,
+                ),
+                // Also update favorite count in other arrays based on the backend's final state if needed,
+                // but the optimistic update should generally align. If there's a discrepancy, a full refresh
+                // of favorite images might be a more robust approach here after a successful toggle.
+              }));
+            }
+            resolve(true);
+          }
+        } catch (error) {
+          // Revert UI on error
+          set(state => updateFavoriteInArrays(state, true));
+          resolve(false);
+        } finally {
+          // Clear the timeout reference after the operation is complete
+          delete favoriteTimeouts[imageId];
+        }
+      }, 600); // 600ms debounce
+    });
   },
 
   updatePrivacy: async (imageId: string, isPrivate: boolean) => {

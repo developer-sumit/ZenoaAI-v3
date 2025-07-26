@@ -13,13 +13,13 @@ const renderScene = SceneMap({
 
 export default function GalleryLayout() {
   const {theme} = useTheme();
-  const strings = useStrings();
+  const t = useStrings();
   const layout = useWindowDimensions();
   const [index, setIndex] = React.useState(0);
 
   const routes = [
-    {key: 'first', title: strings.common.all},
-    {key: 'second', title: strings.imageViewer.favorite},
+    {key: 'first', title: t('gallery.all')},
+    {key: 'second', title: t('gallery.favorites')},
   ];
 
   return (
@@ -29,7 +29,7 @@ export default function GalleryLayout() {
         <Text
           className="text-3xl font-bold text-center"
           style={{color: theme.text}}>
-          {strings.gallery.title}
+          {t('gallery.title')}
         </Text>
       </View>
 

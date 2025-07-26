@@ -11,15 +11,16 @@ import {useAnimations} from '@src/hooks/useAnimations';
 // Icons
 import HomeIcon from '@src/assets/icons/HomeIcon';
 import SettingsIcon from '@src/assets/icons/SettingsIcon';
-import CommunityIcon from '@src/assets/icons/CommunityIcon';
+import GenerateIcon from '@src/assets/icons/GenerateIcon';
 import GalleryIcon from '@src/assets/icons/GalleryIcon';
+import routes from '@src/constants/routes';
 
 const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
   descriptors,
   navigation,
 }) => {
-  const strings = useStrings();
+  const t = useStrings();
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
   const {triggerHaptic} = useHaptics();
@@ -35,13 +36,13 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
     const size = 24;
 
     switch (routeName) {
-      case 'Home':
+      case routes.HOME:
         return <HomeIcon size={size} color={iconColor} />;
-      case 'Gallery':
+      case routes.GENERATE:
+        return <GenerateIcon size={size} color={iconColor} />;
+      case routes.GALLERY:
         return <GalleryIcon size={size} color={iconColor} />;
-      case 'Community':
-        return <CommunityIcon size={size} color={iconColor} />;
-      case 'Settings':
+      case routes.SETTINGS:
         return <SettingsIcon size={size} color={iconColor} />;
       default:
         return null;
@@ -50,14 +51,14 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
   const getTabLabel = (routeName: string) => {
     switch (routeName) {
-      case 'Home':
-        return strings.home.title;
-      case 'Gallery':
-        return strings.gallery.title;
-      case 'Community':
-        return strings.community.title;
-      case 'Settings':
-        return strings.settings.title;
+      case routes.HOME:
+        return t('home.title');
+      case routes.GENERATE:
+        return t('generate.title');
+      case routes.GALLERY:
+        return t('gallery.title');
+      case routes.SETTINGS:
+        return t('settings.title');
       default:
         return routeName;
     }

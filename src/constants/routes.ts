@@ -5,7 +5,7 @@ export default {
   MAIN: 'Main',
   HOME: 'Home',
   GALLERY: 'Gallery',
-  COMMUNITY: 'Community',
+  GENERATE: 'Generate',
   SETTINGS: 'Settings',
   EDIT_PROFILE: 'EditProfile',
   ADVANCED_SETTINGS: 'AdvancedSettings',

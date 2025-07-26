@@ -34,7 +34,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
   hoursRemaining,
   minutesRemaining,
 }) => {
-  const strings = useStrings();
+  const t = useStrings();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
   const [timeRemaining, setTimeRemaining] = useState({
@@ -121,48 +121,48 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
     const seconds = timeRemaining.seconds;
 
     if (days > 0) {
-      return `${days} ${
+      return `${
         days !== 1
-          ? strings.emailRestriction.daysPlural
-          : strings.emailRestriction.days
-      }, ${hours} ${
+          ? t('emailRestriction.days_plural', {count: days})
+          : t('emailRestriction.days', {count: days})
+      }, ${
         hours !== 1
-          ? strings.emailRestriction.hoursPlural
-          : strings.emailRestriction.hours
-      }, ${minutes} ${
+          ? t('emailRestriction.hours_plural', {count: hours})
+          : t('emailRestriction.hours', {count: hours})
+      }, ${
         minutes !== 1
-          ? strings.emailRestriction.minutesPlural
-          : strings.emailRestriction.minutes
+          ? t('emailRestriction.minutes_plural', {count: minutes})
+          : t('emailRestriction.minutes', {count: minutes})
       }`;
     } else if (hours > 0) {
-      return `${hours} ${
+      return `${
         hours !== 1
-          ? strings.emailRestriction.hoursPlural
-          : strings.emailRestriction.hours
-      }, ${minutes} ${
+          ? t('emailRestriction.hours_plural', {count: hours})
+          : t('emailRestriction.hours', {count: hours})
+      }, ${
         minutes !== 1
-          ? strings.emailRestriction.minutesPlural
-          : strings.emailRestriction.minutes
-      }, ${seconds} ${
+          ? t('emailRestriction.minutes_plural', {count: minutes})
+          : t('emailRestriction.minutes', {count: minutes})
+      }, ${
         seconds !== 1
-          ? strings.emailRestriction.secondsPlural
-          : strings.emailRestriction.seconds
+          ? t('emailRestriction.seconds_plural', {count: seconds})
+          : t('emailRestriction.seconds', {count: seconds})
       }`;
     } else if (minutes > 0) {
-      return `${minutes} ${
+      return `${
         minutes !== 1
-          ? strings.emailRestriction.minutesPlural
-          : strings.emailRestriction.minutes
-      }, ${seconds} ${
+          ? t('emailRestriction.minutes_plural', {count: minutes})
+          : t('emailRestriction.minutes', {count: minutes})
+      }, ${
         seconds !== 1
-          ? strings.emailRestriction.secondsPlural
-          : strings.emailRestriction.seconds
+          ? t('emailRestriction.seconds_plural', {count: seconds})
+          : t('emailRestriction.seconds', {count: seconds})
       }`;
     } else {
-      return `${seconds} ${
+      return `${
         seconds !== 1
-          ? strings.emailRestriction.secondsPlural
-          : strings.emailRestriction.seconds
+          ? t('emailRestriction.seconds_plural', {count: seconds})
+          : t('emailRestriction.seconds', {count: seconds})
       }`;
     }
   };
@@ -209,7 +209,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
               <Text
                 className="text-lg font-bold ml-2"
                 style={{color: theme.text}}>
-                {strings.emailRestriction.title}
+                {t('emailRestriction.title')}
               </Text>
             </View>
             <TouchableOpacity
@@ -224,7 +224,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
           <Text
             className="text-base leading-6 mb-6"
             style={{color: theme.secondaryText}}>
-            {strings.emailRestriction.message}
+            {t('emailRestriction.message')}
           </Text>
 
           {/* Timer */}
@@ -235,7 +235,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
               <Text
                 className="text-sm font-medium mb-2"
                 style={{color: theme.secondaryText}}>
-                {strings.emailRestriction.timeRemaining}
+                {t('emailRestriction.timeRemaining')}
               </Text>
               <Text
                 className="text-xl font-bold"
@@ -253,7 +253,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
             <Text
               className="text-base font-bold text-center"
               style={styles.buttonText}>
-              {strings.common.gotIt}
+              {t('common.gotIt')}
             </Text>
           </TouchableOpacity>
         </Animated.View>
