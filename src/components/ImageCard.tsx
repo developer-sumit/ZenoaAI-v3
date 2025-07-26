@@ -250,7 +250,11 @@ const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
               : t('imageViewer.addFavourite')
           }
           accessibilityRole="button">
-          <HeartIcon size={16} color="#FF6B6B" fill="#FF6B6B" />
+          <HeartIcon
+            size={16}
+            color={image.isFavorite ? '#FF6B6B' : '#121212'}
+            fill={image.isFavorite ? '#FF6B6B' : 'transparent'}
+          />
           <Text className="text-sm font-medium ml-1 text-[#121212]">
             {image.favoriteCount ? image.favoriteCount : 0}
           </Text>
