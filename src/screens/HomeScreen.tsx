@@ -248,10 +248,6 @@ const HomeScreen = () => {
         <ImageViewer
           image={selectedImage}
           onClose={() => setSelectedImage(null)}
-          onImageDeleted={() => {
-            setSelectedImage(null);
-            handleRefresh();
-          }}
         />
       )}
     </View>

@@ -253,7 +253,7 @@ const GenerateScreen = () => {
     <KeyboardAvoidingView
       style={{flex: 1, backgroundColor: theme.background}}
       contentContainerStyle={{flexGrow: 1}}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
+      behavior="position"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
       <View className="flex-1">
         {/* Header */}
@@ -310,8 +310,7 @@ const GenerateScreen = () => {
         {showSettingsDetails && hasSelectedOptions && (
           <View
             className="mx-4 p-3 rounded-2xl"
-            style={{backgroundColor: theme.surface}}
-            contentContainerStyle={{paddingBottom: 10}}>
+            style={{backgroundColor: theme.surface}}>
             {prompt.length > 0 && (
               <Text
                 className="text-lg mb-1"
