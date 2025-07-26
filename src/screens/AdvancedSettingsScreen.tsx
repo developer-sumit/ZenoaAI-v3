@@ -63,14 +63,13 @@ const StyleItem = memo(
   }: {
     item: ArtStyleType;
     isSelected: boolean;
-    onToggle: () => void;
+    onToggle: (name: string) => void;
     theme: Theme;
-    isDark: boolean;
   }) => (
     <TouchableOpacity
       activeOpacity={0.8}
       className="p-1 mb-2 w-full"
-      onPress={onToggle}>
+      onPress={() => onToggle(item.name)}>
       <View className="aspect-square">
         <View
           className="w-full h-full rounded-2xl overflow-hidden"
@@ -106,13 +105,11 @@ const StyleItem = memo(
       </Text>
     </TouchableOpacity>
   ),
-  // Add equality comparison to prevent unnecessary re-renders
   (prevProps, nextProps) => {
     return (
-      prevProps.item === nextProps.item &&
+      prevProps.item.id === nextProps.item.id &&
       prevProps.isSelected === nextProps.isSelected &&
-      prevProps.theme === nextProps.theme &&
-      prevProps.isDark === nextProps.isDark
+      prevProps.theme === nextProps.theme
     );
   },
 );
@@ -175,13 +172,12 @@ const StylesGrid = memo(
   }) => {
     const t = useStrings();
 
-    // Memoize the render item function to prevent recreations
     const renderItem = useCallback(
       ({item}: {item: ArtStyleType}) => (
         <StyleItem
           item={item}
           isSelected={selectedStyles.includes(item.name)}
-          onToggle={() => toggleStyle(item.name)}
+          onToggle={toggleStyle}
           theme={theme}
           isDark={isDark}
         />
@@ -208,7 +204,6 @@ const StylesGrid = memo(
           removeClippedSubviews={true}
         />
 
-        {/* Show button to view all styles if there are more than the initial ones */}
         {showButton && (
           <TouchableOpacity
             onPress={onShowAllPress}
@@ -228,10 +223,13 @@ const StylesGrid = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.data === nextProps.data &&
-      prevProps.selectedStyles === nextProps.selectedStyles &&
+      prevProps.showButton === nextProps.showButton &&
       prevProps.theme === nextProps.theme &&
       prevProps.isDark === nextProps.isDark &&
-      prevProps.showButton === nextProps.showButton
+      prevProps.selectedStyles.length === nextProps.selectedStyles.length &&
+      prevProps.selectedStyles.every(
+        (val, i) => val === nextProps.selectedStyles[i],
+      )
     );
   },
 );
@@ -260,7 +258,6 @@ const ArtStylesDialog = memo(
       if (!searchQuery.trim()) {
         return artStyles;
       }
-
       const query = searchQuery.toLowerCase().trim();
       return artStyles.filter(style =>
         style.name.toLowerCase().includes(query),
@@ -377,6 +374,18 @@ const ArtStylesDialog = memo(
       </Modal>
     );
   },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.visible === nextProps.visible &&
+      prevProps.onClose === nextProps.onClose &&
+      prevProps.theme === nextProps.theme &&
+      prevProps.isDark === nextProps.isDark &&
+      prevProps.selectedStyles.length === nextProps.selectedStyles.length &&
+      prevProps.selectedStyles.every(
+        (val, i) => val === nextProps.selectedStyles[i],
+      )
+    );
+  },
 );
 
 const AdvancedSettingsScreen: React.FC = () => {
@@ -444,7 +453,6 @@ const AdvancedSettingsScreen: React.FC = () => {
     };
   }, []);
 
-  // Memoize expensive functions
   const showInfoDialog = useCallback(
     (title: string) => {
       triggerHaptic('light');
@@ -456,36 +464,40 @@ const AdvancedSettingsScreen: React.FC = () => {
         setDialogVisible(true);
       }
     },
-    [t],
+    [t, triggerHaptic],
   );
 
-  // Split art styles into initial and selected that aren't in initial
   const initialStylesToShow = useMemo(() => {
     return artStyles.slice(0, INITIAL_STYLES_TO_SHOW);
   }, []);
 
   const selectedStylesNotInInitial = useMemo(() => {
-    const initialStyleNames = initialStylesToShow.map(style => style.name);
+    const initialStyleNames = new Set(
+      initialStylesToShow.map(style => style.name),
+    );
     return artStyles.filter(
       style =>
-        !initialStyleNames.includes(style.name) && styles.includes(style.name),
+        !initialStyleNames.has(style.name) && styles.includes(style.name),
     );
   }, [initialStylesToShow, styles]);
 
-  // Styles to show in the main screen
   const stylesToShow = useMemo(() => {
     return [...initialStylesToShow, ...selectedStylesNotInInitial];
   }, [initialStylesToShow, selectedStylesNotInInitial]);
 
-  // Optimized toggle function with useCallback to prevent recreation on each render
-  const toggleStyle = useCallback((styleName: string) => {
-    triggerHaptic('selection');
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-    const newStyles = styles.includes(styleName)
-      ? styles.filter(s => s !== styleName)
-      : [...styles, styleName];
-    setStyles(newStyles);
-  }, []);
+  const toggleStyle = useCallback(
+    (styleName: string) => {
+      triggerHaptic('selection');
+      setStyles(prevStyles => {
+        if (prevStyles.includes(styleName)) {
+          return prevStyles.filter(s => s !== styleName);
+        } else {
+          return [...prevStyles, styleName];
+        }
+      });
+    },
+    [setStyles, triggerHaptic],
+  );
 
   return (
     <SafeAreaView
@@ -718,7 +730,6 @@ const AdvancedSettingsScreen: React.FC = () => {
               <View className="flex-row flex-wrap gap-2">
                 {Object.keys(aspectRatios).map(ratio => {
                   const isAllowed = allowedAspectRatios.includes(ratio);
-                  // Parse ratio string (e.g., "16:9" -> {width: 16, height: 9})
                   const [width, height] = ratio.split(':').map(Number);
                   const BASE_SIZE = 24;
                   let displayWidth, displayHeight;
@@ -753,7 +764,6 @@ const AdvancedSettingsScreen: React.FC = () => {
                         'px-4 py-3 items-center justify-center',
                         aspectRatio === ratio ? 'rounded-2xl' : 'rounded-xl',
                       )}>
-                      {/* Aspect ratio visual icon */}
                       <View
                         className="mb-2 items-center justify-center"
                         style={{width: 40, height: 30}}>
@@ -1009,6 +1019,7 @@ const AdvancedSettingsScreen: React.FC = () => {
                 accessibilityHint={t('advanced.seedHint')}
                 blurOnSubmit={false}
                 caretHidden={false}
+                autoCapitalize="none"
                 autoCorrect={false}
                 spellCheck={false}
               />
