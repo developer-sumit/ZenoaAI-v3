@@ -510,15 +510,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                       <MenuTrigger
                         customStyles={{
                           TriggerTouchableComponent: TouchableOpacity,
-                          triggerTouchable: {
-                            // Larger touch target for the menu icon
-                            padding: 10, // Increased padding
-                            borderRadius: 28, // Make it circular to match padding
-                            backgroundColor: 'rgba(255,255,255,0.8)', // Semi-transparent white background
+                          triggerWrapper: {
+                            padding: 10,
+                            borderRadius: 28,
+                            backgroundColor: theme.surface,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            borderWidth: 1, // Add a border for better visibility
-                            borderColor: theme.secondaryText + '40', // Lighter border color
+                            borderWidth: 1,
+                            borderColor: theme.secondaryText + '40',
                           },
                         }}>
                         <MoreVertIcon size={24} color={theme.text} />
@@ -536,7 +535,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                             <MenuOption onSelect={handleDeletePress}>
                               <View className="flex-row items-center gap-2 py-2">
                                 <DeleteOutlineIcon size={20} color="#ef4444" />
-                                <Text style={{color: '#ef4444'}}>Delete</Text>
+                                <Text
+                                  className="font-bold"
+                                  style={{color: '#ef4444'}}>
+                                  Delete
+                                </Text>
                               </View>
                             </MenuOption>
                             <MenuOption
@@ -548,14 +551,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                                   color={
                                     displayImage?.isPrivate
                                       ? '#FF4B8C'
-                                      : '#14B8A6'
+                                      : '#0D9488'
                                   }
                                 />
                                 <Text
+                                  className="font-bold"
                                   style={{
                                     color: displayImage?.isPrivate
                                       ? '#FF4B8C'
-                                      : '#14B8A6',
+                                      : '#0D9488',
                                   }}>
                                   {displayImage?.isPrivate
                                     ? t('imageViewer.private')
@@ -563,6 +567,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                                 </Text>
                                 {user?.planType === 'free' && (
                                   <Text
+                                    className="font-bold"
                                     style={{
                                       color: theme.secondaryText,
                                       fontSize: 10,
@@ -579,7 +584,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                         <MenuOption onSelect={handleFlagPress}>
                           <View className="flex-row items-center gap-2 py-2">
                             <FlagIcon size={20} color={theme.text} />
-                            <Text style={{color: theme.text}}>
+                            <Text
+                              className="font-bold"
+                              style={{color: theme.text}}>
                               Flag / Report
                             </Text>
                           </View>
