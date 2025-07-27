@@ -5,6 +5,7 @@ export const zh = {
     cancel: '取消',
     save: '保存',
     delete: '删除',
+    flagReport: '标记 / 举报',
     edit: '编辑',
     close: '关闭',
     back: '返回',
@@ -446,6 +447,15 @@ export const zh = {
     minutes_plural: '{{count}} 分钟',
     seconds: '{{count}} 秒',
     seconds_plural: '{{count}} 秒',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: '不当内容',
+    spamMisleading: '垃圾邮件或误导信息',
+    copyrightViolation: '版权侵犯',
+    hateSpeechDiscrimination: '仇恨言论或歧视',
+    violenceGraphicContent: '暴力或露骨内容',
   },
 
   // Errors
