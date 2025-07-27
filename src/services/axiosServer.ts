@@ -214,6 +214,10 @@ export const imageAPI = {
   updatePrivacy: (imageId: string, isPrivate: boolean) => {
     return axiosServer.put(`/api/images/${imageId}/privacy`, {isPrivate});
   },
+
+  flagImage: (imageId: string, reasons: string[]) => {
+    return axiosServer.post(`/api/images/${imageId}/flag`, {reasons});
+  },
 };
 
 export default axiosServer;
