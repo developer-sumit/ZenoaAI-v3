@@ -26,6 +26,7 @@ import {Toaster} from '@masumdev/rn-toast';
 import {enableScreens} from 'react-native-screens';
 import {SystemBars} from 'react-native-edge-to-edge';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
+import {MenuProvider} from 'react-native-popup-menu';
 
 import {User} from '@src/types/user';
 import Routes from '@src/constants/routes';
@@ -262,56 +263,58 @@ function App() {
   }, [language, user]);
 
   return (
-    <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-      <SafeAreaView
-        className="flex-1"
-        style={{backgroundColor: theme.background}}>
-        <StatusBar
-          barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor="transparent"
-          translucent
-        />
+    <MenuProvider>
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+        <SafeAreaView
+          className="flex-1"
+          style={{backgroundColor: theme.background}}>
+          <StatusBar
+            barStyle={isDark ? 'light-content' : 'dark-content'}
+            backgroundColor="transparent"
+            translucent
+          />
 
-        <NavigationContainer
-          onStateChange={state => {
-            // Optional: Log navigation state changes for debugging
-            console.log('Navigation state changed:', state);
-          }}>
-          {isLoading ? (
-            <Stack.Navigator
-              screenOptions={{
-                headerShown: false,
-                animationTypeForReplace: 'pop',
-              }}>
-              <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
-            </Stack.Navigator>
-          ) : (
-            <Stack.Navigator screenOptions={{headerShown: false}}>
-              {user ? (
-                <>
-                  <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
-                  <Stack.Screen
-                    name={Routes.ADVANCED_SETTINGS}
-                    component={AdvancedSettingsScreen}
-                    options={{headerShown: false, gestureEnabled: true}}
-                  />
-                </>
-              ) : (
-                <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
-              )}
-            </Stack.Navigator>
-          )}
-        </NavigationContainer>
+          <NavigationContainer
+            onStateChange={state => {
+              // Optional: Log navigation state changes for debugging
+              console.log('Navigation state changed:', state);
+            }}>
+            {isLoading ? (
+              <Stack.Navigator
+                screenOptions={{
+                  headerShown: false,
+                  animationTypeForReplace: 'pop',
+                }}>
+                <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
+              </Stack.Navigator>
+            ) : (
+              <Stack.Navigator screenOptions={{headerShown: false}}>
+                {user ? (
+                  <>
+                    <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
+                    <Stack.Screen
+                      name={Routes.ADVANCED_SETTINGS}
+                      component={AdvancedSettingsScreen}
+                      options={{headerShown: false, gestureEnabled: true}}
+                    />
+                  </>
+                ) : (
+                  <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
+                )}
+              </Stack.Navigator>
+            )}
+          </NavigationContainer>
 
-        <Toaster
-          customColors={{
-            success: {background: '#E7F5E9', text: '#256029'},
-            error: {background: '#FDECEA', text: '#B3261E'},
-            info: {background: '#E3F2FD', text: '#1E88E5'},
-          }}
-        />
-      </SafeAreaView>
-    </KeyboardProvider>
+          <Toaster
+            customColors={{
+              success: {background: '#E7F5E9', text: '#256029'},
+              error: {background: '#FDECEA', text: '#B3261E'},
+              info: {background: '#E3F2FD', text: '#1E88E5'},
+            }}
+          />
+        </SafeAreaView>
+      </KeyboardProvider>
+    </MenuProvider>
   );
 }
 
