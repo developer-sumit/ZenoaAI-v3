@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   Linking,
+  Image,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
@@ -27,11 +28,10 @@ import userService from '@src/services/userService';
 
 // Icons
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
-import SparklesIcon from '@src/assets/icons/SparklesIcon';
 import GoogleLogoIcon from '@src/assets/icons/GoogleLogoIcon';
 
 const LoginScreen = () => {
-  const strings = useStrings();
+  const t = useStrings();
   const {isDark, theme} = useTheme();
   const {login} = useAuthStore();
   const {showToast} = useToast();
@@ -109,7 +109,7 @@ const LoginScreen = () => {
 
       if (!data?.idToken) {
         triggerHaptic('error');
-        showToast(strings.auth.signInFailed, 'error');
+        showToast(t('auth.signInFailed'), 'error');
         throw new Error('Failed to get ID token from Google Sign-In');
       }
 
@@ -154,7 +154,7 @@ const LoginScreen = () => {
       await login(userData);
 
       triggerHaptic('success');
-      showToast(strings.auth.signInSuccessful, 'success');
+      showToast(t('auth.signInSuccessful'), 'success');
     } catch (error: any) {
       console.error('Sign-in error:', error);
 
@@ -223,8 +223,8 @@ const LoginScreen = () => {
           onPress={handleLanguagePress}
           className="flex-row rounded-full items-center justify-center"
           accessible={true}
-          accessibilityLabel={strings.settings.language}
-          accessibilityHint={strings.settings.languageHint}>
+          accessibilityLabel={t('settings.language')}
+          accessibilityHint={t('settings.languageHint')}>
           <LanguageIcon size={22} color={theme.primary} />
           <LanguageSelector ref={languageSelectorRef} />
         </TouchableOpacity>
@@ -237,8 +237,18 @@ const LoginScreen = () => {
         <Animated.View
           className="items-center mb-16"
           style={{transform: [{scale: logoScale}]}}>
-          <View className="mb-4">
-            <SparklesIcon size={64} color={theme.primary} />
+          <View
+            className="w-28 h-28 rounded-[28px] mb-8 items-center justify-center shadow-lg"
+            style={{
+              backgroundColor: isDark ? '#121212' : 'white',
+              shadowColor: isDark ? 'white' : theme.primary,
+              elevation: 12,
+            }}>
+            <Image
+              source={isDark ? appConfig.darkFavicon : appConfig.lightFavicon}
+              className="w-full h-full"
+              resizeMode="contain"
+            />
           </View>
           <Text
             className="text-4xl font-bold text-center mb-4"
@@ -248,7 +258,7 @@ const LoginScreen = () => {
           <Text
             className="text-lg font-bold text-center mt-2"
             style={{color: theme.secondaryText}}>
-            {strings.auth.createAmazingImages}
+            {t('auth.createAmazingImages')}
           </Text>
         </Animated.View>
 
@@ -264,8 +274,8 @@ const LoginScreen = () => {
                 signingIn ? 'opacity-70' : 'opacity-100'
               }`}
               accessible={true}
-              accessibilityLabel={strings.auth.continueWithGoogle}
-              accessibilityHint={strings.auth.continueWithGoogleHint}
+              accessibilityLabel={t('auth.continueWithGoogle')}
+              accessibilityHint={t('auth.continueWithGoogleHint')}
               accessibilityState={{disabled: signingIn}}>
               {signingIn ? (
                 <ActivityIndicator size="small" color={theme.primary} />
@@ -273,40 +283,33 @@ const LoginScreen = () => {
                 <>
                   <GoogleLogoIcon size={24} color={theme.text} />
                   <Text style={{color: theme.text}} className="ml-3 text-lg">
-                    {strings.auth.continueWithGoogle}
+                    {t('auth.continueWithGoogle')}
                   </Text>
                 </>
               )}
             </TouchableOpacity>
           </Animated.View>
-
-          {/* Switch Account Note */}
-          <Text
-            style={{color: theme.secondaryText}}
-            className="text-center text-sm mt-4">
-            {strings.auth.switchAccount}
-          </Text>
         </View>
 
         {/* Privacy Notice */}
         <Text
           className="text-center text-base px-8 mt-8"
           style={{color: theme.secondaryText}}>
-          {strings.auth.agreeToTerms}&nbsp;
+          {t('auth.agreeToTerms')}&nbsp;
           <Text
             onPress={handleTermsPress}
             accessible={true}
-            accessibilityLabel={strings.settings.termsOfServiceHint}
+            accessibilityLabel={t('settings.termsOfServiceHint')}
             style={{color: theme.primary}}>
-            {strings.settings.termsOfService}
+            {t('settings.termsOfService')}
           </Text>
-          &nbsp;{strings.common.and}&nbsp;
+          &nbsp;{t('common.and')}&nbsp;
           <Text
             onPress={handlePrivacyPress}
             accessible={true}
-            accessibilityLabel={strings.settings.privacyPolicyHint}
+            accessibilityLabel={t('settings.privacyPolicyHint')}
             style={{color: theme.primary}}>
-            {strings.settings.privacyPolicy}
+            {t('settings.privacyPolicy')}
           </Text>
         </Text>
       </Animated.View>

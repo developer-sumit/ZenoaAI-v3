@@ -8,24 +8,28 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import {useToast} from '@masumdev/rn-toast';
 import FastImage from 'react-native-fast-image';
 
+import UserAvatar from './UserAvatar';
 import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
+import {useImageStore} from '@src/store/imageStore';
 
 // Icons
 import SyncIcon from '@src/assets/icons/SyncIcon';
+import HeartIcon from '@src/assets/icons/HeartIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
 
 interface ImageCardProps {
   image: GeneratedImage;
-  onPress: () => void;
+  onPress?: () => void;
   style?: ViewStyle;
 }
 
-const SkeletonLoader = ({width, height}: {width: number; height: number}) => {
+const SkeletonLoader = ({width, height}: {width?: number; height?: number}) => {
   const {theme} = useTheme();
   const shimmerOpacity = React.useRef(new Animated.Value(0.3)).current;
 
@@ -55,8 +59,8 @@ const SkeletonLoader = ({width, height}: {width: number; height: number}) => {
     <View
       className="justify-center items-center"
       style={{
-        width,
-        height,
+        width: width || '100%',
+        height: height || '100%',
         backgroundColor: theme.surface,
       }}>
       <Animated.View
@@ -66,8 +70,8 @@ const SkeletonLoader = ({width, height}: {width: number; height: number}) => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: theme.primary + '20',
-          opacity: shimmerOpacity,
+          // backgroundColor: theme.primary + '20',
+          // opacity: shimmerOpacity,
         }}
       />
       <ActivityIndicator color={theme.primary} size="large" />
@@ -104,44 +108,33 @@ const SyncIndicator = ({color}: {color: string}) => {
   );
 };
 
-const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
-  const strings = useStrings();
+const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
+  const t = useStrings();
   const {theme} = useTheme();
+  const {showToast} = useToast();
+  const {toggleFavorite} = useImageStore();
   const {triggerHaptic} = useHaptics();
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(false);
 
-  // Check if this is a placeholder/skeleton image
-  const isPlaceholder =
-    !image.imageUrl ||
-    image.imageUrl === 'placeholder' ||
-    image.id?.startsWith('placeholder-');
-
-  const getAspectRatio = (): number => {
-    // Default to 1:1 if there's an issue
-    if (!image?.aspectRatio) {
-      return 1;
-    }
+  const handleToggleFavorite = async () => {
+    triggerHaptic('light');
+    if (!image) return;
 
     try {
-      const [width, height] = image.aspectRatio.split(':').map(Number);
-      return width / height;
-    } catch (e) {
-      console.warn('Error parsing aspect ratio:', e);
-      return 1; // Default to square if parsing fails
+      const success = await toggleFavorite(image.id);
+      if (!success) {
+        showToast(t('gallery.failedToUpdateFavorite'), 'error');
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+      showToast(t('gallery.failedToUpdateFavorite'), 'error');
     }
   };
 
-  const contentStyle = React.useMemo(() => {
-    if (isPlaceholder) {
-      // For placeholder, we use flexible height based on aspect ratio
-      const aspectRatio = getAspectRatio();
-      return {aspectRatio};
-    }
-
-    // For loaded images, we just fill the container (which is sized by the parent)
-    return {width: '100%', height: '100%', flex: 1} as any;
-  }, [isPlaceholder, image.aspectRatio]);
+  // Check if this is a placeholder/skeleton image
+  const isPlaceholder =
+    image.imageUrl === 'placeholder' || image.id?.startsWith('placeholder-');
 
   return (
     <TouchableOpacity
@@ -149,31 +142,30 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       onPress={() => {
         if (!isPlaceholder) {
           triggerHaptic('light'); // Add haptic feedback for image tap
-          onPress();
+          onPress && onPress();
         }
       }}
-      className="rounded-2xl overflow-hidden bg-[#f0f0f0]"
-      style={style}
+      style={[
+        {
+          aspectRatio: image.aspectRatio.replace(':', '/') || '1/1',
+          backgroundColor: isPlaceholder ? theme.surface : 'transparent',
+        },
+        style,
+      ]}
+      className="rounded-3xl overflow-hidden"
       disabled={isPlaceholder}
       accessible={true}
       accessibilityLabel={
         isPlaceholder
-          ? 'Image is being generated'
-          : image.prompt
-            ? `Generated image of ${image.prompt}`
-            : strings.home.generationSuccess
+          ? t('generate.generating')
+          : t('generate.generationSuccess', {count: 1})
       }
       accessibilityHint={
-        isPlaceholder
-          ? 'Please wait while the image is being generated'
-          : strings.imageViewer.imageHint
+        isPlaceholder ? t('generate.generating') : t('imageViewer.imageHint')
       }>
       {/* Show skeleton for placeholder images */}
       {isPlaceholder ? (
-        <SkeletonLoader
-          width={(style?.width as number) || 200}
-          height={(style?.height as number) || 200}
-        />
+        <SkeletonLoader />
       ) : (
         <>
           {/* Loading indicator for real images */}
@@ -182,7 +174,7 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
               className="absolute inset-0 justify-center items-center z-10"
               style={{backgroundColor: theme.surface}}
               accessible={true}
-              accessibilityLabel={strings.imageViewer.loading}>
+              accessibilityLabel={t('imageViewer.loading')}>
               <ActivityIndicator color={theme.primary} />
             </View>
           )}
@@ -192,19 +184,19 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
               className="absolute inset-0 justify-center items-center z-10"
               style={{backgroundColor: theme.surface}}
               accessible={true}
-              accessibilityLabel={strings.imageViewer.loadingError}>
+              accessibilityLabel={t('imageViewer.loadingError')}>
               <BrokenImageIcon size={32} color="#ef4444" />
               <Text
                 className="mt-2 text-xs"
                 style={{color: theme.secondaryText}}>
-                {strings.imageViewer.loadingError}
+                {t('imageViewer.loadingError')}
               </Text>
             </View>
           )}
           {/* The actual image */}
           <FastImage
             source={{uri: image.imageUrl}}
-            style={contentStyle}
+            style={{width: '100%', height: '100%'}}
             resizeMode={FastImage.resizeMode.cover}
             onLoadStart={() => setIsLoading(true)}
             onLoadEnd={() => setIsLoading(false)}
@@ -221,8 +213,68 @@ const ImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
           )}
         </>
       )}
+
+      {!isPlaceholder && (
+        <View
+          className="absolute bottom-0 left-0 right-0 p-3"
+          style={{backgroundColor: theme.surface}}>
+          <View className="flex-row justify-between items-center">
+            <View className="flex-row items-center">
+              <UserAvatar
+                size={18}
+                userName={image.userName || 'Anonymous'}
+                userAvatar={image.userAvatar}
+                backgroundColor={theme.primary}
+                textColor="#ffffff"
+              />
+              <Text
+                className="text-sm font-semibold ml-1.5"
+                style={{color: theme.text}}>
+                {image.userName || 'Anonymous'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Favorite indicator */}
+      {!isPlaceholder && (
+        <TouchableOpacity
+          onPress={handleToggleFavorite}
+          className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
+          hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+          accessible={true}
+          accessibilityLabel={
+            image.isFavorite
+              ? t('imageViewer.removeFavourite')
+              : t('imageViewer.addFavourite')
+          }
+          accessibilityRole="button">
+          <HeartIcon
+            size={16}
+            color={image.isFavorite ? '#FF6B6B' : '#121212'}
+            fill={image.isFavorite ? '#FF6B6B' : 'transparent'}
+          />
+          <Text className="text-sm font-medium ml-1 text-[#121212]">
+            {image.favoriteCount ? image.favoriteCount : 0}
+          </Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
+
+const ImageCard = React.memo(BaseImageCard, (prevProps, nextProps) => {
+  // Only re-render if the image URL, aspect ratio, and style dimensions change
+  return (
+    prevProps.image.imageUrl === nextProps.image.imageUrl &&
+    prevProps.image.aspectRatio === nextProps.image.aspectRatio &&
+    prevProps.style?.width === nextProps.style?.width &&
+    prevProps.style?.height === nextProps.style?.height &&
+    // Add these checks for favorite status
+    prevProps.image.isFavorite === nextProps.image.isFavorite &&
+    prevProps.image.favoriteCount === nextProps.image.favoriteCount
+  );
+});
 
 export default ImageCard;

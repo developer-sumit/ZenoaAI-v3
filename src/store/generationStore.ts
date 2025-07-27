@@ -33,7 +33,7 @@ interface GenerationState {
   setIsPrivate: (isPrivate: boolean) => void;
   setIsPremium: (isPremium: boolean) => void;
   setNumberOfImages: (numberOfImages: number) => void;
-  setStyles: (styles: string[]) => void;
+  setStyles: (styles: string[] | ((prev: string[]) => string[])) => void;
   setSeed: (seed: string) => void;
   reset: () => void;
 }
@@ -64,7 +64,13 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   setIsPrivate: isPrivate => set({isPrivate}),
   setIsPremium: isPremium => set({isPremium}),
   setNumberOfImages: numberOfImages => set({numberOfImages}),
-  setStyles: styles => set({styles}),
+  setStyles: stylesUpdater => {
+    if (typeof stylesUpdater === 'function') {
+      set(state => ({styles: stylesUpdater(state.styles)}));
+    } else {
+      set({styles: Array.isArray(stylesUpdater) ? stylesUpdater : []});
+    }
+  },
   setSeed: seed => set({seed}),
 
   reset: () =>
