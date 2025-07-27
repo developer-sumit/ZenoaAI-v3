@@ -5,6 +5,7 @@ export const mr = {
     cancel: 'रद्द करा',
     save: 'जतन करा',
     delete: 'हटवा',
+    flagReport: 'फ्लॅग / तक्रार करा',
     edit: 'संपादित करा',
     close: 'बंद करा',
     back: 'मागे',
@@ -454,6 +455,15 @@ export const mr = {
     minutes_plural: '{{count}} मिनिटे',
     seconds: '{{count}} सेकंद',
     seconds_plural: '{{count}} सेकंद',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'अयोग्य सामग्री',
+    spamMisleading: 'स्पॅम किंवा दिशाभूल करणारे',
+    copyrightViolation: 'कॉपीराइट उल्लंघन',
+    hateSpeechDiscrimination: 'द्वेषपूर्ण भाषण किंवा भेदभाव',
+    violenceGraphicContent: 'हिंसा किंवा ग्राफिक सामग्री',
   },
 
   // Errors

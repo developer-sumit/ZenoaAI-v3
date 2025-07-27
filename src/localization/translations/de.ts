@@ -5,6 +5,7 @@ export const de = {
     cancel: 'Abbrechen',
     save: 'Speichern',
     delete: 'Löschen',
+    flagReport: 'Melden / Berichten',
     edit: 'Bearbeiten',
     close: 'Schließen',
     back: 'Zurück',
@@ -460,6 +461,15 @@ export const de = {
     minutes_plural: '{{count}} Minuten',
     seconds: '{{count}} Sekunde',
     seconds_plural: '{{count}} Sekunden',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'Unangemessener Inhalt',
+    spamMisleading: 'Spam oder irreführend',
+    copyrightViolation: 'Urheberrechtsverletzung',
+    hateSpeechDiscrimination: 'Hassrede oder Diskriminierung',
+    violenceGraphicContent: 'Gewalt oder explizite Inhalte',
   },
 
   // Errors

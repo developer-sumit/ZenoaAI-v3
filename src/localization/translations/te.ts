@@ -5,6 +5,7 @@ export const te = {
     cancel: 'రద్దు చేయి',
     save: 'సేవ్ చేయి',
     delete: 'తొలగించు',
+    flagReport: 'ఫ్లాగ్ చేయి / నివేదించు',
     edit: 'సవరించు',
     close: 'మూసివేయి',
     back: 'వెనుకకు',
@@ -459,6 +460,15 @@ export const te = {
     minutes_plural: '{{count}} నిమిషాలు',
     seconds: '{{count}} సెకను',
     seconds_plural: '{{count}} సెకన్లు',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'అనుచిత కంటెంట్',
+    spamMisleading: 'స్పామ్ లేదా తప్పుదోవ పట్టించేది',
+    copyrightViolation: 'కాపీరైట్ ఉల్లంఘన',
+    hateSpeechDiscrimination: 'ద్వేషపూరిత ప్రసంగం లేదా వివక్ష',
+    violenceGraphicContent: 'హింస లేదా గ్రాఫిక్ కంటెంట్',
   },
 
   // Errors

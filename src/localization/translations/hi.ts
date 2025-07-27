@@ -5,6 +5,7 @@ export const hi = {
     cancel: 'रद्द करें',
     save: 'सहेजें',
     delete: 'मिटाएँ',
+    flagReport: 'फ्लैग / रिपोर्ट करें',
     edit: 'संपादित करें',
     close: 'बंद करें',
     back: 'वापस',
@@ -453,6 +454,15 @@ export const hi = {
     minutes_plural: '{{count}} मिनट',
     seconds: '{{count}} सेकंड',
     seconds_plural: '{{count}} सेकंड',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'अनुपयुक्त सामग्री',
+    spamMisleading: 'स्पैम या भ्रामक',
+    copyrightViolation: 'कॉपीराइट उल्लंघन',
+    hateSpeechDiscrimination: 'घृणास्पद भाषण या भेदभाव',
+    violenceGraphicContent: 'हिंसा या ग्राफिक सामग्री',
   },
 
   // Errors

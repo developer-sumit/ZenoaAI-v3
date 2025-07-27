@@ -5,6 +5,7 @@ export const ta = {
     cancel: 'ரத்துசெய்',
     save: 'சேமி',
     delete: 'நீக்கு',
+    flagReport: 'குறியிடு / புகாரளி',
     edit: 'திருத்து',
     close: 'மூடு',
     back: 'பின்செல்',
@@ -458,6 +459,15 @@ export const ta = {
     minutes_plural: '{{count}} நிமிடங்கள்',
     seconds: '{{count}} வினாடி',
     seconds_plural: '{{count}} வினாடிகள்',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'பொருத்தமற்ற உள்ளடக்கம்',
+    spamMisleading: 'ஸ்பேம் அல்லது தவறான தகவல்',
+    copyrightViolation: 'பதிப்புரிமை மீறல்',
+    hateSpeechDiscrimination: 'வெறுப்புப் பேச்சு அல்லது பாகுபாடு',
+    violenceGraphicContent: 'வன்முறை அல்லது கிராஃபிக் உள்ளடக்கம்',
   },
 
   // Errors

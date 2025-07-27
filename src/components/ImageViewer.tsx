@@ -179,9 +179,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
         displayImage?.id,
         !displayImage.isPrivate,
       );
-      if (res) {
-        showToast('Privacy updated successfully', 'success');
-      } else {
+      if (!res) {
         showToast('Failed to update privacy', 'error');
       }
     }
@@ -388,11 +386,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
   const isModalVisible = useMemo(() => !!displayImage, [displayImage]);
 
   const reportReasons = [
-    'Inappropriate Content',
-    'Spam or Misleading',
-    'Copyright Violation',
-    'Hate Speech or Discrimination',
-    'Violence or Graphic Content',
+    t('reportReasons.inappropriateContent'),
+    t('reportReasons.spamMisleading'),
+    t('reportReasons.copyrightViolation'),
+    t('reportReasons.hateSpeechDiscrimination'),
+    t('reportReasons.violenceGraphicContent'),
   ];
 
   return (
@@ -538,7 +536,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                                 <Text
                                   className="font-bold"
                                   style={{color: '#ef4444'}}>
-                                  Delete
+                                  {t('common.delete')}
                                 </Text>
                               </View>
                             </MenuOption>
@@ -587,7 +585,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                             <Text
                               className="font-bold"
                               style={{color: theme.text}}>
-                              Flag / Report
+                              {t('common.flagReport')}
                             </Text>
                           </View>
                         </MenuOption>

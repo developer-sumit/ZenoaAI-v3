@@ -5,6 +5,7 @@ export const pt = {
     cancel: 'Cancelar',
     save: 'Salvar',
     delete: 'Excluir',
+    flagReport: 'Sinalizar / Denunciar',
     edit: 'Editar',
     close: 'Fechar',
     back: 'Voltar',
@@ -457,6 +458,15 @@ export const pt = {
     minutes_plural: '{{count}} minutos',
     seconds: '{{count}} segundo',
     seconds_plural: '{{count}} segundos',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'Conteúdo Inapropriado',
+    spamMisleading: 'Spam ou Enganoso',
+    copyrightViolation: 'Violação de Direitos Autorais',
+    hateSpeechDiscrimination: 'Discurso de Ódio ou Discriminação',
+    violenceGraphicContent: 'Violência ou Conteúdo Gráfico',
   },
 
   // Errors
