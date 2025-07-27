@@ -1,13 +1,7 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  Dimensions,
-  Pressable,
-  TouchableOpacity,
-} from 'react-native';
+import {View, Text, Modal, Pressable, TouchableOpacity} from 'react-native';
 
+import {SCREEN_WIDTH} from '@src/constants';
 import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
@@ -19,15 +13,13 @@ interface InfoDialogProps {
   message: string;
 }
 
-const {width} = Dimensions.get('window');
-
 const InfoDialog: React.FC<InfoDialogProps> = ({
   visible,
   onClose,
   title,
   message,
 }) => {
-  const strings = useStrings();
+  const t = useStrings();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
 
@@ -43,7 +35,7 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
         onPress={onClose}>
         <Pressable
           className="rounded-3xl p-5 items-center shadow-lg elevation-md"
-          style={{width: width * 0.85, backgroundColor: theme.surface}}
+          style={{width: SCREEN_WIDTH * 0.85, backgroundColor: theme.surface}}
           onPress={e => e.stopPropagation()}>
           <Text
             className="text-2xl font-bold mb-2.5 text-center"
@@ -69,7 +61,7 @@ const InfoDialog: React.FC<InfoDialogProps> = ({
             <Text
               className="font-semibold text-center text-lg"
               style={{color: isDark ? theme.text : 'white'}}>
-              {strings.common.gotIt}
+              {t('common.gotIt')}
             </Text>
           </TouchableOpacity>
         </Pressable>

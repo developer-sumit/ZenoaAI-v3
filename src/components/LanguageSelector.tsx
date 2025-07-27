@@ -25,7 +25,7 @@ interface LanguageSelectorRef {
 
 const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
   ({iconOnly = false}, ref) => {
-    const strings = useStrings();
+    const t = useStrings();
     const {isDark, theme} = useTheme();
     const {language, setLanguage} = useLanguageStore();
     const [modalVisible, setModalVisible] = useState(false);
@@ -79,7 +79,7 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
           style={{backgroundColor: iconOnly ? theme.surface : 'transparent'}}
           accessible={true}
           accessibilityLabel={language}
-          accessibilityHint={strings.settings.languageHint}>
+          accessibilityHint={t('settings.languageHint')}>
           {!iconOnly && (
             <Text className="ml-3" style={{color: theme.text}}>
               {languages.find(lang => lang.code === language)?.name ||
@@ -121,13 +121,13 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                   <Text
                     className="text-2xl font-semibold"
                     style={{color: theme.text}}>
-                    {strings.common.selectLanguage}
+                    {t('common.selectLanguage')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setModalVisible(false)}
                     className="p-1 pr-6"
                     accessible={true}
-                    accessibilityLabel={strings.settings.closeLanguage}>
+                    accessibilityLabel={t('settings.closeLanguage')}>
                     <CloseIcon size={24} color={theme.text} />
                   </TouchableOpacity>
                 </View>
@@ -144,7 +144,7 @@ const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
                       accessible={true}
                       accessibilityLabel={lang.name}
                       accessibilityState={{selected: language === lang.code}}
-                      accessibilityHint={strings.settings.changeLanguageHint}>
+                      accessibilityHint={t('settings.changeLanguageHint')}>
                       <Text
                         className="text-lg"
                         style={{

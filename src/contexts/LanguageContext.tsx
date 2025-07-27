@@ -1,12 +1,10 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
-
+import React, {createContext, useContext, useState} from 'react';
 import {useLanguageStore} from '@src/store/languageStore';
-import {useStrings} from '@src/hooks/useStrings';
-import {LocalizationProps} from '@src/localization';
+import {useTranslation} from 'react-i18next';
 
 interface LanguageContextType {
   language: string;
-  strings: typeof LocalizationProps;
+  t: (key: string, options?: any) => string;
   forceUpdate: () => void;
 }
 
@@ -17,21 +15,20 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 export const LanguageProvider: React.FC<{children: React.ReactNode}> = ({
   children,
 }) => {
-  const strings = useStrings();
   const {language} = useLanguageStore();
+  const {t, i18n} = useTranslation();
   const [, setUpdateCounter] = useState(0);
 
-  const forceUpdate = () => {
-    setUpdateCounter(prev => prev + 1);
-  };
+  const forceUpdate = () => setUpdateCounter(prev => prev + 1);
 
-  useEffect(() => {
-    strings.setLanguage(language);
+  // Sync language
+  if (i18n.language !== language) {
+    i18n.changeLanguage(language);
     forceUpdate();
-  }, [language]);
+  }
 
   return (
-    <LanguageContext.Provider value={{language, strings, forceUpdate}}>
+    <LanguageContext.Provider value={{language, t, forceUpdate}}>
       {children}
     </LanguageContext.Provider>
   );

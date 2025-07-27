@@ -1,6 +1,6 @@
 {
   "name": "zenoa-ai",
-  "version": "3.1.1",
+  "version": "3.3.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -20,6 +20,7 @@
   "dependencies": {
     "@masumdev/rn-toast": "^1.1.4",
     "@notifee/react-native": "^9.1.8",
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-firebase/analytics": "^22.3.0",
@@ -38,8 +39,10 @@
     "camelcase": "^8.0.0",
     "clsx": "^2.1.1",
     "firebase": "^11.10.0",
+    "i18next": "^25.3.2",
     "nativewind": "^4.1.23",
     "react": "19.1.0",
+    "react-i18next": "^15.6.1",
     "react-native": "0.80.1",
     "react-native-edge-to-edge": "^1.6.2",
     "react-native-encrypted-storage": "^4.0.3",
@@ -49,13 +52,15 @@
     "react-native-haptic-feedback": "^2.3.3",
     "react-native-image-viewing": "^0.2.2",
     "react-native-keyboard-controller": "^1.17.5",
-    "react-native-localization": "^2.3.2",
+    "react-native-localize": "^3.5.1",
     "react-native-mmkv": "^3.3.0",
+    "react-native-pager-view": "^6.8.1",
     "react-native-quick-actions": "^0.3.13",
     "react-native-reanimated": "^3.18.0",
     "react-native-safe-area-context": "^5.5.1",
     "react-native-screens": "^4.3.0",
     "react-native-svg": "^15.12.0",
+    "react-native-tab-view": "^4.1.2",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

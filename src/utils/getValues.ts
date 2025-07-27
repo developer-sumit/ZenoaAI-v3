@@ -6,12 +6,7 @@ import {
   IMAGE_SIZES,
 } from '@src/constants';
 import {aspectRatios} from '@src/data/ratio';
-import {
-  EngineType,
-  GeneratedImage,
-  ImageGenerationRequest,
-  ImageSize,
-} from '@src/types/image';
+import {EngineType, ImageSize} from '@src/types/image';
 
 export const getPrompt = (prompt: string) => {
   return prompt.trim() || '';
@@ -52,46 +47,4 @@ export const getEngineType = (engineType: EngineType) => {
 
 export const getIsPrivate = (isPrivate: boolean | undefined) => {
   return isPrivate !== undefined ? isPrivate : false;
-};
-
-export const getImageMetadata = (
-  metadata: GeneratedImage,
-  params: ImageGenerationRequest,
-): GeneratedImage => {
-  return {
-    id: metadata?.id || `temp-${Date.now()}`,
-    userId: metadata?.userId || '',
-    engineType: getEngineType(metadata?.engineType || params.engineType),
-    prompt: metadata?.prompt || params.prompt,
-    negativePrompt: metadata?.negativePrompt || params.negativePrompt || '',
-    imageUrl: metadata?.imageUrl || '',
-    thumbnailUrl: metadata?.thumbnailUrl || '',
-    width: metadata?.width || 512,
-    height: metadata?.height || 512,
-    imageSize: getImageSize(params.imageSize),
-    aspectRatio: getAspectRatio(params.aspectRatio),
-    styles: metadata?.styles,
-    seed: metadata?.seed || Math.floor(Math.random() * 1000000),
-    createdAt: metadata?.createdAt || new Date(),
-    isFavorite: metadata?.isFavorite || false,
-    isPrivate: metadata?.isPrivate || params.isPrivate || false,
-    userName: metadata?.userName || '',
-    userAvatar: metadata?.userAvatar || '',
-  };
-};
-
-export const getGeneratedImage = (
-  response: any,
-  metadata: any,
-  params: any,
-) => {
-  return {
-    ...getImageMetadata(metadata, params),
-    prompt:
-      response.data.prompts?.final || metadata?.finalPrompt || params.prompt,
-    negativePrompt: metadata?.negativePrompt || params.negativePrompt || '',
-    imageUrl: metadata?.imageUrl || response.data.imageUrl || '',
-    thumbnailUrl:
-      response.data.optimizedUrls?.thumbnail || metadata?.imageUrl || '',
-  };
 };

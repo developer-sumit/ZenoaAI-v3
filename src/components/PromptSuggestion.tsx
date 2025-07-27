@@ -5,21 +5,22 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
-  Dimensions,
   LayoutAnimation,
   Platform,
   UIManager,
   Pressable,
   Vibration,
 } from 'react-native';
+
+import {SCREEN_HEIGHT} from '@src/constants';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 
 // Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
-import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import ChevronRightIcon from '@src/assets/icons/ChevronRightIcon';
+import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 
 if (
   Platform.OS === 'android' &&
@@ -74,15 +75,13 @@ const samplePrompts = [
   },
 ];
 
-const {height: SCREEN_HEIGHT} = Dimensions.get('window');
-
 const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
   onSelectPrompt,
   theme,
   visible,
   setVisible,
 }) => {
-  const strings = useStrings();
+  const t = useStrings();
   const {triggerHaptic} = useHaptics();
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -201,7 +200,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
               style={{color: theme.text}}
               accessible={true}
               accessibilityRole="header">
-              {strings.home.promptIdeas}
+              {t('generate.promptIdeas')}
             </Text>
           </View>
           <TouchableOpacity
@@ -209,9 +208,9 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
             className="p-2 rounded-full"
             style={{backgroundColor: theme.background + '80'}}
             accessible={true}
-            accessibilityLabel={strings.home.closePromptSuggestions}
+            accessibilityLabel={t('generate.closePromptSuggestions')}
             accessibilityRole="button"
-            accessibilityHint={strings.home.closePromptSuggestions}>
+            accessibilityHint={t('generate.closePromptSuggestions')}>
             <CloseIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
         </View>
@@ -222,7 +221,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
           style={{color: theme.secondaryText}}
           accessible={true}
           accessibilityRole="text">
-          {strings.home.promptSuggestionsHint}
+          {t('generate.promptSuggestionsHint')}
         </Text>
 
         {/* Categories */}
@@ -258,7 +257,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                     ? 'expanded'
                     : 'collapsed'
                 }`}
-                accessibilityHint={strings.home.usePromptHint}>
+                accessibilityHint={t('generate.usePromptHint')}>
                 <View className="flex-row items-center flex-1">
                   <Text className="text-2xl mr-3">
                     {category.category.split(' ')[0]}
@@ -297,8 +296,8 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                       }}
                       accessible={true}
                       accessibilityRole="button"
-                      accessibilityLabel={`${strings.home.usePrompt}: ${prompt}`}
-                      accessibilityHint={strings.home.usePromptHint}>
+                      accessibilityLabel={`${t('generate.usePrompt')}: ${prompt}`}
+                      accessibilityHint={t('generate.usePromptHint')}>
                       <Text
                         className="text-base leading-6 flex-1"
                         style={{color: theme.text}}>
@@ -310,7 +309,7 @@ const PromptSuggestions: React.FC<PromptSuggestionsProps> = ({
                           backgroundColor: theme.primary + '20',
                           color: theme.primary,
                         }}>
-                        {strings.home.usePrompt}
+                        {t('generate.usePrompt')}
                       </Text>
                     </TouchableOpacity>
                   ))}
