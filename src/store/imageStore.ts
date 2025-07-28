@@ -46,6 +46,7 @@ interface ImageState {
   deleteImage: (imageId: string) => Promise<boolean>;
   toggleFavorite: (imageId: string) => Promise<boolean>;
   updatePrivacy: (imageId: string, isPrivate: boolean) => Promise<boolean>;
+  flagImage: (imageId: string, reasons: string[]) => Promise<boolean>;
   clearImages: () => void;
 }
 
@@ -437,6 +438,69 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     } catch (error: any) {
       console.error('Failed to update privacy:', error);
       const message = error?.message || 'Failed to update privacy';
+      set({error: message});
+      return false;
+    }
+  },
+
+  flagImage: async (imageId: string, reasons: string[]) => {
+    set({error: null});
+    try {
+      // Optimistically update the image's flagged status in the store
+      set(state => ({
+        images: state.images.map(img =>
+          img.id === imageId ? {...img, isFlagged: true} : img,
+        ),
+        // Filter out the flagged image from public and popular lists immediately
+        publicImages: state.publicImages.filter(img => img.id !== imageId),
+        popularImages: state.popularImages.filter(img => img.id !== imageId),
+      }));
+
+      const {success, message} = await imageService.flagImage(imageId, reasons);
+
+      if (!success) {
+        // Revert UI on failure: mark as not flagged and potentially re-add to public/popular if it was there
+        set(state => {
+          const originalImage = state.images.find(img => img.id === imageId);
+          const updatedImages = state.images.map(img =>
+            img.id === imageId ? {...img, isFlagged: false} : img,
+          );
+
+          let publicImagesToRevert = state.publicImages;
+          let popularImagesToRevert = state.popularImages;
+
+          if (originalImage && !originalImage.isPrivate) {
+            // Only re-add if it was public before
+            const publicIndex = publicImagesToRevert.findIndex(
+              img => img.id === imageId,
+            );
+            if (publicIndex === -1) {
+              publicImagesToRevert = [...publicImagesToRevert, originalImage];
+            }
+            const popularIndex = popularImagesToRevert.findIndex(
+              img => img.id === imageId,
+            );
+            if (popularIndex === -1) {
+              popularImagesToRevert = [...popularImagesToRevert, originalImage];
+            }
+          }
+
+          return {
+            images: updatedImages,
+            publicImages: publicImagesToRevert,
+            popularImages: popularImagesToRevert,
+          };
+        });
+        set({error: message || 'Failed to flag image'});
+        return false;
+      }
+      return true;
+    } catch (error: any) {
+      console.error('Failed to flag image:', error);
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to flag image';
       set({error: message});
       return false;
     }

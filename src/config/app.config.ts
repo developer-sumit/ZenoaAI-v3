@@ -1,7 +1,7 @@
 const appConfig = {
   name: 'Zenoa AI',
   longName: 'Zenoa AI - Image Generator',
-  version: '3.3.0',
+  version: '3.4.0',
   darkFavicon: require('../assets/favicon-dark.png'),
   lightFavicon: require('../assets/favicon-light.png'),
   author: {

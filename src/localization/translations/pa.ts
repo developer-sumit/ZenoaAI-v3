@@ -5,6 +5,7 @@ export const pa = {
     cancel: 'ਰੱਦ ਕਰੋ',
     save: 'ਸੇਵ ਕਰੋ',
     delete: 'ਮਿਟਾਓ',
+    flagReport: 'ਫਲੈਗ / ਰਿਪੋਰਟ ਕਰੋ',
     edit: 'ਸੋਧੋ',
     close: 'ਬੰਦ ਕਰੋ',
     back: 'ਪਿੱਛੇ',
@@ -455,6 +456,15 @@ export const pa = {
     minutes_plural: '{{count}} ਮਿੰਟ',
     seconds: '{{count}} ਸਕਿੰਟ',
     seconds_plural: '{{count}} ਸਕਿੰਟ',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'ਅਣਉਚਿਤ ਸਮੱਗਰੀ',
+    spamMisleading: 'ਸਪੈਮ ਜਾਂ ਗੁੰਮਰਾਹਕੁੰਨ',
+    copyrightViolation: 'ਕਾਪੀਰਾਈਟ ਉਲੰਘਣਾ',
+    hateSpeechDiscrimination: 'ਨਫ਼ਰਤ ਭਰਿਆ ਭਾਸ਼ਣ ਜਾਂ ਵਿਤਕਰਾ',
+    violenceGraphicContent: 'ਹਿੰਸਾ ਜਾਂ ਗ੍ਰਾਫਿਕ ਸਮੱਗਰੀ',
   },
 
   // Errors
