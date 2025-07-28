@@ -5,6 +5,7 @@ export const ar = {
     cancel: 'إلغاء',
     save: 'حفظ',
     delete: 'حذف',
+    flagReport: 'تبليغ / إبلاغ',
     edit: 'تعديل',
     close: 'إغلاق',
     back: 'رجوع',
@@ -449,6 +450,15 @@ export const ar = {
     minutes_plural: '{{count}} دقائق',
     seconds: '{{count}} ثانية',
     seconds_plural: '{{count}} ثوانٍ',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'محتوى غير لائق',
+    spamMisleading: 'بريد عشوائي أو مضلل',
+    copyrightViolation: 'انتهاك حقوق النشر',
+    hateSpeechDiscrimination: 'خطاب الكراهية أو التمييز',
+    violenceGraphicContent: 'عنف أو محتوى رسومي',
   },
 
   // Errors

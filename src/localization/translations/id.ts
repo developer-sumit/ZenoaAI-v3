@@ -5,6 +5,7 @@ export const id = {
     cancel: 'Batal',
     save: 'Simpan',
     delete: 'Hapus',
+    flagReport: 'Tandai / Laporkan',
     edit: 'Edit',
     close: 'Tutup',
     back: 'Kembali',
@@ -456,6 +457,15 @@ export const id = {
     minutes_plural: '{{count}} menit',
     seconds: '{{count}} detik',
     seconds_plural: '{{count}} detik',
+  },
+
+  // Report Reasons
+  reportReasons: {
+    inappropriateContent: 'Konten Tidak Pantas',
+    spamMisleading: 'Spam atau Menyesatkan',
+    copyrightViolation: 'Pelanggaran Hak Cipta',
+    hateSpeechDiscrimination: 'Ujaran Kebencian atau Diskriminasi',
+    violenceGraphicContent: 'Kekerasan atau Konten Grafis',
   },
 
   // Errors

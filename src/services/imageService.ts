@@ -369,6 +369,38 @@ const getFavoriteImages = async (
   }
 };
 
+/**
+ * Flags an image with specified reasons.
+ *
+ * @param imageId - The unique identifier of the image to flag.
+ * @param reasons - An array of strings, each representing a reason for flagging.
+ * @returns A promise that resolves to true if flagging was successful, false otherwise.
+ * @throws Will throw an error if the API request fails or if there's a network issue.
+ */
+const flagImage = async (
+  imageId: string,
+  reasons: string[],
+): Promise<ResponseData<boolean>> => {
+  try {
+    const response = await imageAPI.flagImage(imageId, reasons);
+    return {
+      success: response.data.success,
+      data: response.data.success ? true : false,
+      message: response.data.message || '',
+    };
+  } catch (error: any) {
+    console.error('Failed to flag image:', error);
+    return {
+      success: false,
+      data: false,
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to flag image',
+    };
+  }
+};
+
 const imageService = {
   generateImage,
   getUserImages,
@@ -377,5 +409,6 @@ const imageService = {
   deleteImage,
   toggleFavorite,
   updatePrivacy,
+  flagImage,
 };
 export default imageService;
