@@ -30,6 +30,7 @@ import PersonIcon from '@src/assets/icons/PersonIcon';
 import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
+import UserNotFound from '@src/components/UserNotFound';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -198,13 +199,7 @@ const EditProfileScreen = () => {
   };
 
   if (!user) {
-    return (
-      <View
-        className="flex-1 justify-center items-center"
-        style={{backgroundColor: theme.background}}>
-        <Text style={{color: theme.text}}>{t('errors.unauthorized')}</Text>
-      </View>
-    );
+    return <UserNotFound />;
   }
 
   return (

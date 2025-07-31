@@ -4,6 +4,7 @@ import auth from '@react-native-firebase/auth';
 import {User} from '@src/types/user';
 import userService from '@src/services/userService';
 import authService from '@src/services/authService';
+import {useImageStore} from './imageStore';
 
 interface AuthState {
   user: User | null;
@@ -190,6 +191,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (user) {
         await userService.clearCurrentUserData();
       }
+
+      useImageStore.getState().clearImages();
 
       set({
         user: null,

@@ -122,8 +122,6 @@ export const id = {
     continueWithEmail: 'Lanjutkan dengan Email',
     continueWithPhone: 'Lanjutkan dengan Telepon',
     createAmazingImages: 'Buat gambar AI-generated yang menakjubkan',
-    switchAccountHint:
-      'Anda bisa mengetuk di atas untuk masuk dengan akun yang berbeda',
   },
 
   // Home

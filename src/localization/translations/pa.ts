@@ -122,8 +122,6 @@ export const pa = {
     continueWithEmail: 'ਈਮੇਲ ਨਾਲ ਜਾਰੀ ਰੱਖੋ',
     continueWithPhone: 'ਫੋਨ ਨਾਲ ਜਾਰੀ ਰੱਖੋ',
     createAmazingImages: 'ਸ਼ਾਨਦਾਰ AI-ਤਿਆਰ ਕੀਤੀਆਂ ਤਸਵੀਰਾਂ ਬਣਾਓ',
-    switchAccountHint:
-      'ਤੁਸੀਂ ਕਿਸੇ ਹੋਰ ਖਾਤੇ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰਨ ਲਈ ਉੱਪਰ ਟੈਪ ਕਰ ਸਕਦੇ ਹੋ',
   },
 
   // Home
