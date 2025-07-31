@@ -11,9 +11,9 @@ import {
   LayoutAnimation,
   Linking,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
-import {Toaster, useToast} from '@masumdev/rn-toast';
 import {BlurView} from '@react-native-community/blur';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 
@@ -24,6 +24,7 @@ import {useTheme} from '@src/store/themeStore';
 import Routes from '@src/constants/routes';
 import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
+import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import urls from '@src/constants/urls';
@@ -873,13 +874,7 @@ const SettingsScreen = () => {
           </KeyboardAwareScrollView>
         </BlurView>
 
-        <Toaster
-          customColors={{
-            success: {background: '#E7F5E9', text: '#256029'},
-            error: {background: '#FDECEA', text: '#B3261E'},
-            info: {background: '#E3F2FD', text: '#1E88E5'},
-          }}
-        />
+        <Toast />
       </Modal>
     </Animated.ScrollView>
   );

@@ -22,7 +22,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {Toaster} from '@masumdev/rn-toast';
+import Toast from 'react-native-toast-message';
 import {enableScreens} from 'react-native-screens';
 import {SystemBars} from 'react-native-edge-to-edge';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
@@ -306,13 +306,7 @@ function App() {
               <LoginBottomSheet />
             </NavigationContainer>
 
-            <Toaster
-              customColors={{
-                success: {background: '#E7F5E9', text: '#256029'},
-                error: {background: '#FDECEA', text: '#B3261E'},
-                info: {background: '#E3F2FD', text: '#1E88E5'},
-              }}
-            />
+            <Toast />
           </SafeAreaView>
         </KeyboardProvider>
       </MenuProvider>

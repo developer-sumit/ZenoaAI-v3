@@ -8,12 +8,12 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import {useToast} from '@masumdev/rn-toast';
 import FastImage from 'react-native-fast-image';
 
 import UserAvatar from './UserAvatar';
 import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
+import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useImageStore} from '@src/store/imageStore';

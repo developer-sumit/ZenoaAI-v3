@@ -14,12 +14,12 @@ import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
-import {useToast} from '@masumdev/rn-toast';
 
 import {User} from '@src/types/user';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
+import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';

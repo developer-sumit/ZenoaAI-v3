@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.1.8",
-    "@masumdev/rn-toast": "^1.1.4",
     "@notifee/react-native": "^9.1.8",
     "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/blur": "^4.4.1",
@@ -64,6 +63,7 @@
     "react-native-screens": "^4.3.0",
     "react-native-svg": "^15.12.0",
     "react-native-tab-view": "^4.1.2",
+    "react-native-toast-message": "^2.3.3",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
