@@ -10,7 +10,6 @@ import {
   ToastAndroid,
   Animated,
 } from 'react-native';
-import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
 import {KeyboardAvoidingView} from 'react-native-keyboard-controller';
 import FastImage from 'react-native-fast-image';
@@ -20,6 +19,7 @@ import ImageViewer from '@src/components/ImageViewer';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
+import useToast from '@src/hooks/useToast';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
 import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';

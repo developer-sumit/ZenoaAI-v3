@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Toaster, useToast} from '@masumdev/rn-toast';
 import {useNavigation} from '@react-navigation/native';
 import ImageView from 'react-native-image-viewing';
 import {
@@ -25,8 +24,10 @@ import {
   MenuTrigger,
   MenuProvider,
 } from 'react-native-popup-menu';
+import Toast from 'react-native-toast-message';
 
 import {GeneratedImage} from '@src/types/image';
+import useToast from '@src/hooks/useToast';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useImageStore} from '@src/store/imageStore';
@@ -212,7 +213,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
 
   const handleToggleFlagReason = (reason: string) => {
     if (!user) {
-      showToast(t('auth.signInRequired'), "error");
+      showToast(t('auth.signInRequired'), 'error');
       return;
     }
 
@@ -271,7 +272,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
     }
 
     if (!user) {
-      showToast(t('auth.signInRequired'), "error");
+      showToast(t('auth.signInRequired'), 'error');
       return;
     }
 
@@ -361,7 +362,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
     if (!displayImage) return;
 
     if (!user) {
-      showToast(t('auth.signInRequired'), "error");
+      showToast(t('auth.signInRequired'), 'error');
       return;
     }
 
@@ -916,13 +917,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
               </View>
             </SafeAreaView>
 
-            <Toaster
-              customColors={{
-                success: {background: '#E7F5E9', text: '#256029'},
-                error: {background: '#FDECEA', text: '#B3261E'},
-                info: {background: '#E3F2FD', text: '#1E88E5'},
-              }}
-            />
+            <Toast />
           </MenuProvider>
         </Modal>
       ) : (

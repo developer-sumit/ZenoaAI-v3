@@ -1,7 +1,6 @@
 import clsx from 'clsx';
 import {create} from 'zustand';
 import React, {useRef, useEffect, useMemo} from 'react';
-import {useToast} from '@masumdev/rn-toast';
 import auth from '@react-native-firebase/auth';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import {
@@ -18,6 +17,7 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import urls from '@src/constants/urls';
 import {useTheme} from '@src/store/themeStore';
 import appConfig from '@src/config/app.config';
+import useToast from '@src/hooks/useToast';
 import {useAuthStore} from '@src/store/authStore';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
@@ -166,7 +166,6 @@ const LoginBottomSheet: React.FC = () => {
             error.message ||
               'This email cannot be used due to a recent account deletion.',
             'error',
-            {duration: 8000},
           );
         }
         return;
