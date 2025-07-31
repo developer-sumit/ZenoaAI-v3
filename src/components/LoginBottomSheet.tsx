@@ -11,7 +11,10 @@ import {
   Linking,
   Animated,
   ActivityIndicator,
+  StyleSheet,
+  TouchableWithoutFeedback,
 } from 'react-native';
+import {BlurView} from '@react-native-community/blur';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 import urls from '@src/constants/urls';
@@ -60,6 +63,7 @@ const LoginBottomSheet: React.FC = () => {
     minutesRemaining?: number;
   }>({});
   const buttonScale = React.useRef(new Animated.Value(1)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current; // Animated value for overlay opacity
 
   const snapPoints = useMemo(() => ['25%', '50%'], []);
 
@@ -67,10 +71,22 @@ const LoginBottomSheet: React.FC = () => {
     console.log('LoginBottomSheet visibility changed:', visible);
     if (visible) {
       sheetRef.current?.expand();
+      // Animate overlay in
+      Animated.timing(overlayOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
     } else {
       sheetRef.current?.close();
+      // Animate overlay out
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
     }
-  }, [visible]);
+  }, [visible, overlayOpacity]);
 
   const handleTermsPress = () => {
     triggerHaptic('light');
@@ -178,6 +194,25 @@ const LoginBottomSheet: React.FC = () => {
 
   return (
     <>
+      {/* Blurry Overlay */}
+      {visible && (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {opacity: overlayOpacity, backgroundColor: 'rgba(0,0,0,0.5)'},
+          ]}
+          pointerEvents={visible ? 'auto' : 'none'}>
+          <TouchableWithoutFeedback onPress={hide}>
+            <BlurView
+              style={StyleSheet.absoluteFillObject}
+              blurType={isDark ? 'dark' : 'light'}
+              blurAmount={10}
+              reducedTransparencyFallbackColor={isDark ? 'black' : 'white'}
+            />
+          </TouchableWithoutFeedback>
+        </Animated.View>
+      )}
+
       <BottomSheet
         ref={sheetRef}
         index={visible ? 0 : -1}
