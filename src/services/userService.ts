@@ -190,9 +190,9 @@ const getUser = async (userId: string): Promise<ResponseData<User>> => {
             : new Date(),
           planType: apiUser.planType || DEFAULT_PLAN_TYPE,
           quota: {
-            imagesRemaining: apiUser.quota?.imagesRemaining || 15, // Default for free plan
+            imagesRemaining: apiUser.quota?.imagesRemaining || 0, // Default for free plan
             planLimits: {
-              totalImages: apiUser.quota?.planLimits?.totalImages || 15,
+              totalImages: apiUser.quota?.planLimits?.totalImages || 0,
             },
           },
           statistics: apiUser.statistics
@@ -479,7 +479,7 @@ const clearCurrentUserData = async (): Promise<void> => {
  * the function logs the error and returns null instead of throwing.
  *
  * The quota object includes:
- * - imagesRemaining: Number of images remaining (defaults to 15 for free plan)
+ * - imagesRemaining: Number of images remaining
  * - lastRefreshedAt: Date when the quota was last refreshed (optional)
  *
  * @example
@@ -504,12 +504,12 @@ const checkQuota = async (): Promise<ResponseData<IUserQuota>> => {
     }
     const apiQuota = response.data.data;
     const quota: IUserQuota = {
-      imagesRemaining: apiQuota.imagesRemaining || 15, // Default for free plan
+      imagesRemaining: apiQuota.imagesRemaining || 0, // Default for free plan
       lastRefreshedAt: apiQuota.lastRefreshedAt
         ? new Date(apiQuota.lastRefreshedAt)
         : undefined,
       planLimits: {
-        totalImages: apiQuota.planLimits?.totalImages || 15, // Default for free
+        totalImages: apiQuota.planLimits?.totalImages || 0, // Default for free
       },
     };
 

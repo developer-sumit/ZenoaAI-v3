@@ -67,10 +67,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               updatedAt: new Date(),
               planType: 'free',
               quota: {
-                imagesRemaining: 15, // Default for free plan
+                imagesRemaining: 0, // Default for free plan
                 lastRefreshedAt: new Date(),
                 planLimits: {
-                  totalImages: 15,
+                  totalImages: 0,
                 },
               },
               statistics: {
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               imagesRemaining: 10, // Reduced quota for fallback
               lastRefreshedAt: new Date(),
               planLimits: {
-                totalImages: 15,
+                totalImages: 0,
               },
             },
             statistics: {
