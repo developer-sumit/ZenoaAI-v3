@@ -18,6 +18,7 @@
     "logcat": "npx react-native log-android"
   },
   "dependencies": {
+    "@gorhom/bottom-sheet": "^5.1.8",
     "@masumdev/rn-toast": "^1.1.4",
     "@notifee/react-native": "^9.1.8",
     "@react-native-clipboard/clipboard": "^1.16.3",
@@ -54,7 +55,9 @@
     "react-native-keyboard-controller": "^1.17.5",
     "react-native-localize": "^3.5.1",
     "react-native-mmkv": "^3.3.0",
+    "react-native-modal": "^14.0.0-rc.1",
     "react-native-pager-view": "^6.8.1",
+    "react-native-popup-menu": "^0.18.0",
     "react-native-quick-actions": "^0.3.13",
     "react-native-reanimated": "^3.18.0",
     "react-native-safe-area-context": "^5.5.1",

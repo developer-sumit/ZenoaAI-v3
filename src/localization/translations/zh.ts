@@ -122,7 +122,6 @@ export const zh = {
     continueWithEmail: '使用电子邮件继续',
     continueWithPhone: '使用电话继续',
     createAmazingImages: '创建令人惊叹的 AI 生成图片',
-    switchAccountHint: '您可以点击上方切换到其他帐户登录',
   },
 
   // Home

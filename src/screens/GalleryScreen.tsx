@@ -13,6 +13,7 @@ import {useHaptics} from '@src/hooks/useHaptics';
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
 import MasonrySkeleton from '@src/components/MasonrySkeleton';
+import UserNotFound from '@src/components/UserNotFound';
 
 const NUM_COLUMNS = 2;
 
@@ -93,6 +94,10 @@ const GalleryScreen = () => {
     },
     [triggerHaptic],
   );
+
+  if (!user || !user?.uid) {
+    return <UserNotFound />;
+  }
 
   return (
     <View className="flex-1" style={{backgroundColor: theme.background}}>

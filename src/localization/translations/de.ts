@@ -122,8 +122,6 @@ export const de = {
     continueWithEmail: 'Mit E-Mail fortfahren',
     continueWithPhone: 'Mit Telefon fortfahren',
     createAmazingImages: 'Erstellen Sie erstaunliche KI-generierte Bilder',
-    switchAccountHint:
-      'Sie können oben tippen, um sich mit einem anderen Konto anzumelden',
   },
 
   // Home

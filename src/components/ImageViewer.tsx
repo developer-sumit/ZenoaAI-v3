@@ -211,6 +211,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
   };
 
   const handleToggleFlagReason = (reason: string) => {
+    if (!user) {
+      showToast(t('auth.signInRequired'), "error");
+      return;
+    }
+
     setSelectedFlagReasons(prev =>
       prev.includes(reason)
         ? prev.filter(r => r !== reason)
@@ -262,6 +267,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
 
   const handleDeleteImage = async () => {
     if (!user?.uid || !displayImage?.id) {
+      return;
+    }
+
+    if (!user) {
+      showToast(t('auth.signInRequired'), "error");
       return;
     }
 
@@ -349,6 +359,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
   const handleToggleFavorite = async () => {
     triggerHaptic('light');
     if (!displayImage) return;
+
+    if (!user) {
+      showToast(t('auth.signInRequired'), "error");
+      return;
+    }
 
     try {
       const success = await toggleFavorite(displayImage.id);

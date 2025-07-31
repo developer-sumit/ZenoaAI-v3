@@ -124,7 +124,6 @@ export const ta = {
     continueWithEmail: 'மின்னஞ்சலுடன் தொடரவும்',
     continueWithPhone: 'தொலைபேசியுடன் தொடரவும்',
     createAmazingImages: 'அதிர்ச்சியூட்டும் AI-உருவாக்கிய படங்களை உருவாக்கவும்',
-    switchAccountHint: 'வேறு கணக்குடன் உள்நுழைய மேலே தட்டலாம்',
   },
 
   // Home

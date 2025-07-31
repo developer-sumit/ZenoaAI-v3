@@ -13,7 +13,7 @@ import {
 import {useToast} from '@masumdev/rn-toast';
 import {FlashList} from '@shopify/flash-list';
 import {KeyboardAvoidingView} from 'react-native-keyboard-controller';
-import FastImage from 'react-native-fast-image'; // Import FastImage for style thumbnails
+import FastImage from 'react-native-fast-image';
 
 import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
@@ -31,7 +31,9 @@ import {contentFilter} from '@src/utils/contentFilter';
 import {SCREEN_HEIGHT} from '@src/constants';
 import {useStrings} from '@src/hooks/useStrings';
 import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
-import {artStyles} from '@src/data/styles'; // Import artStyles data
+import {artStyles} from '@src/data/styles';
+import {useGenerationStore} from '@src/store/generationStore';
+import {useLoginModalStore} from '@src/components/LoginBottomSheet';
 
 // Icons
 import TuneIcon from '@src/assets/icons/TuneIcon';
@@ -41,7 +43,6 @@ import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import LightbulbOutlineIcon from '@src/assets/icons/LightbulbOutlineIcon';
 import ChevronDownIcon from '@src/assets/icons/ChevronDownIcon';
 import ChevronUpIcon from '@src/assets/icons/ChevronUpIcon';
-import {useGenerationStore} from '@src/store/generationStore';
 
 const GenerateScreen = () => {
   const t = useStrings();
@@ -52,6 +53,7 @@ const GenerateScreen = () => {
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
   const {error, generateImage} = useImageStore();
+  const {show} = useLoginModalStore();
   const {
     prompt,
     engine,
@@ -86,6 +88,12 @@ const GenerateScreen = () => {
 
   const handleImageGeneration = async () => {
     Keyboard.dismiss(); // Dismiss keyboard on generate
+
+    if (!user?.uid) {
+      show();
+      return;
+    }
+
     let tempImages = [];
     for (let i = 0; i < numberOfImages; i++) {
       const placeholderImage: GeneratedImage = {
@@ -266,11 +274,9 @@ const GenerateScreen = () => {
               className="rounded-full px-4 py-2.5"
               style={{backgroundColor: theme.surface}}>
               <Text className="font-bold text-base" style={{color: theme.text}}>
-                {user?.planType && (
-                  <Text style={{color: theme.primary}}>
-                    {user.planType.toUpperCase()}
-                  </Text>
-                )}
+                <Text style={{color: theme.primary}}>
+                  {user?.planType ? user.planType.toUpperCase() : 'FREE'}
+                </Text>
               </Text>
             </View>
             <View
@@ -283,7 +289,7 @@ const GenerateScreen = () => {
                         ? ` / ${user.quota.planLimits.totalImages}`
                         : ''
                     }`
-                  : ' 0'}
+                  : '0 / ∞'}
               </Text>
             </View>
           </View>
