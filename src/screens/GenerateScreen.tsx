@@ -332,6 +332,14 @@ const GenerateScreen = () => {
             <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
               -&nbsp;
               <Text className="font-bold" style={{color: theme.text}}>
+                {t('advanced.featureInfo.aiEngine.title')}:
+              </Text>
+              &nbsp;
+              {engine}
+            </Text>
+            <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
+              -&nbsp;
+              <Text className="font-bold" style={{color: theme.text}}>
                 {t('advanced.featureInfo.aspectRatio.title')}:
               </Text>
               &nbsp;
@@ -428,7 +436,7 @@ const GenerateScreen = () => {
         <View className="flex-1 mt-3">
           <FlashList
             data={images}
-            keyExtractor={item => item.id}
+            keyExtractor={(_, index) => index.toString()}
             estimatedItemSize={300}
             className="rounded-3xl mx-4"
             showsVerticalScrollIndicator={false}
@@ -446,7 +454,7 @@ const GenerateScreen = () => {
             }
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
-            extraData={{images, isGenerating}}
+            extraData={images}
           />
         </View>
 
