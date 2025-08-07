@@ -31,6 +31,7 @@ import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
 import UserNotFound from '@src/components/UserNotFound';
+import ImageSelectionModal from '@src/components/ImageSelectionModal';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -60,6 +61,7 @@ const EditProfileScreen = () => {
   const [photoUri, setPhotoUri] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
+  const [showImageSelectionModal, setShowImageSelectionModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -106,13 +108,19 @@ const EditProfileScreen = () => {
       triggerHaptic('selection');
       animatePress(saveButtonScale, 150);
 
-      if (name !== user.profile.username || bio !== user.profile.bio) {
+      // Check if any profile data has changed
+      if (
+        name !== user.profile.username ||
+        bio !== user.profile.bio ||
+        photoUri !== user.profile.avatar
+      ) {
         try {
           const updatedUserData: Partial<User> = {
             profile: {
               ...user.profile,
               username: name.trim(),
               bio: bio.trim(),
+              avatar: photoUri, // Include the new avatar URL
             },
           };
 
@@ -148,9 +156,12 @@ const EditProfileScreen = () => {
   const handleAvatarPress = () => {
     triggerHaptic('light');
     animatePress(avatarScale, 200);
-    // TODO: Implement image picker for avatar upload
-    // For now, show info message that this feature will be added
-    showToast(t('profile.uploadPhoto'), 'info');
+    setShowImageSelectionModal(true);
+  };
+
+  const handleImageSelection = (imageUrl: string) => {
+    setPhotoUri(imageUrl);
+    showToast(t('profile.profileImageSelected'), 'success');
   };
 
   const handleAccountDeletion = async () => {
@@ -260,12 +271,7 @@ const EditProfileScreen = () => {
                 }}>
                 <FastImage
                   source={{uri: photoUri}}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderWidth: 4,
-                    borderColor: theme.surface,
-                  }}
+                  style={{width: '100%', height: '100%'}}
                   resizeMode={FastImage.resizeMode.cover}
                 />
               </View>
@@ -281,14 +287,14 @@ const EditProfileScreen = () => {
                   }}
                   onPress={handleAvatarPress}
                   accessible={true}
-                  accessibilityLabel={t('profile.uploadPhoto')}>
+                  accessibilityLabel={t('profile.selectProfileImage')}>
                   <CameraIcon size={20} color="white" />
                 </TouchableOpacity>
               </Animated.View>
             </View>
 
             <Text className="text-sm mt-4" style={{color: theme.secondaryText}}>
-              {t('profile.tapCamera')}
+              {t('profile.tapToSelectFromGenerated')}
             </Text>
           </View>
 
@@ -437,6 +443,13 @@ const EditProfileScreen = () => {
           </View>
         </Animated.View>
       </KeyboardAwareScrollView>
+
+      {/* Image Selection Modal */}
+      <ImageSelectionModal
+        visible={showImageSelectionModal}
+        onClose={() => setShowImageSelectionModal(false)}
+        onSelectImage={handleImageSelection}
+      />
 
       {/* Reason Selection Modal */}
       <Modal visible={showReasonModal} transparent animationType="fade">
