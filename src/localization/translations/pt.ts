@@ -122,8 +122,6 @@ export const pt = {
     continueWithEmail: 'Continuar com e-mail',
     continueWithPhone: 'Continuar com telefone',
     createAmazingImages: 'Crie imagens incríveis geradas por IA',
-    switchAccountHint:
-      'Você pode tocar acima para fazer login com uma conta diferente',
   },
 
   // Home

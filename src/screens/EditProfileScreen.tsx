@@ -14,12 +14,12 @@ import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import {BlurView} from '@react-native-community/blur';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
-import {useToast} from '@masumdev/rn-toast';
 
 import {User} from '@src/types/user';
 import {useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import userService from '@src/services/userService';
+import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
@@ -30,6 +30,7 @@ import PersonIcon from '@src/assets/icons/PersonIcon';
 import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
+import UserNotFound from '@src/components/UserNotFound';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -198,13 +199,7 @@ const EditProfileScreen = () => {
   };
 
   if (!user) {
-    return (
-      <View
-        className="flex-1 justify-center items-center"
-        style={{backgroundColor: theme.background}}>
-        <Text style={{color: theme.text}}>{t('errors.unauthorized')}</Text>
-      </View>
-    );
+    return <UserNotFound />;
   }
 
   return (

@@ -8,12 +8,12 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import {useToast} from '@masumdev/rn-toast';
 import FastImage from 'react-native-fast-image';
 
 import UserAvatar from './UserAvatar';
 import {GeneratedImage} from '@src/types/image';
 import {useTheme} from '@src/store/themeStore';
+import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import {useImageStore} from '@src/store/imageStore';
@@ -22,6 +22,7 @@ import {useImageStore} from '@src/store/imageStore';
 import SyncIcon from '@src/assets/icons/SyncIcon';
 import HeartIcon from '@src/assets/icons/HeartIcon';
 import BrokenImageIcon from '@src/assets/icons/BrokenImageIcon';
+import {useAuthStore} from '@src/store/authStore';
 
 interface ImageCardProps {
   image: GeneratedImage;
@@ -111,6 +112,7 @@ const SyncIndicator = ({color}: {color: string}) => {
 const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const t = useStrings();
   const {theme} = useTheme();
+  const {user} = useAuthStore();
   const {showToast} = useToast();
   const {toggleFavorite} = useImageStore();
   const {triggerHaptic} = useHaptics();
@@ -120,6 +122,11 @@ const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
   const handleToggleFavorite = async () => {
     triggerHaptic('light');
     if (!image) return;
+
+    if (!user) {
+      showToast(t('auth.signInRequired'), 'error');
+      return;
+    }
 
     try {
       const success = await toggleFavorite(image.id);

@@ -122,7 +122,6 @@ export const te = {
     continueWithEmail: 'ఇమెయిల్ తో కొనసాగించు',
     continueWithPhone: 'ఫోన్ తో కొనసాగించు',
     createAmazingImages: 'అద్భుతమైన AI-ఉత్పత్తి చేసిన చిత్రాలను సృష్టించండి',
-    switchAccountHint: 'వేరే ఖాతాతో సైన్ ఇన్ చేయడానికి మీరు పైన నొక్కవచ్చు',
   },
 
   // Home

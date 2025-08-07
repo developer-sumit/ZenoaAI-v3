@@ -15,6 +15,7 @@ import EmptyState from '@src/components/EmptyState';
 import ImageViewer from '@src/components/ImageViewer';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
 import MasonrySkeleton from '@src/components/MasonrySkeleton';
+import UserNotFound from '@src/components/UserNotFound';
 
 // Constants
 const NUM_COLUMNS = 2;
@@ -51,10 +52,13 @@ const FavoriteScreen = () => {
   );
 
   const refreshImages = useCallback(async () => {
-    setRefreshing(true);
-    await fetchFavoriteImages(); // Reset to first page
-    setRefreshing(false);
-  }, [fetchFavoriteImages]);
+    if (user?.uid) {
+      // Only refresh if logged in
+      setRefreshing(true);
+      await fetchFavoriteImages(); // Reset to first page
+      setRefreshing(false);
+    }
+  }, [fetchFavoriteImages, user?.uid]);
 
   const LoadingFooter = useMemo(() => {
     if (!isLoadingMoreFavorites) {
@@ -91,6 +95,10 @@ const FavoriteScreen = () => {
     },
     [triggerHaptic, setSelectedImage],
   );
+
+  if (!user || !user.uid) {
+    return <UserNotFound />;
+  }
 
   return (
     <View className="flex-1" style={{backgroundColor: theme.background}}>

@@ -1,6 +1,5 @@
 export default {
   SPLASH: 'Splash',
-  SIGN_IN: 'SignIn',
 
   MAIN: 'Main',
   HOME: 'Home',

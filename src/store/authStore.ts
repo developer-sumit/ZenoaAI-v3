@@ -4,6 +4,7 @@ import auth from '@react-native-firebase/auth';
 import {User} from '@src/types/user';
 import userService from '@src/services/userService';
 import authService from '@src/services/authService';
+import {useImageStore} from './imageStore';
 
 interface AuthState {
   user: User | null;
@@ -66,10 +67,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               updatedAt: new Date(),
               planType: 'free',
               quota: {
-                imagesRemaining: 15, // Default for free plan
+                imagesRemaining: 0, // Default for free plan
                 lastRefreshedAt: new Date(),
                 planLimits: {
-                  totalImages: 15,
+                  totalImages: 0,
                 },
               },
               statistics: {
@@ -106,7 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               imagesRemaining: 10, // Reduced quota for fallback
               lastRefreshedAt: new Date(),
               planLimits: {
-                totalImages: 15,
+                totalImages: 0,
               },
             },
             statistics: {
@@ -190,6 +191,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (user) {
         await userService.clearCurrentUserData();
       }
+
+      useImageStore.getState().clearImages();
 
       set({
         user: null,
