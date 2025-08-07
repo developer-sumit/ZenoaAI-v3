@@ -288,9 +288,9 @@ const SettingsScreen = () => {
             style={{
               width: 150,
               height: 150,
-              borderRadius: 90 / 2,
-              backgroundColor: theme.primary + '15',
               marginBottom: 15,
+              borderRadius: 90 / 2,
+              backgroundColor: theme.surface,
             }}
             resizeMode={FastImage.resizeMode.cover}
           />

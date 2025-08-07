@@ -434,6 +434,11 @@ export const en = {
     deleteReasonPlaceholder: 'Please tell us more...',
     deleteReasonNext: 'Next',
     deleteReasonBack: 'Back',
+    selectProfileImage: 'Select Profile Image',
+    selectFromGeneratedImages: 'Choose from your generated images',
+    generateImagesFirst: 'Generate some images first to use as profile picture',
+    profileImageSelected: 'Profile image selected',
+    tapToSelectFromGenerated: 'Tap to select from your generated images',
   },
 
   // Email Restriction
