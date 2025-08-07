@@ -11,9 +11,9 @@ import {
   LayoutAnimation,
   Linking,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
-import {Toaster, useToast} from '@masumdev/rn-toast';
 import {BlurView} from '@react-native-community/blur';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 
@@ -24,6 +24,7 @@ import {useTheme} from '@src/store/themeStore';
 import Routes from '@src/constants/routes';
 import feedbackService from '@src/services/feedbackService';
 import LanguageSelector from '@src/components/LanguageSelector';
+import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import urls from '@src/constants/urls';
@@ -45,6 +46,7 @@ import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import NotificationIcon from '@src/assets/icons/NotificationIcon';
 import RefreshIcon from '@src/assets/icons/RefreshIcon';
+import {useLoginModalStore} from '@src/components/LoginBottomSheet';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -58,6 +60,7 @@ const SettingsScreen = () => {
   const navigation = useNavigation();
   const {user, updateUser, logout} = useAuthStore();
   const {isDark, theme, toggleTheme} = useTheme();
+  const {show} = useLoginModalStore();
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -292,34 +295,41 @@ const SettingsScreen = () => {
             resizeMode={FastImage.resizeMode.cover}
           />
         ) : (
-          <View
+          <FastImage
+            source={isDark ? appConfig.darkFavicon : appConfig.lightFavicon}
             style={{
               width: 150,
               height: 150,
-              borderRadius: 75,
-              backgroundColor: theme.primary + '15',
               marginBottom: 15,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            <Text
-              style={{
-                color: theme.primary,
-                fontSize: 48,
-                fontWeight: 'bold',
-              }}>
-              {currentProfile.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
+              borderRadius: 90 / 2,
+              backgroundColor: theme.surface,
+            }}
+            resizeMode={FastImage.resizeMode.cover}
+          />
         )}
-        <Text className="text-3xl font-bold" style={{color: theme.text}}>
-          {currentProfile.name}
-        </Text>
-        <Text
-          className="text-white opacity-80 text-sm mt-1"
-          style={{color: theme.text}}>
-          {currentProfile.email}
-        </Text>
+        {user ? (
+          <>
+            <Text className="text-3xl font-bold" style={{color: theme.text}}>
+              {currentProfile.name}
+            </Text>
+            <Text
+              className="text-white opacity-80 text-sm mt-1"
+              style={{color: theme.text}}>
+              {currentProfile.email}
+            </Text>
+          </>
+        ) : (
+          <TouchableOpacity
+            className="py-4 px-8 rounded-full shadow-lg"
+            style={{backgroundColor: theme.primary}}
+            onPress={show}
+            accessible={true}
+            accessibilityLabel={t('auth.signInRequired')}>
+            <Text className="text-white font-semibold">
+              {t('auth.signInToContinue')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View className="mt-10">
@@ -652,6 +662,7 @@ const SettingsScreen = () => {
             <ChevronRightIcon size={20} color={theme.secondaryText} />
           </TouchableOpacity>
         </View>
+
         {/* About Section */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
@@ -733,21 +744,23 @@ const SettingsScreen = () => {
         </View>
 
         {/* Sign Out Button */}
-        <TouchableOpacity
-          className="rounded-2xl py-4 mb-4 items-center flex-row justify-center shadow-lg"
-          style={{backgroundColor: theme.surface}}
-          onPress={() => {
-            triggerHaptic('heavy'); // Strong haptic for logout action
-            logout();
-          }}
-          accessible={true}
-          accessibilityLabel={t('auth.signOut')}
-          accessibilityHint={t('auth.signOutHint')}>
-          <ExitToAppIcon size={20} color="#e11d48" style={{marginRight: 8}} />
-          <Text style={{color: '#e11d48'}} className="font-medium text-base">
-            {t('auth.signOut')}
-          </Text>
-        </TouchableOpacity>
+        {user && (
+          <TouchableOpacity
+            className="rounded-2xl py-4 mb-4 items-center flex-row justify-center shadow-lg"
+            style={{backgroundColor: theme.surface}}
+            onPress={() => {
+              triggerHaptic('heavy'); // Strong haptic for logout action
+              logout();
+            }}
+            accessible={true}
+            accessibilityLabel={t('auth.signOut')}
+            accessibilityHint={t('auth.signOutHint')}>
+            <ExitToAppIcon size={20} color="#e11d48" style={{marginRight: 8}} />
+            <Text style={{color: '#e11d48'}} className="font-medium text-base">
+              {t('auth.signOut')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Feedback Modal */}
@@ -861,13 +874,7 @@ const SettingsScreen = () => {
           </KeyboardAwareScrollView>
         </BlurView>
 
-        <Toaster
-          customColors={{
-            success: {background: '#E7F5E9', text: '#256029'},
-            error: {background: '#FDECEA', text: '#B3261E'},
-            info: {background: '#E3F2FD', text: '#1E88E5'},
-          }}
-        />
+        <Toast />
       </Modal>
     </Animated.ScrollView>
   );

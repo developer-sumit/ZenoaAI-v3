@@ -179,7 +179,6 @@ const StylesGrid = memo(
           isSelected={selectedStyles.includes(item.name)}
           onToggle={toggleStyle}
           theme={theme}
-          isDark={isDark}
         />
       ),
       [selectedStyles, toggleStyle, theme, isDark],

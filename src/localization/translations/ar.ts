@@ -122,7 +122,6 @@ export const ar = {
     continueWithEmail: 'المتابعة باستخدام البريد الإلكتروني',
     continueWithPhone: 'المتابعة باستخدام الهاتف',
     createAmazingImages: 'إنشاء صور مذهلة تم إنشاؤها بواسطة الذكاء الاصطناعي',
-    switchAccountHint: 'يمكنك النقر أعلاه لتسجيل الدخول بحساب مختلف',
   },
 
   // Home

@@ -122,8 +122,6 @@ export const mr = {
     continueWithEmail: 'ईमेल सह सुरू ठेवा',
     continueWithPhone: 'फोन सह सुरू ठेवा',
     createAmazingImages: 'आश्चर्यकारक AI-निर्मित चित्रे तयार करा',
-    switchAccountHint:
-      'वेगळ्या खात्यासह साइन इन करण्यासाठी तुम्ही वर टॅप करू शकता',
   },
 
   // Home

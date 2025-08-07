@@ -122,7 +122,6 @@ export const en = {
     continueWithEmail: 'Continue with Email',
     continueWithPhone: 'Continue with Phone',
     createAmazingImages: 'Create amazing AI-generated images',
-    switchAccountHint: 'You can tap above to sign in with a different account',
   },
 
   // Home

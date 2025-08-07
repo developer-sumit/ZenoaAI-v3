@@ -22,15 +22,17 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {Toaster} from '@masumdev/rn-toast';
+import Toast from 'react-native-toast-message';
 import {enableScreens} from 'react-native-screens';
 import {SystemBars} from 'react-native-edge-to-edge';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
 import {MenuProvider} from 'react-native-popup-menu';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 import {User} from '@src/types/user';
 import Routes from '@src/constants/routes';
 import CustomTabBar from '@src/components/CustomTabBar';
+import LoginBottomSheet from '@src/components/LoginBottomSheet';
 
 // Stores
 import {useTheme} from '@src/store/themeStore';
@@ -45,7 +47,6 @@ import {notificationService} from '@src/services/notificationService';
 
 // Screens
 import SplashScreen from '@src/screens/SplashScreen';
-import LoginScreen from '@src/screens/LoginScreen';
 import HomeScreen from '@src/screens/HomeScreen';
 import GenerateScreen from '@src/screens/GenerateScreen';
 import SettingsScreen from '@src/screens/SettingsScreen';
@@ -73,7 +74,6 @@ function ProfileStack() {
         animationTypeForReplace: 'push',
       }}>
       <Stack.Screen name={Routes.SETTINGS} component={SettingsScreen} />
-      <Stack.Screen name={Routes.EDIT_PROFILE} component={EditProfileScreen} />
     </Stack.Navigator>
   );
 }
@@ -263,58 +263,54 @@ function App() {
   }, [language, user]);
 
   return (
-    <MenuProvider>
-      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-        <SafeAreaView
-          className="flex-1"
-          style={{backgroundColor: theme.background}}>
-          <StatusBar
-            barStyle={isDark ? 'light-content' : 'dark-content'}
-            backgroundColor="transparent"
-            translucent
-          />
+    <GestureHandlerRootView>
+      <MenuProvider>
+        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+          <SafeAreaView
+            className="flex-1"
+            style={{backgroundColor: theme.background}}>
+            <StatusBar
+              barStyle={isDark ? 'light-content' : 'dark-content'}
+              backgroundColor="transparent"
+              translucent
+            />
 
-          <NavigationContainer
-            onStateChange={state => {
-              // Optional: Log navigation state changes for debugging
-              console.log('Navigation state changed:', state);
-            }}>
-            {isLoading ? (
-              <Stack.Navigator
-                screenOptions={{
-                  headerShown: false,
-                  animationTypeForReplace: 'pop',
-                }}>
-                <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
-              </Stack.Navigator>
-            ) : (
-              <Stack.Navigator screenOptions={{headerShown: false}}>
-                {user ? (
-                  <>
-                    <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
-                    <Stack.Screen
-                      name={Routes.ADVANCED_SETTINGS}
-                      component={AdvancedSettingsScreen}
-                      options={{headerShown: false, gestureEnabled: true}}
-                    />
-                  </>
-                ) : (
-                  <Stack.Screen name={Routes.SIGN_IN} component={LoginScreen} />
-                )}
-              </Stack.Navigator>
-            )}
-          </NavigationContainer>
+            <NavigationContainer
+              onStateChange={state => {
+                // Optional: Log navigation state changes for debugging
+                console.log('Navigation state changed:', state);
+              }}>
+              {isLoading ? (
+                <Stack.Navigator
+                  screenOptions={{
+                    headerShown: false,
+                    animationTypeForReplace: 'pop',
+                  }}>
+                  <Stack.Screen name={Routes.SPLASH} component={SplashScreen} />
+                </Stack.Navigator>
+              ) : (
+                <Stack.Navigator screenOptions={{headerShown: false}}>
+                  <Stack.Screen name={Routes.MAIN} component={HomeTabs} />
+                  <Stack.Screen
+                    name={Routes.ADVANCED_SETTINGS}
+                    component={AdvancedSettingsScreen}
+                    options={{headerShown: false, gestureEnabled: true}}
+                  />
+                  <Stack.Screen
+                    name={Routes.EDIT_PROFILE}
+                    component={EditProfileScreen}
+                  />
+                </Stack.Navigator>
+              )}
 
-          <Toaster
-            customColors={{
-              success: {background: '#E7F5E9', text: '#256029'},
-              error: {background: '#FDECEA', text: '#B3261E'},
-              info: {background: '#E3F2FD', text: '#1E88E5'},
-            }}
-          />
-        </SafeAreaView>
-      </KeyboardProvider>
-    </MenuProvider>
+              <LoginBottomSheet />
+            </NavigationContainer>
+
+            <Toast />
+          </SafeAreaView>
+        </KeyboardProvider>
+      </MenuProvider>
+    </GestureHandlerRootView>
   );
 }
 

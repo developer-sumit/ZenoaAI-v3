@@ -122,8 +122,6 @@ export const fr = {
     continueWithEmail: "Continuer avec l'e-mail",
     continueWithPhone: 'Continuer avec le téléphone',
     createAmazingImages: "Créez des images incroyables générées par l'IA",
-    switchAccountHint:
-      'Vous pouvez appuyer ci-dessus pour vous connecter avec un autre compte',
   },
 
   // Home

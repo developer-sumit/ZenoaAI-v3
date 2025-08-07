@@ -509,6 +509,8 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   clearImages: () => {
     set({
       images: [],
+      favoriteImages: [],
+      popularImages: [],
       publicImages: [],
       currentPage: 1,
       hasMoreImages: true,
