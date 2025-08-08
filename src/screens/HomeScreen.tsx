@@ -35,27 +35,137 @@ const HomeScreen = () => {
   const t = useStrings();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
-  const {publicImages, popularImages, isLoadingPublic, fetchPublicImages} =
-    useImageStore();
+  const {
+    publicImages,
+    trendingImages,
+    popularImages,
+    isLoadingPublic,
+    fetchPublicImages,
+  } = useImageStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>(
     DEFAULT_COMMUNITY_FILTER,
   );
 
+  // Initialize filter states with all possible filter options
+  const [filterStates, setFilterStates] = useState<
+    Record<
+      FilterType,
+      {
+        loaded: boolean;
+        currentPage: number;
+        hasMore: boolean;
+        lastFetchTime: number;
+      }
+    >
+  >(() => {
+    // Initialize all filter options to prevent undefined errors
+    const initialStates = {} as Record<
+      FilterType,
+      {
+        loaded: boolean;
+        currentPage: number;
+        hasMore: boolean;
+        lastFetchTime: number;
+      }
+    >;
+
+    COMMUNITY_FILTER_OPTIONS.forEach(option => {
+      initialStates[option.id as FilterType] = {
+        loaded: false,
+        currentPage: 1,
+        hasMore: true,
+        lastFetchTime: 0,
+      };
+    });
+    return initialStates;
+  });
+
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentTranslateY = useRef(new Animated.Value(0)).current;
 
   // Determine which images to show based on filter
-  const imagesToShow = useMemo(
-    () => (activeFilter === 'popular' ? popularImages : publicImages),
-    [activeFilter, popularImages, publicImages],
+  const imagesToShow = useMemo(() => {
+    switch (activeFilter) {
+      case 'popular':
+        return popularImages;
+      case 'trending':
+        return trendingImages;
+      case 'latest':
+      default:
+        return publicImages;
+    }
+  }, [activeFilter, popularImages, trendingImages, publicImages]);
+
+  // Get current filter state with safe fallback
+  const currentFilterState = useMemo(() => {
+    return (
+      filterStates[activeFilter] || {
+        loaded: false,
+        currentPage: 1,
+        hasMore: true,
+        lastFetchTime: 0,
+      }
+    );
+  }, [filterStates, activeFilter]);
+
+  // Check if data needs to be fetched (cache validity: 5 minutes)
+  const shouldFetchData = useCallback(
+    (filter: FilterType) => {
+      const filterState = filterStates[filter];
+      if (!filterState) return true; // If no state exists, fetch data
+
+      const now = Date.now();
+      const cacheAge = now - filterState.lastFetchTime;
+      const maxCacheAge = 5 * 60 * 1000; // 5 minutes
+
+      // Get the correct images array based on filter
+      let images: GeneratedImage[];
+      switch (filter) {
+        case 'popular':
+          images = popularImages;
+          break;
+        case 'trending':
+          images = trendingImages;
+          break;
+        case 'latest':
+        default:
+          images = publicImages;
+          break;
+      }
+
+      return (
+        !filterState.loaded || cacheAge > maxCacheAge || images.length === 0
+      );
+    },
+    [filterStates, popularImages, trendingImages, publicImages],
+  );
+
+  // Update filter state
+  const updateFilterState = useCallback(
+    (
+      filter: FilterType,
+      updates: Partial<(typeof filterStates)[FilterType]>,
+    ) => {
+      setFilterStates(prev => ({
+        ...prev,
+        [filter]: {
+          ...(prev[filter] || {
+            loaded: false,
+            currentPage: 1,
+            hasMore: true,
+            lastFetchTime: 0,
+          }),
+          ...updates,
+        },
+      }));
+    },
+    [],
   );
 
   // Smooth transition animation
@@ -87,44 +197,68 @@ const HomeScreen = () => {
     ]).start();
   }, [contentOpacity, contentTranslateY]);
 
-  // Enhanced filter change with smooth transition
   const handleFilterChange = useCallback(
-    (newFilter: FilterType) => {
+    async (newFilter: FilterType) => {
       if (newFilter === activeFilter) return;
 
       triggerHaptic('selection');
       animateTransition();
       setActiveFilter(newFilter);
-      setCurrentPage(1);
-      setHasMore(true);
-      fetchPublicImages(1, 20, newFilter);
-    },
-    [activeFilter, triggerHaptic, animateTransition, fetchPublicImages],
-  );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (activeFilter === 'popular') {
-        if (popularImages.length === 0) {
-          fetchPublicImages(1, 20, activeFilter);
+      // Only fetch if data is not cached or cache is stale
+      if (shouldFetchData(newFilter)) {
+        console.log(`Fetching fresh data for filter: ${newFilter}`);
+        try {
+          await fetchPublicImages(1, 20, newFilter);
+          updateFilterState(newFilter, {
+            loaded: true,
+            currentPage: 1,
+            lastFetchTime: Date.now(),
+          });
+        } catch (error) {
+          console.error(`Failed to fetch data for filter ${newFilter}:`, error);
         }
       } else {
-        if (publicImages.length === 0) {
-          fetchPublicImages(1, 20, activeFilter);
-        }
+        console.log(`Using cached data for filter: ${newFilter}`);
       }
-    }, [
-      fetchPublicImages,
-      publicImages.length,
-      popularImages.length,
+    },
+    [
       activeFilter,
-    ]),
+      triggerHaptic,
+      animateTransition,
+      filterStates,
+      shouldFetchData,
+      fetchPublicImages,
+      updateFilterState,
+    ],
+  );
+
+  // Initial data loading
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldFetchData(activeFilter)) {
+        console.log(`Initial load for filter: ${activeFilter}`);
+        fetchPublicImages(1, 20, activeFilter).then(() => {
+          updateFilterState(activeFilter, {
+            loaded: true,
+            currentPage: 1,
+            lastFetchTime: Date.now(),
+          });
+        });
+      }
+    }, [activeFilter, shouldFetchData, fetchPublicImages, updateFilterState]),
   );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    setCurrentPage(1);
-    setHasMore(true);
+
+    // Reset filter state
+    updateFilterState(activeFilter, {
+      currentPage: 1,
+      hasMore: true,
+      lastFetchTime: Date.now(),
+    });
+
     try {
       await fetchPublicImages(1, 20, activeFilter);
       triggerHaptic('success');
@@ -134,25 +268,46 @@ const HomeScreen = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchPublicImages, activeFilter]);
+  }, [fetchPublicImages, activeFilter, triggerHaptic, updateFilterState]);
 
   const handleLoadMore = useCallback(async () => {
-    if (!isLoadingPublic && hasMore && imagesToShow.length > 0) {
+    if (
+      !isLoadingPublic &&
+      currentFilterState?.hasMore &&
+      imagesToShow.length > 0
+    ) {
       setLoadingMore(true);
-      const nextPage = currentPage + 1;
+      const nextPage = currentFilterState.currentPage + 1;
+
       try {
         const prevLength = imagesToShow.length;
         await fetchPublicImages(nextPage, 20, activeFilter);
-        setCurrentPage(nextPage);
+
+        // Update filter state
+        updateFilterState(activeFilter, {
+          currentPage: nextPage,
+          lastFetchTime: Date.now(),
+        });
 
         // Check if we reached the end by comparing lengths after a short delay
         setTimeout(() => {
-          const newLength =
-            activeFilter === 'popular'
-              ? useImageStore.getState().popularImages.length
-              : useImageStore.getState().publicImages.length;
+          // Get the correct images array for length comparison
+          let newLength: number;
+          switch (activeFilter) {
+            case 'popular':
+              newLength = useImageStore.getState().popularImages.length;
+              break;
+            case 'trending':
+              newLength = useImageStore.getState().trendingImages.length;
+              break;
+            case 'latest':
+            default:
+              newLength = useImageStore.getState().publicImages.length;
+              break;
+          }
+
           if (newLength === prevLength) {
-            setHasMore(false);
+            updateFilterState(activeFilter, {hasMore: false});
           }
         }, 100);
       } catch (error) {
@@ -163,11 +318,12 @@ const HomeScreen = () => {
     }
   }, [
     isLoadingPublic,
-    hasMore,
+    currentFilterState?.hasMore,
+    currentFilterState?.currentPage,
     imagesToShow.length,
-    currentPage,
     fetchPublicImages,
     activeFilter,
+    updateFilterState,
   ]);
 
   const renderItem = useCallback(
@@ -189,7 +345,7 @@ const HomeScreen = () => {
         <ActivityIndicator size="small" color={theme.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, theme.primary]);
 
   const EmptyComponent = useMemo(
     () => (
@@ -208,10 +364,14 @@ const HomeScreen = () => {
         <TouchableOpacity
           key={option.id}
           onPress={() => handleFilterChange(option.id)}
-          className="px-2.5 pb-4 pt-5"
+          className="px-5 py-3 rounded-full mt-2 mb-3"
           accessible={true}
           accessibilityLabel={t('community.filterBy', {type: option.label})}
-          accessibilityRole="button">
+          accessibilityRole="button"
+          style={{
+            backgroundColor:
+              activeFilter === option.id ? theme.surface : 'transparent',
+          }}>
           <Text
             style={{
               color: activeFilter === option.id ? theme.primary : theme.text,
@@ -222,8 +382,18 @@ const HomeScreen = () => {
           </Text>
         </TouchableOpacity>
       )),
-    [activeFilter, theme.text, t, handleFilterChange],
+    [
+      activeFilter,
+      theme.surface,
+      theme.primary,
+      theme.text,
+      t,
+      handleFilterChange,
+    ],
   );
+
+  // Show loading skeleton only when switching filters and no images for current filter
+  const shouldShowSkeleton = isLoadingPublic && imagesToShow.length === 0;
 
   return (
     <View className="flex-1" style={{backgroundColor: theme.background}}>
@@ -256,10 +426,10 @@ const HomeScreen = () => {
 
         <View
           className="py-1 px-3 rounded-full"
-          style={{backgroundColor: theme.primary}}
+          style={{backgroundColor: theme.surface}}
           accessible={true}
           accessibilityLabel={`Version ${appConfig.version}`}>
-          <Text className="text-xs font-medium text-white">
+          <Text className="text-xs font-bold" style={{color: theme.text}}>
             v{appConfig.version}
           </Text>
         </View>
@@ -278,18 +448,20 @@ const HomeScreen = () => {
           transform: [{translateY: contentTranslateY}],
         }}>
         {/* Images Grid */}
-        {isLoadingPublic && imagesToShow.length === 0 ? (
+        {shouldShowSkeleton ? (
           <MasonrySkeleton />
         ) : imagesToShow.length > 0 ? (
           <MasonryFlashList
             data={imagesToShow}
-            keyExtractor={(item, index) => `community-${item.id}-${index}`}
+            keyExtractor={(item, index) =>
+              `community-${activeFilter}-${item.id}-${index}`
+            }
             numColumns={NUM_COLUMNS}
             renderItem={renderItem}
             estimatedItemSize={200}
             removeClippedSubviews={true}
             getItemType={() => 'image'}
-            className="rounded-3xl mx-4"
+            className="rounded-3xl mx-4 mt-2"
             contentContainerClassName="pb-24"
             refreshControl={
               <RefreshControl

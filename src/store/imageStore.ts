@@ -9,7 +9,7 @@ interface ImageState {
   images: GeneratedImage[];
   publicImages: GeneratedImage[];
   popularImages: GeneratedImage[];
-  hotImages: GeneratedImage[];
+  trendingImages: GeneratedImage[];
   favoriteImages: GeneratedImage[];
   isLoading: boolean;
   isLoadingPublic: boolean;
@@ -58,7 +58,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   images: [],
   publicImages: [],
   popularImages: [],
-  hotImages: [],
+  trendingImages: [],
   favoriteImages: [],
   isLoading: false,
   isLoadingPublic: false,
@@ -140,8 +140,8 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       if (page === 1) {
         if (filter === 'popular') {
           set({popularImages: data});
-        } else if (filter === 'hot') {
-          set({hotImages: data});
+        } else if (filter === 'trending') {
+          set({trendingImages: data});
         } else {
           set({publicImages: data});
         }
@@ -150,9 +150,9 @@ export const useImageStore = create<ImageState>()((set, get) => ({
           set(state => ({
             popularImages: [...state.popularImages, ...data],
           }));
-        } else if (filter === 'hot') {
+        } else if (filter === 'trending') {
           set(state => ({
-            hotImages: [...state.hotImages, ...data],
+            trendingImages: [...state.trendingImages, ...data],
           }));
         } else {
           set(state => ({
@@ -518,7 +518,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       images: [],
       favoriteImages: [],
       popularImages: [],
-      hotImages: [],
+      trendingImages: [],
       publicImages: [],
       currentPage: 1,
       hasMoreImages: true,
