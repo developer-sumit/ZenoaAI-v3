@@ -1,7 +1,7 @@
 import EncryptedStorage from 'react-native-encrypted-storage';
 
 import {userAPI} from './axiosServer';
-import {User, IUserQuota} from '@src/types/user';
+import {User} from '@src/types/user';
 import {ResponseData} from '@src/types/api';
 import {DEFAULT_PLAN_TYPE} from '@src/constants';
 
@@ -469,68 +469,6 @@ const clearCurrentUserData = async (): Promise<void> => {
 };
 
 /**
- * Checks the current quota information for a user.
- *
- * @param userId - The unique identifier of the user whose quota to check
- * @returns A Promise that resolves to the user's quota information, or null if the check fails
- *
- * @remarks
- * This function calls the user API to retrieve quota information and transforms the response
- * into an IUserQuota object. If the API call fails or returns an unsuccessful response,
- * the function logs the error and returns null instead of throwing.
- *
- * The quota object includes:
- * - imagesRemaining: Number of images remaining
- * - lastRefreshedAt: Date when the quota was last refreshed (optional)
- *
- * @example
- * ```typescript
- * const quota = await checkQuota('user123');
- * if (quota) {
- *   console.log(`Images remaining: ${quota.imagesRemaining}`);
- * }
- * ```
- */
-const checkQuota = async (): Promise<ResponseData<IUserQuota>> => {
-  try {
-    // Call the API endpoint using userAPI (token automatically added)
-    const response = await userAPI.checkQuota();
-
-    if (!response.data.success) {
-      return {
-        success: false,
-        message: response.data.message || 'Failed to check quota',
-        data: null,
-      };
-    }
-    const apiQuota = response.data.data;
-    const quota: IUserQuota = {
-      imagesRemaining: apiQuota.imagesRemaining || 0, // Default for free plan
-      lastRefreshedAt: apiQuota.lastRefreshedAt
-        ? new Date(apiQuota.lastRefreshedAt)
-        : undefined,
-      planLimits: {
-        totalImages: apiQuota.planLimits?.totalImages || 0, // Default for free
-      },
-    };
-
-    console.log('Quota refreshed successfully:', quota);
-    return {
-      success: true,
-      message: 'Quota refreshed successfully',
-      data: quota,
-    };
-  } catch (error) {
-    console.error('Error checking user quota:', error);
-    return {
-      success: false,
-      message: 'Error refreshing user quota',
-      data: null,
-    };
-  }
-};
-
-/**
  * Checks if an email address is available for registration.
  *
  * @param email - The email address to check for availability
@@ -702,7 +640,6 @@ const userService = {
   updateProfile,
   deleteUserAccount,
   clearCurrentUserData,
-  checkQuota,
   checkEmailAvailability,
   checkEmailRestriction,
   removeEmailRestriction,
