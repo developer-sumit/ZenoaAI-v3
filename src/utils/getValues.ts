@@ -35,7 +35,7 @@ export const getStyles = (styles: string[] | undefined) => {
 
 export const getSeed = (seed: number | undefined) => {
   if (seed === undefined || seed < 0) {
-    return Math.floor(Math.random() * 1000000);
+    return 0;
   }
   return seed;
 };
