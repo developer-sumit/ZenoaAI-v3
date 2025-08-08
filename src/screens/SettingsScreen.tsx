@@ -27,6 +27,8 @@ import useToast from '@src/hooks/useToast';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import urls from '@src/constants/urls';
+import {useLoginModalStore} from '@src/components/LoginBottomSheet';
+import {toastConfig} from '@src/config/toastConfig';
 import {notificationService} from '@src/services/notificationService';
 import {notificationAPI} from '@src/services/notificationAPI';
 
@@ -44,7 +46,6 @@ import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import NotificationIcon from '@src/assets/icons/NotificationIcon';
-import {useLoginModalStore} from '@src/components/LoginBottomSheet';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -819,7 +820,7 @@ const SettingsScreen = () => {
           </KeyboardAwareScrollView>
         </BlurView>
 
-        <Toast />
+        <Toast config={toastConfig} />
       </Modal>
     </Animated.ScrollView>
   );

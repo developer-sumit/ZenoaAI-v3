@@ -35,6 +35,7 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import Routes from '@src/constants/routes';
 import appConfig from '@src/config/app.config';
+import {toastConfig} from '@src/config/toastConfig';
 import {useGenerationStore} from '@src/store/generationStore';
 
 // Icons
@@ -917,7 +918,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
               </View>
             </SafeAreaView>
 
-            <Toast />
+            <Toast config={toastConfig} />
           </MenuProvider>
         </Modal>
       ) : (

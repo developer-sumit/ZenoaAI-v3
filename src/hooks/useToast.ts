@@ -3,7 +3,7 @@ import Toast from 'react-native-toast-message';
 /**
  * Defines the possible types for a toast message.
  */
-type ToastType = 'success' | 'error' | 'info' | 'any';
+type ToastType = 'success' | 'error' | 'info' | 'warning' | 'any';
 
 /**
  * Defines the options for showing a toast message.
@@ -64,7 +64,7 @@ function useToast() {
     // Set default values for common toast properties
     const defaultOptions: Partial<ShowToastOptions> = {
       position: 'top',
-      visibilityTime: 2000,
+      visibilityTime: 10000000,
       autoHide: true,
       bottomOffset: 80, // Adjust this based on your UI (e.g., if you have a bottom tab bar)
     };
