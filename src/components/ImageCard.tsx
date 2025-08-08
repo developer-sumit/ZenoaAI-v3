@@ -154,7 +154,7 @@ const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       }}
       style={[
         {
-          aspectRatio: image.aspectRatio.replace(':', '/') || '1/1',
+          aspectRatio: image.aspectRatio?.replace(':', '/') || '1/1',
           backgroundColor: isPlaceholder ? theme.surface : 'transparent',
         },
         style,

@@ -35,6 +35,7 @@ import InfoDialog from '@src/components/InfoDialog';
 import {planLimits} from '@src/constants/planLimits';
 import {ArtStyleType, ImageSize} from '@src/types/image';
 import {useGenerationStore} from '@src/store/generationStore';
+import {useImageStore} from '@src/store/imageStore';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -393,6 +394,7 @@ const AdvancedSettingsScreen: React.FC = () => {
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
+  const {getAvailableQuota} = useImageStore();
   const {
     engine,
     aspectRatio,
@@ -427,6 +429,10 @@ const AdvancedSettingsScreen: React.FC = () => {
   const allowedAspectRatios = limits.aspectRatios;
   const allowedSizes = limits.sizes;
   const maxBatch = limits.maxBatch;
+
+  // Get available quota and apply it to batch limits
+  const availableQuota = getAvailableQuota();
+  const effectiveMaxBatch = Math.min(maxBatch, availableQuota);
 
   // State to track if keyboard is showing
   const [_, setKeyboardVisible] = useState(false);
@@ -656,9 +662,40 @@ const AdvancedSettingsScreen: React.FC = () => {
               showInfoDialog={() => showInfoDialog('batchCount')}
               theme={theme}
             />
+
+            {/* Quota Warning */}
+            {availableQuota < maxBatch && availableQuota > 0 && (
+              <View
+                className="mb-3 p-3 rounded-xl"
+                style={{backgroundColor: '#fef3c7'}}>
+                <Text
+                  className="text-sm font-medium"
+                  style={{color: '#92400e'}}>
+                  ⚠️ Only {availableQuota} image
+                  {availableQuota !== 1 ? 's' : ''} remaining in your quota
+                </Text>
+              </View>
+            )}
+
+            {availableQuota === 0 && (
+              <View
+                className="mb-4 p-3 rounded-xl"
+                style={{backgroundColor: '#fee2e2'}}>
+                <Text
+                  className="text-sm font-medium"
+                  style={{color: '#dc2626'}}>
+                  ❌ No image quota remaining. Please upgrade your plan or wait
+                  for quota reset.
+                </Text>
+              </View>
+            )}
+
             <View className="flex-row flex-wrap gap-2">
               {[1, 2, 4, 6, 8, 10].map(count => {
-                const isAllowed = count <= maxBatch;
+                const isAllowedByPlan = count <= maxBatch;
+                const isAllowedByQuota = count <= availableQuota;
+                const isAllowed = isAllowedByPlan && isAllowedByQuota;
+
                 return (
                   <TouchableOpacity
                     key={count}
@@ -714,6 +751,24 @@ const AdvancedSettingsScreen: React.FC = () => {
                 );
               })}
             </View>
+
+            {/* Auto-adjust selected count if it exceeds quota */}
+            {numberOfImages > effectiveMaxBatch && effectiveMaxBatch > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setNumberOfImages(effectiveMaxBatch);
+                }}
+                className="mt-3 p-3 rounded-xl"
+                style={{backgroundColor: '#dbeafe'}}>
+                <Text
+                  className="text-sm font-medium text-center"
+                  style={{color: '#1e40af'}}>
+                  💡 Tap to adjust to {effectiveMaxBatch} image
+                  {effectiveMaxBatch !== 1 ? 's' : ''} (max available)
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Aspect Ratio and Size */}

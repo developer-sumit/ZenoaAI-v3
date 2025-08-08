@@ -1,6 +1,10 @@
 import {imageAPI} from '@src/services/axiosServer';
 import {ResponseData} from '@src/types/api';
-import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
+import {
+  GeneratedImage,
+  GeneratedImageResponse,
+  ImageGenerationRequest,
+} from '@src/types/image';
 import {
   getAspectRatio,
   getEngineType,
@@ -40,7 +44,7 @@ import {
  */
 const generateImage = async (
   params: ImageGenerationRequest,
-): Promise<ResponseData<GeneratedImage>> => {
+): Promise<ResponseData<GeneratedImageResponse>> => {
   try {
     const response = await imageAPI.generateImage({
       prompt: getPrompt(params.prompt),
@@ -85,7 +89,7 @@ const generateImage = async (
 
     return {
       success: true,
-      data: generatedImage,
+      data: {images: generatedImage, user: metadata?.user || null},
       message: 'Image generated successfully',
     };
   } catch (error: any) {

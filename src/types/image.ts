@@ -1,3 +1,5 @@
+import {User} from './user';
+
 export type EngineType = 'quantum' | 'nebula';
 export type ImageSize = 'small' | 'medium' | 'large';
 
@@ -38,6 +40,8 @@ export interface GeneratedImage {
   userName: string;
   userAvatar: string;
 }
+
+export type GeneratedImageResponse = {images: GeneratedImage; user: User};
 
 export interface ImageResponse {
   id: string; // Unique identifier for the image
