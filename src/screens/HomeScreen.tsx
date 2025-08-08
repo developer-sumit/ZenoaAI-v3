@@ -429,7 +429,9 @@ const HomeScreen = () => {
           style={{backgroundColor: theme.surface}}
           accessible={true}
           accessibilityLabel={`Version ${appConfig.version}`}>
-          <Text className="text-xs font-bold" style={{color: theme.text}}>
+          <Text
+            className="text-xs font-bold"
+            style={{color: theme.secondaryText}}>
             v{appConfig.version}
           </Text>
         </View>

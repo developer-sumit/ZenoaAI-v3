@@ -312,6 +312,7 @@ const updateProfile = async (
     const apiData = {
       username: profileData.profile?.username || data.profile.username,
       bio: profileData.profile?.bio || data.profile.bio,
+      avatar: profileData.profile?.avatar || data.profile.avatar,
     };
 
     // Call the API endpoint using userAPI (token automatically added)

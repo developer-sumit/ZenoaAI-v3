@@ -120,7 +120,7 @@ const EditProfileScreen = () => {
               ...user.profile,
               username: name.trim(),
               bio: bio.trim(),
-              avatar: photoUri, // Include the new avatar URL
+              avatar: photoUri,
             },
           };
 
