@@ -64,7 +64,7 @@ function useToast() {
     // Set default values for common toast properties
     const defaultOptions: Partial<ShowToastOptions> = {
       position: 'top',
-      visibilityTime: 10000000,
+      visibilityTime: 2000,
       autoHide: true,
       bottomOffset: 80, // Adjust this based on your UI (e.g., if you have a bottom tab bar)
     };
