@@ -53,6 +53,7 @@ import SettingsScreen from '@src/screens/SettingsScreen';
 import GalleryLayout from '@src/screens/GalleryLayout';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
+import {toastConfig} from '@src/config/toastConfig';
 
 enableScreens();
 
@@ -306,7 +307,7 @@ function App() {
               <LoginBottomSheet />
             </NavigationContainer>
 
-            <Toast />
+            <Toast config={toastConfig} />
           </SafeAreaView>
         </KeyboardProvider>
       </MenuProvider>
