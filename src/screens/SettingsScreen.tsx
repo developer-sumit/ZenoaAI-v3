@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -18,7 +18,6 @@ import {BlurView} from '@react-native-community/blur';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 
 import {useAuthStore} from '@src/store/authStore';
-import userService from '@src/services/userService';
 import appConfig from '@src/config/app.config';
 import {useTheme} from '@src/store/themeStore';
 import Routes from '@src/constants/routes';
@@ -45,7 +44,6 @@ import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import NotificationIcon from '@src/assets/icons/NotificationIcon';
-import RefreshIcon from '@src/assets/icons/RefreshIcon';
 import {useLoginModalStore} from '@src/components/LoginBottomSheet';
 
 // Enable LayoutAnimation for Android
@@ -58,7 +56,7 @@ if (Platform.OS === 'android') {
 const SettingsScreen = () => {
   const t = useStrings();
   const navigation = useNavigation();
-  const {user, updateUser, logout} = useAuthStore();
+  const {user, logout} = useAuthStore();
   const {isDark, theme, toggleTheme} = useTheme();
   const {show} = useLoginModalStore();
   const {showToast} = useToast();
@@ -75,7 +73,6 @@ const SettingsScreen = () => {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
-  const [quotaLoading, setQuotaLoading] = useState(false);
 
   // Check notification status on mount
   useEffect(() => {
@@ -90,39 +87,6 @@ const SettingsScreen = () => {
 
     checkNotificationStatus();
   }, []);
-
-  const fetchQuota = useCallback(async () => {
-    if (!user) {
-      return;
-    }
-
-    try {
-      setQuotaLoading(true);
-
-      const {success, data, message} = await userService.checkQuota();
-
-      if (success && data) {
-        updateUser({...user, quota: data});
-      } else {
-        showToast(message, 'error');
-      }
-    } catch (err: any) {
-      console.error('Failed to fetch quota:', err);
-
-      updateUser({
-        ...user,
-        quota: {
-          imagesRemaining: 0,
-          lastRefreshedAt: new Date(),
-          planLimits: {
-            totalImages: 0, // Reset to 0 if fetch fails
-          },
-        },
-      });
-    } finally {
-      setQuotaLoading(false);
-    }
-  }, [user]);
 
   const handleToggleNotifications = async (value: boolean) => {
     setNotificationLoading(true);
@@ -346,25 +310,6 @@ const SettingsScreen = () => {
                 style={{color: theme.secondaryText}}>
                 {t('settings.quotaTitle')}
               </Text>
-              <TouchableOpacity
-                onPress={fetchQuota}
-                disabled={quotaLoading}
-                className="p-2 rounded-full"
-                style={{
-                  backgroundColor: theme.background,
-                  opacity: quotaLoading ? 0.5 : 1,
-                }}
-                accessible={true}
-                accessibilityLabel="Refresh quota information"
-                accessibilityRole="button">
-                <RefreshIcon
-                  size={20}
-                  color={theme.primary}
-                  style={{
-                    transform: [{rotate: quotaLoading ? '45deg' : '0deg'}],
-                  }}
-                />
-              </TouchableOpacity>
             </View>
             <View className="px-5 py-4">
               {/* Images Remaining */}
@@ -378,7 +323,7 @@ const SettingsScreen = () => {
                   <Text
                     style={{color: theme.primary}}
                     className="text-base font-bold">
-                    {user.quota && !quotaLoading
+                    {user.quota
                       ? `${user.quota.imagesRemaining}${
                           user.quota.planLimits.totalImages
                             ? ` / ${user.quota.planLimits.totalImages}`
