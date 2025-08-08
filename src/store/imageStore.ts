@@ -6,17 +6,18 @@ import imageService from '@src/services/imageService';
 import {ImageGenerationRequest} from '@src/types/image';
 
 interface ImageState {
-  images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
-  publicImages: GeneratedImage[]; // Public images from all users (for community feed)
-  popularImages: GeneratedImage[]; // Popular images (if needed)
-  favoriteImages: GeneratedImage[]; // User's favorite images
+  images: GeneratedImage[];
+  publicImages: GeneratedImage[];
+  popularImages: GeneratedImage[];
+  hotImages: GeneratedImage[];
+  favoriteImages: GeneratedImage[];
   isLoading: boolean;
   isLoadingPublic: boolean;
-  isLoadingMore: boolean; // For loading more images pagination
+  isLoadingMore: boolean;
   isLoadingMoreFavorites: boolean;
   error: string | null;
-  hasMoreImages: boolean; // Indicates if there are more images to load
-  currentPage: number; // Current page number for pagination
+  hasMoreImages: boolean;
+  currentPage: number;
   hasMoreFavoriteImages: boolean;
   favoriteCurrentPage: number;
 
@@ -57,14 +58,15 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   images: [],
   publicImages: [],
   popularImages: [],
+  hotImages: [],
   favoriteImages: [],
   isLoading: false,
   isLoadingPublic: false,
   isLoadingMore: false,
+  isLoadingMoreFavorites: false,
   error: null,
   hasMoreImages: true,
   currentPage: 1,
-  isLoadingMoreFavorites: false,
   hasMoreFavoriteImages: true,
   favoriteCurrentPage: 1,
 
@@ -134,11 +136,12 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         return;
       }
 
-      // If it's the first page, replace all images
-      // Otherwise, append to existing images
+      // Handle different filters
       if (page === 1) {
         if (filter === 'popular') {
           set({popularImages: data});
+        } else if (filter === 'hot') {
+          set({hotImages: data});
         } else {
           set({publicImages: data});
         }
@@ -146,6 +149,10 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         if (filter === 'popular') {
           set(state => ({
             popularImages: [...state.popularImages, ...data],
+          }));
+        } else if (filter === 'hot') {
+          set(state => ({
+            hotImages: [...state.hotImages, ...data],
           }));
         } else {
           set(state => ({
@@ -511,6 +518,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       images: [],
       favoriteImages: [],
       popularImages: [],
+      hotImages: [],
       publicImages: [],
       currentPage: 1,
       hasMoreImages: true,

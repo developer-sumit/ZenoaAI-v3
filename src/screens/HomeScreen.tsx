@@ -1,11 +1,12 @@
 import clsx from 'clsx';
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef, useMemo} from 'react';
 import {
   View,
   Text,
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {MasonryFlashList} from '@shopify/flash-list';
@@ -48,9 +49,58 @@ const HomeScreen = () => {
     DEFAULT_COMMUNITY_FILTER,
   );
 
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const contentTranslateY = useRef(new Animated.Value(0)).current;
+
   // Determine which images to show based on filter
-  const imagesToShow =
-    activeFilter === 'popular' ? popularImages : publicImages;
+  const imagesToShow = useMemo(
+    () => (activeFilter === 'popular' ? popularImages : publicImages),
+    [activeFilter, popularImages, publicImages],
+  );
+
+  // Smooth transition animation
+  const animateTransition = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(contentOpacity, {
+        toValue: 0.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateY, {
+        toValue: -10,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentTranslateY, {
+          toValue: 0,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [contentOpacity, contentTranslateY]);
+
+  // Enhanced filter change with smooth transition
+  const handleFilterChange = useCallback(
+    (newFilter: FilterType) => {
+      if (newFilter === activeFilter) return;
+
+      triggerHaptic('selection');
+      animateTransition();
+      setActiveFilter(newFilter);
+      setCurrentPage(1);
+      setHasMore(true);
+      fetchPublicImages(1, 20, newFilter);
+    },
+    [activeFilter, triggerHaptic, animateTransition, fetchPublicImages],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -129,7 +179,50 @@ const HomeScreen = () => {
         </View>
       );
     },
-    [setSelectedImage],
+    [],
+  );
+
+  const LoadingFooter = useMemo(() => {
+    if (!loadingMore) return null;
+    return (
+      <View className="py-5 items-center">
+        <ActivityIndicator size="small" color={theme.primary} />
+      </View>
+    );
+  }, [loadingMore]);
+
+  const EmptyComponent = useMemo(
+    () => (
+      <EmptyState
+        icon={<CommunityIcon size={64} color={theme.secondaryText} />}
+        title={t('community.noImages')}
+        description={t('community.noImagesDescription')}
+      />
+    ),
+    [theme.secondaryText, t],
+  );
+
+  const FilterButtons = useMemo(
+    () =>
+      COMMUNITY_FILTER_OPTIONS.map(option => (
+        <TouchableOpacity
+          key={option.id}
+          onPress={() => handleFilterChange(option.id)}
+          className="px-2.5 pb-4 pt-5"
+          accessible={true}
+          accessibilityLabel={t('community.filterBy', {type: option.label})}
+          accessibilityRole="button">
+          <Text
+            style={{
+              color: activeFilter === option.id ? theme.primary : theme.text,
+              fontWeight: activeFilter === option.id ? 'bold' : 'normal',
+              fontSize: 16,
+            }}>
+            {t(`community.filters.${option.id.toLowerCase()}`)}
+          </Text>
+        </TouchableOpacity>
+      )),
+    [activeFilter, theme.text, t, handleFilterChange],
   );
 
   return (
@@ -172,76 +265,50 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* Filter Menu Modal */}
+      {/* Filter Menu */}
       <View className="flex-row rounded-3xl items-center pl-4">
-        {COMMUNITY_FILTER_OPTIONS.map(option => (
-          <TouchableOpacity
-            key={option.id}
-            onPress={() => {
-              triggerHaptic('selection');
-              setActiveFilter(option.id);
-              setCurrentPage(1);
-              setHasMore(true);
-              fetchPublicImages(1, 20, option.id);
-            }}
-            className="px-2.5 pb-4 pt-5"
-            accessible={true}
-            accessibilityLabel={t('community.filterBy', {type: option.label})}
-            accessibilityRole="button">
-            <Text
-              style={{
-                color: activeFilter === option.id ? theme.primary : theme.text,
-                fontWeight: activeFilter === option.id ? 'bold' : 'normal',
-                fontSize: 16,
-              }}>
-              {t(`community.filters.${option.id.toLowerCase()}`)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {FilterButtons}
       </View>
 
-      {/* Images Grid */}
-      {isLoadingPublic && imagesToShow.length === 0 ? (
-        <MasonrySkeleton />
-      ) : imagesToShow.length > 0 ? (
-        <MasonryFlashList
-          data={imagesToShow}
-          keyExtractor={(item, index) => `community-${item.id}-${index}`}
-          numColumns={NUM_COLUMNS}
-          renderItem={renderItem}
-          estimatedItemSize={200}
-          removeClippedSubviews={true}
-          className="rounded-3xl mx-4"
-          contentContainerClassName="pb-24"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[theme.primary]}
-              tintColor={theme.primary}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={
-            loadingMore ? (
-              <View className="py-5 items-center">
-                <ActivityIndicator size="small" color={theme.primary} />
-              </View>
-            ) : (
-              <></>
-            )
-          }
-          extraData={{imagesToShow}}
-        />
-      ) : (
-        <EmptyState
-          icon={<CommunityIcon size={64} color={theme.secondaryText} />}
-          title={t('community.noImages')}
-          description={t('community.noImagesDescription')}
-        />
-      )}
+      {/* Animated Content Container */}
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: contentOpacity,
+          transform: [{translateY: contentTranslateY}],
+        }}>
+        {/* Images Grid */}
+        {isLoadingPublic && imagesToShow.length === 0 ? (
+          <MasonrySkeleton />
+        ) : imagesToShow.length > 0 ? (
+          <MasonryFlashList
+            data={imagesToShow}
+            keyExtractor={(item, index) => `community-${item.id}-${index}`}
+            numColumns={NUM_COLUMNS}
+            renderItem={renderItem}
+            estimatedItemSize={200}
+            removeClippedSubviews={true}
+            getItemType={() => 'image'}
+            className="rounded-3xl mx-4"
+            contentContainerClassName="pb-24"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[theme.primary]}
+                tintColor={theme.primary}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={LoadingFooter}
+            extraData={activeFilter}
+          />
+        ) : (
+          EmptyComponent
+        )}
+      </Animated.View>
 
       {/* Image Viewer Modal */}
       {selectedImage && (
