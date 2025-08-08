@@ -195,7 +195,7 @@ export const en = {
     filters: {
       popular: 'Popular',
       latest: 'Latest',
-      hot: 'Hot',
+      trending: 'Trending',
     },
     noImages: 'No community images yet',
     noImagesDescription:
