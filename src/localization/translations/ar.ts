@@ -442,6 +442,12 @@ export const ar = {
     deleteReasonPlaceholder: 'الرجاء إخبارنا بالمزيد...',
     deleteReasonNext: 'التالي',
     deleteReasonBack: 'رجوع',
+    selectProfileImage: 'اختيار صورة الملف الشخصي',
+    selectFromGeneratedImages: 'اختر من الصور التي أنشأتها',
+    generateImagesFirst:
+      'قم بإنشاء بعض الصور أولاً لاستخدامها كصورة الملف الشخصي',
+    profileImageSelected: 'تم تحديد صورة الملف الشخصي',
+    tapToSelectFromGenerated: 'اضغط للاختيار من الصور التي أنشأتها',
   },
 
   // Email Restriction

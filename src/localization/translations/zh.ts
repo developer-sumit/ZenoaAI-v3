@@ -439,6 +439,11 @@ export const zh = {
     deleteReasonPlaceholder: '请告诉我们更多...',
     deleteReasonNext: '下一步',
     deleteReasonBack: '返回',
+    selectProfileImage: '选择头像',
+    selectFromGeneratedImages: '从您生成的图片中选择',
+    generateImagesFirst: '请先生成一些图片以用作头像',
+    profileImageSelected: '头像已选择',
+    tapToSelectFromGenerated: '点击从您生成的图片中选择',
   },
 
   // Email Restriction

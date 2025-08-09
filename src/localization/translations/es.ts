@@ -447,6 +447,12 @@ export const es = {
     deleteReasonPlaceholder: 'Por favor, cuéntanos más...',
     deleteReasonNext: 'Siguiente',
     deleteReasonBack: 'Atrás',
+    selectProfileImage: 'Seleccionar imagen de perfil',
+    selectFromGeneratedImages: 'Elegir de tus imágenes generadas',
+    generateImagesFirst:
+      'Genera algunas imágenes primero para usar como foto de perfil',
+    profileImageSelected: 'Imagen de perfil seleccionada',
+    tapToSelectFromGenerated: 'Toca para seleccionar de tus imágenes generadas',
   },
 
   // Email Restriction

@@ -452,6 +452,13 @@ export const te = {
     deleteReasonPlaceholder: 'దయచేసి మాకు మరింత చెప్పండి...',
     deleteReasonNext: 'తదుపరి',
     deleteReasonBack: 'వెనుకకు',
+    selectProfileImage: 'ప్రొఫైల్ చిత్రాన్ని ఎంచుకోండి',
+    selectFromGeneratedImages: 'మీరు తయారు చేసిన చిత్రాల నుండి ఎంచుకోండి',
+    generateImagesFirst:
+      'ప్రొఫైల్ చిత్రంగా ఉపయోగించడానికి ముందుగా కొన్ని చిత్రాలను సృష్టించండి',
+    profileImageSelected: 'ప్రొఫైల్ చిత్రం ఎంచుకోబడింది',
+    tapToSelectFromGenerated:
+      'మీరు సృష్టించిన చిత్రాల నుండి ఎంచుకోవడానికి టాప్ చేయండి',
   },
 
   // Email Restriction

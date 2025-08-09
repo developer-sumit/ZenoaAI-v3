@@ -448,6 +448,12 @@ export const id = {
     deleteReasonPlaceholder: 'Tolong beritahu kami lebih banyak...',
     deleteReasonNext: 'Selanjutnya',
     deleteReasonBack: 'Kembali',
+    selectProfileImage: 'Pilih Gambar Profil',
+    selectFromGeneratedImages: 'Pilih dari gambar yang Anda buat',
+    generateImagesFirst:
+      'Buat beberapa gambar dulu untuk digunakan sebagai foto profil',
+    profileImageSelected: 'Gambar profil terpilih',
+    tapToSelectFromGenerated: 'Ketuk untuk memilih dari gambar yang Anda buat',
   },
 
   // Email Restriction
