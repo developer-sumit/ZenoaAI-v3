@@ -166,6 +166,9 @@ export const ar = {
     generateImageHint: 'إنشاء صورة من وصفك',
     noImages: 'لا توجد صور بعد',
     startCreating: 'ابدأ بإنشاء أول صورة تم إنشاؤها بواسطة الذكاء الاصطناعي',
+    quotaRemaining: '{{remaining}} متبقية اليوم',
+    quotaRemainingOf: '{{remaining}} من {{total}} اليوم',
+    quotaResetsDaily: 'يتم إعادة التعيين في منتصف الليل',
   },
 
   // Gallery
@@ -375,6 +378,11 @@ export const ar = {
     feedbackFailed: 'فشل إرسال الملاحظات',
     quotaTitle: 'الاستخدام والحدود',
     images: 'الصور',
+    imagesRemainingDaily: '{{count}} / {{total}} يوميًا',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/يوم',
+    dailyQuota: 'الحصة اليومية',
+    dailyReset: 'يتم إعادة التعيين يوميًا في منتصف الليل',
+    renewsIn: 'يتجدد خلال {{hours}}س {{minutes}}د',
     imagesRemaining: '{{count}} صورة متبقية',
     imagesRemaining_plural: '{{count}} صور متبقية',
     planType: 'نوع الخطة',

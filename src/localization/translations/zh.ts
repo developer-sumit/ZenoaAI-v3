@@ -166,6 +166,9 @@ export const zh = {
     generateImageHint: '根据您的描述生成图片',
     noImages: '暂无图片',
     startCreating: '开始创建您的第一张 AI 生成图片',
+    quotaRemaining: '今天还剩{{remaining}}张',
+    quotaRemainingOf: '今天{{remaining}}张，共{{total}}张',
+    quotaResetsDaily: '午夜重置',
   },
 
   // Gallery
@@ -394,6 +397,11 @@ export const zh = {
     shareAppHint: '与您的朋友分享此应用',
     contactSupport: '联系支持',
     contactSupportHint: '从我们的支持团队获得帮助',
+    imagesRemainingDaily: '{{count}} / {{total}} 每天',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/天',
+    dailyQuota: '每日配额',
+    dailyReset: '每天午夜重置',
+    renewsIn: '{{hours}}小时{{minutes}}分钟后更新',
   },
 
   // Edit Profile

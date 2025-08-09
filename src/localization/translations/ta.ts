@@ -171,6 +171,9 @@ export const ta = {
     generateImageHint: 'உங்கள் விளக்கத்திலிருந்து ஒரு படத்தை உருவாக்கவும்',
     noImages: 'இன்னும் படங்கள் இல்லை',
     startCreating: 'உங்கள் முதல் AI-உருவாக்கிய படத்தை உருவாக்கத் தொடங்குங்கள்',
+    quotaRemaining: '{{remaining}} இன்று மீதம்',
+    quotaRemainingOf: '{{remaining}} இல் {{total}} இன்று',
+    quotaResetsDaily: 'நள்ளிரவில் மீட்டமைக்கப்படும்',
   },
 
   // Gallery
@@ -404,6 +407,11 @@ export const ta = {
     shareAppHint: 'உங்கள் நண்பர்களுடன் பயன்பாட்டைப் பகிர்',
     contactSupport: 'ஆதரவைத் தொடர்புகொள்',
     contactSupportHint: 'எங்கள் ஆதரவு குழுவிடம் உதவி பெறு',
+    imagesRemainingDaily: '{{count}} / {{total}} ஒரு நாளில்',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/நாள்',
+    dailyQuota: 'தினசரி ஒதுக்கீடு',
+    dailyReset: 'நள்ளிரவில் தினமும் மீட்டமைக்கப்படும்',
+    renewsIn: '{{hours}}மண {{minutes}}நி இல் புதுப்பிப்பு',
   },
 
   // Edit Profile

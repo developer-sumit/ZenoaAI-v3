@@ -167,6 +167,9 @@ export const hi = {
     generateImageHint: 'अपने विवरण से एक चित्र जनरेट करें',
     noImages: 'अभी तक कोई चित्र नहीं',
     startCreating: 'अपना पहला AI-जनित चित्र बनाना शुरू करें',
+    quotaRemaining: '{{remaining}} आज बचे हैं',
+    quotaRemainingOf: '{{remaining}} का {{total}} आज',
+    quotaResetsDaily: 'मध्यरात्रि में रीसेट होता है',
   },
 
   // Gallery
@@ -379,7 +382,12 @@ export const hi = {
     images: 'चित्र',
     imagesRemaining: '{{count}} चित्र शेष',
     imagesRemaining_plural: '{{count}} चित्र शेष',
+    imagesRemainingDaily: '{{count}} / {{total}} प्रति दिन',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/दिन',
     planType: 'योजना प्रकार',
+    dailyQuota: 'दैनिक कोटा',
+    dailyReset: 'मध्यरात्रि में रीसेट होता है',
+    renewsIn: '{{hours}}घ {{minutes}}मि में नवीनीकरण',
     notifications: 'सूचनाएँ',
     notificationsDesc: 'अपने चित्रों के बारे में अपडेट प्राप्त करें',
     notificationsEnabled: 'सूचनाएँ सक्षम',

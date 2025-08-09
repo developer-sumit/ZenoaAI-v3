@@ -168,6 +168,9 @@ export const mr = {
     generateImageHint: 'तुमच्या वर्णनावरून चित्र तयार करा',
     noImages: 'अजून चित्रे नाहीत',
     startCreating: 'तुमचे पहिले AI-निर्मित चित्र तयार करणे सुरू करा',
+    quotaRemaining: '{{remaining}} आज उरले',
+    quotaRemainingOf: '{{remaining}} पैकी {{total}} आज',
+    quotaResetsDaily: 'मध्यरात्री रीसेट होते',
   },
 
   // Gallery
@@ -400,6 +403,11 @@ export const mr = {
     shareAppHint: 'तुमच्या मित्रांसोबत अॅप शेअर करा',
     contactSupport: 'समर्थनाशी संपर्क साधा',
     contactSupportHint: 'आमच्या समर्थन टीमकडून मदत मिळवा',
+    imagesRemainingDaily: '{{count}} / {{total}} दररोज',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/दिवस',
+    dailyQuota: 'दैनिक कोटा',
+    dailyReset: 'मध्यरात्री रोज रीसेट होते',
+    renewsIn: '{{hours}}त {{minutes}}मि मध्ये नूतनीकरण',
   },
 
   // Edit Profile
