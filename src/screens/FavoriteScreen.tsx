@@ -16,6 +16,7 @@ import ImageViewer from '@src/components/ImageViewer';
 import BookmarkIcon from '@src/assets/icons/BookmarkIcon';
 import MasonrySkeleton from '@src/components/MasonrySkeleton';
 import UserNotFound from '@src/components/UserNotFound';
+import ScrollToTop, {useScrollToTop} from '@src/components/ScrollToTop';
 
 // Constants
 const NUM_COLUMNS = 2;
@@ -36,6 +37,7 @@ const FavoriteScreen = () => {
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
+  const {scrollRef, scrollHandler, registerScrollHandler} = useScrollToTop();
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +50,7 @@ const FavoriteScreen = () => {
           favoriteImages.length,
         );
       }
-    }, [favoriteImages.length]),
+    }, [favoriteImages.length, fetchFavoriteImages, user?.uid]),
   );
 
   const refreshImages = useCallback(async () => {
@@ -57,8 +59,15 @@ const FavoriteScreen = () => {
       setRefreshing(true);
       await fetchFavoriteImages(); // Reset to first page
       setRefreshing(false);
+      triggerHaptic('success');
     }
-  }, [fetchFavoriteImages, user?.uid]);
+  }, [fetchFavoriteImages, user?.uid, triggerHaptic]);
+
+  const loadMoreFavoriteImagesCallback = useCallback(async () => {
+    if (user?.uid) {
+      await loadMoreFavoriteImages();
+    }
+  }, [loadMoreFavoriteImages, user?.uid]);
 
   const LoadingFooter = useMemo(() => {
     if (!isLoadingMoreFavorites) {
@@ -69,7 +78,7 @@ const FavoriteScreen = () => {
       <View className="py-4 items-center">
         <ActivityIndicator size="small" color={theme.primary} />
         <Text style={{color: theme.secondaryText}} className="text-sm mt-2">
-          Loading more images...
+          {t('gallery.loading')}
         </Text>
       </View>
     );
@@ -93,7 +102,17 @@ const FavoriteScreen = () => {
         </View>
       );
     },
-    [triggerHaptic, setSelectedImage],
+    [triggerHaptic],
+  );
+
+  // Add scroll handler
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (scrollHandler) {
+        scrollHandler(event);
+      }
+    },
+    [scrollHandler],
   );
 
   if (!user || !user.uid) {
@@ -107,6 +126,7 @@ const FavoriteScreen = () => {
         <MasonrySkeleton />
       ) : (
         <MasonryFlashList
+          ref={scrollRef}
           data={favoriteImages}
           keyExtractor={(item, index) =>
             `gallery-${item.id || 'temp'}-${index}`
@@ -115,7 +135,7 @@ const FavoriteScreen = () => {
           renderItem={renderItem}
           estimatedItemSize={250}
           removeClippedSubviews={true}
-          onEndReached={loadMoreFavoriteImages}
+          onEndReached={loadMoreFavoriteImagesCallback}
           onEndReachedThreshold={0.5}
           className="rounded-t-3xl mx-4"
           contentContainerClassName="pb-24"
@@ -128,6 +148,8 @@ const FavoriteScreen = () => {
               tintColor={theme.primary}
             />
           }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           ListEmptyComponent={
             <EmptyState
               icon={<BookmarkIcon size={60} color={theme.primary} />}
@@ -138,6 +160,11 @@ const FavoriteScreen = () => {
           ListFooterComponent={LoadingFooter}
         />
       )}
+
+      <ScrollToTop
+        scrollRef={scrollRef}
+        registerScrollHandler={registerScrollHandler}
+      />
 
       {/* Image Viewer Modal */}
       {selectedImage && (

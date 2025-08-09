@@ -14,6 +14,9 @@ import ImageCard from '@src/components/ImageCard';
 import ImageViewer from '@src/components/ImageViewer';
 import MasonrySkeleton from '@src/components/MasonrySkeleton';
 import UserNotFound from '@src/components/UserNotFound';
+import EmptyState from '@src/components/EmptyState';
+import GalleryIcon from '@src/assets/icons/GalleryIcon';
+import ScrollToTop, {useScrollToTop} from '@src/components/ScrollToTop';
 
 const NUM_COLUMNS = 2;
 
@@ -22,36 +25,43 @@ const GalleryScreen = () => {
   const {theme} = useTheme();
   const {user} = useAuthStore();
   const {triggerHaptic} = useHaptics();
-  const {
-    images,
-    isLoading,
-    isLoadingMore,
-    hasMoreImages,
-    fetchImages,
-    loadMoreImages,
-  } = useImageStore();
+  const {images, isLoading, isLoadingMore, fetchImages, loadMoreImages} =
+    useImageStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
+  const {scrollRef, scrollHandler, registerScrollHandler} = useScrollToTop();
 
   useFocusEffect(
     useCallback(() => {
       if (user?.uid && images.length === 0) {
         console.log('Gallery: Loading images for the first time');
-        fetchImages(1, 20, true); // Load first page
+        fetchImages();
       } else if (user?.uid) {
         console.log('Gallery: Using cached images, count:', images.length);
       }
-    }, [images.length, user?.uid, fetchImages]),
+    }, [images.length, fetchImages, user?.uid]),
   );
 
-  const handleLoadMore = useCallback(() => {
-    if (!isLoadingMore && hasMoreImages) {
-      loadMoreImages();
+  const refreshImages = useCallback(async () => {
+    if (user?.uid) {
+      // Only refresh if logged in
+      setRefreshing(true);
+      await fetchImages(); // Reset to first page
+      setRefreshing(false);
+      triggerHaptic('success');
     }
-  }, [isLoadingMore, hasMoreImages, loadMoreImages]);
+  }, [fetchImages, user?.uid, triggerHaptic]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (user?.uid && !isLoading && images.length > 0) {
+      // Only load more if logged in and not already loading
+      console.log('Gallery: Loading more images');
+      await loadMoreImages();
+    }
+  }, [loadMoreImages, user?.uid, isLoading, images.length]);
 
   const LoadingFooter = useMemo(() => {
     if (!isLoadingMore) {
@@ -66,13 +76,7 @@ const GalleryScreen = () => {
         </Text>
       </View>
     );
-  }, [isLoadingMore, theme.primary, theme.secondaryText, t]);
-
-  const refreshImages = useCallback(async () => {
-    setRefreshing(true);
-    await fetchImages(1, 20, true); // Reset to first page
-    setRefreshing(false);
-  }, [fetchImages]);
+  }, [isLoading, theme.primary, theme.secondaryText]);
 
   const renderItem = useCallback(
     ({item, index}: {item: GeneratedImage; index: number}) => {
@@ -95,6 +99,15 @@ const GalleryScreen = () => {
     [triggerHaptic],
   );
 
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (scrollHandler) {
+        scrollHandler(event);
+      }
+    },
+    [scrollHandler],
+  );
+
   if (!user || !user?.uid) {
     return <UserNotFound />;
   }
@@ -106,6 +119,7 @@ const GalleryScreen = () => {
         <MasonrySkeleton />
       ) : (
         <MasonryFlashList
+          ref={scrollRef}
           data={images}
           keyExtractor={(item, index) => `gallery-${item.id}-${index}`}
           numColumns={NUM_COLUMNS}
@@ -125,9 +139,23 @@ const GalleryScreen = () => {
               tintColor={theme.primary}
             />
           }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          ListEmptyComponent={
+            <EmptyState
+              icon={<GalleryIcon size={60} color={theme.primary} />}
+              title={t('gallery.noImages')}
+              description={t('gallery.startCreating')}
+            />
+          }
           ListFooterComponent={LoadingFooter}
         />
       )}
+
+      <ScrollToTop
+        scrollRef={scrollRef}
+        registerScrollHandler={registerScrollHandler}
+      />
 
       {/* Image Viewer Modal */}
       {selectedImage && (
