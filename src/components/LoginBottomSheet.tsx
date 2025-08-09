@@ -150,7 +150,7 @@ const LoginBottomSheet: React.FC = () => {
       showToast(t('auth.signInSuccessful'), 'success');
     } catch (error: any) {
       console.error('Sign-in error:', error);
-      if ((error as any).errorType === 'EMAIL_RESTRICTION') {
+      if (error.errorType === 'EMAIL_RESTRICTION') {
         triggerHaptic('error');
         try {
           await auth().signOut();
