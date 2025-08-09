@@ -27,6 +27,7 @@ import {useAuthStore} from '@src/store/authStore';
 interface ImageCardProps {
   image: GeneratedImage;
   onPress?: () => void;
+  hideFavorite?: boolean;
   style?: ViewStyle;
 }
 
@@ -109,7 +110,12 @@ const SyncIndicator = ({color}: {color: string}) => {
   );
 };
 
-const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
+const BaseImageCard: React.FC<ImageCardProps> = ({
+  image,
+  hideFavorite = false,
+  onPress,
+  style,
+}) => {
   const t = useStrings();
   const {theme} = useTheme();
   const {user} = useAuthStore();
@@ -245,7 +251,7 @@ const BaseImageCard: React.FC<ImageCardProps> = ({image, onPress, style}) => {
       )}
 
       {/* Favorite indicator */}
-      {!isPlaceholder && (
+      {!isPlaceholder && !hideFavorite && (
         <TouchableOpacity
           onPress={handleToggleFavorite}
           className="flex-row absolute top-3 right-3 p-2.5 rounded-2xl gap-1 bg-white"
