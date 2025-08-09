@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -10,6 +10,7 @@ import {
   Modal,
   LayoutAnimation,
   Linking,
+  ScrollView,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import FastImage from 'react-native-fast-image';
@@ -54,6 +55,169 @@ if (Platform.OS === 'android') {
   }
 }
 
+const ProfileAvatar = React.memo(({avatar, isDark, theme}: any) => {
+  const imageSource = avatar
+    ? {uri: avatar}
+    : isDark
+      ? appConfig.darkFavicon
+      : appConfig.lightFavicon;
+
+  return (
+    <FastImage
+      source={imageSource}
+      style={{
+        width: 150,
+        height: 150,
+        marginBottom: 15,
+        borderRadius: 45,
+        backgroundColor: theme.surface,
+      }}
+      resizeMode={FastImage.resizeMode.cover}
+    />
+  );
+});
+
+const SettingRow = React.memo(
+  ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    accessibilityLabel,
+    accessibilityHint,
+    theme,
+    showChevron = true,
+    rightComponent,
+    hasBorder = true,
+  }: any) => {
+    return (
+      <TouchableOpacity
+        className={`px-5 py-4 flex-row justify-between items-center ${
+          hasBorder ? 'border-b' : ''
+        }`}
+        style={{borderColor: theme.secondaryText + '20'}}
+        onPress={onPress}
+        accessible={true}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        activeOpacity={0.7}>
+        <View className="flex-row items-center flex-1">
+          <View
+            className="w-9 h-9 rounded-full items-center justify-center mr-3"
+            style={{backgroundColor: theme.primary + '15'}}>
+            {icon}
+          </View>
+          <View className="flex-1">
+            <Text style={{color: theme.text}} className="text-base">
+              {title}
+            </Text>
+            {subtitle && (
+              <Text
+                style={{color: theme.secondaryText}}
+                className="text-xs mt-1">
+                {subtitle}
+              </Text>
+            )}
+          </View>
+        </View>
+        {rightComponent ||
+          (showChevron && (
+            <ChevronRightIcon size={20} color={theme.secondaryText} />
+          ))}
+      </TouchableOpacity>
+    );
+  },
+);
+
+const ToggleSwitch = React.memo(
+  ({enabled, onToggle, loading, theme, accessibilityLabel}: any) => {
+    return (
+      <TouchableOpacity
+        className="w-14 h-8 rounded-full p-1.5"
+        style={{
+          backgroundColor: enabled ? theme.primary : '#cbd5e1',
+          opacity: loading ? 0.5 : 1,
+        }}
+        onPress={onToggle}
+        disabled={loading}
+        accessible={true}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="switch"
+        accessibilityState={{checked: enabled}}
+        activeOpacity={0.8}>
+        <Animated.View
+          className={`w-5 h-5 rounded-full bg-white ${
+            enabled ? 'ml-6' : 'ml-0'
+          }`}
+        />
+      </TouchableOpacity>
+    );
+  },
+);
+
+const QuotaProgressBar = React.memo(({quota, planLimits, theme}: any) => {
+  const percentage = useMemo(() => {
+    if (!quota || !planLimits?.totalImages) return 0;
+    return Math.min(
+      (quota.imagesRemaining / planLimits.totalImages) * 100,
+      100,
+    );
+  }, [quota, planLimits]);
+
+  const barColor = useMemo(() => {
+    if (!quota) return '#ef4444';
+    if (quota.imagesRemaining > 5) return theme.primary;
+    if (quota.imagesRemaining > 0) return '#f59e0b';
+    return '#ef4444';
+  }, [quota, theme.primary]);
+
+  return (
+    <View
+      className="h-2 rounded-full"
+      style={{backgroundColor: theme.background}}>
+      <View
+        className="h-full rounded-full"
+        style={{
+          backgroundColor: barColor,
+          width: `${percentage}%`,
+        }}
+      />
+    </View>
+  );
+});
+
+const RatingStars = React.memo(({rating, onRatingChange, theme}: any) => {
+  const handleStarPress = useCallback(
+    (star: number) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      onRatingChange(star);
+    },
+    [onRatingChange],
+  );
+
+  return (
+    <View className="flex-row justify-center my-4">
+      {[1, 2, 3, 4, 5].map(star => (
+        <TouchableOpacity
+          key={star}
+          onPress={() => handleStarPress(star)}
+          className="mx-2"
+          accessible={true}
+          accessibilityLabel={`Rate ${star} stars`}
+          accessibilityRole="button"
+          accessibilityState={{selected: star <= rating}}
+          activeOpacity={0.7}>
+          <StarIcon
+            size={40}
+            color={star <= rating ? '#F59E0B' : theme.secondaryText + '80'}
+            filled={star <= rating}
+          />
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+});
+
 const SettingsScreen = () => {
   const t = useStrings();
   const navigation = useNavigation();
@@ -62,7 +226,6 @@ const SettingsScreen = () => {
   const {show} = useLoginModalStore();
   const {showToast} = useToast();
   const {triggerHaptic} = useHaptics();
-  const scrollY = useRef(new Animated.Value(0)).current;
   const languageSelectorRef = useRef<{openModal: () => void}>(null);
 
   const [profileName, setProfileName] = useState('');
@@ -74,6 +237,37 @@ const SettingsScreen = () => {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
+
+  const resetTime = useMemo(() => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const timeDiff = tomorrow.getTime() - now.getTime();
+    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return {hours, minutes};
+  }, []);
+
+  const currentProfile = useMemo(
+    () => ({
+      name: profileName,
+      email: user?.email || '',
+      avatar: profileAvatar,
+      isPro: user?.planType === 'pro' || user?.planType === 'enterprise',
+      isLocalImage,
+    }),
+    [profileName, user?.email, user?.planType, profileAvatar, isLocalImage],
+  );
+
+  const quotaPercentage = useMemo(() => {
+    if (!user?.quota?.planLimits?.totalImages) return 0;
+    return Math.round(
+      (user.quota.imagesRemaining / user.quota.planLimits.totalImages) * 100,
+    );
+  }, [user?.quota]);
 
   // Check notification status on mount
   useEffect(() => {
@@ -89,43 +283,42 @@ const SettingsScreen = () => {
     checkNotificationStatus();
   }, []);
 
-  const handleToggleNotifications = async (value: boolean) => {
-    setNotificationLoading(true);
+  const handleToggleNotifications = useCallback(
+    async (value: boolean) => {
+      setNotificationLoading(true);
 
-    try {
-      if (value) {
-        // User wants to enable notifications
-        const granted = await notificationService.requestPermissions();
-        if (granted) {
-          setNotificationsEnabled(true);
-          showToast(t('settings.notificationsEnabled'), 'success');
+      try {
+        if (value) {
+          const granted = await notificationService.requestPermissions();
+          if (granted) {
+            setNotificationsEnabled(true);
+            showToast(t('settings.notificationsEnabled'), 'success');
 
-          // Send token to server
-          try {
-            await notificationAPI.updateFCMToken();
-          } catch (error) {
-            console.warn('Failed to update token on server:', error);
+            try {
+              await notificationAPI.updateFCMToken();
+            } catch (error) {
+              console.warn('Failed to update token on server:', error);
+            }
+          } else {
+            setNotificationsEnabled(false);
+            showToast(t('settings.notificationsPermissionDenied'), 'error');
           }
         } else {
           setNotificationsEnabled(false);
-          showToast(t('settings.notificationsPermissionDenied'), 'error');
+          showToast(t('settings.notificationsDisabled'), 'info');
         }
-      } else {
-        // User wants to disable notifications
-        setNotificationsEnabled(false);
-        showToast(t('settings.notificationsDisabled'), 'info');
+      } catch (error) {
+        console.error('Error toggling notifications:', error);
+        showToast(t('settings.notificationsUpdateFailed'), 'error');
+      } finally {
+        setNotificationLoading(false);
       }
-    } catch (error) {
-      console.error('Error toggling notifications:', error);
-      showToast(t('settings.notificationsUpdateFailed'), 'error');
-    } finally {
-      setNotificationLoading(false);
-    }
-  };
+    },
+    [showToast, t],
+  );
 
   useEffect(() => {
     if (user) {
-      // Use the new User interface structure
       setProfileName(user.profile.username || 'User');
 
       if (user.profile.avatar) {
@@ -138,21 +331,11 @@ const SettingsScreen = () => {
     }
   }, [user]);
 
-  const handleEditProfile = () => {
+  const handleEditProfile = useCallback(() => {
     navigation.navigate(Routes.EDIT_PROFILE as never);
-  };
+  }, [navigation]);
 
-  const getProfileData = () => {
-    return {
-      name: profileName,
-      email: user?.email || '',
-      avatar: profileAvatar,
-      isPro: user?.planType === 'pro' || user?.planType === 'enterprise',
-      isLocalImage,
-    };
-  };
-
-  const handleSubmitFeedback = async () => {
+  const handleSubmitFeedback = useCallback(async () => {
     if (feedbackRating === 0) {
       showToast(t('settings.selectRating'), 'error');
       return;
@@ -166,7 +349,6 @@ const SettingsScreen = () => {
     try {
       setSubmittingFeedback(true);
 
-      // Use the updated User interface structure
       await feedbackService.submitFeedback(
         user?.uid || 'anonymous',
         user?.profile.username || 'Anonymous User',
@@ -175,7 +357,6 @@ const SettingsScreen = () => {
         feedbackText,
       );
 
-      // Success handling
       showToast(t('settings.greetForFeedback'), 'success');
       setShowFeedbackModal(false);
       setFeedbackText('');
@@ -186,10 +367,9 @@ const SettingsScreen = () => {
     } finally {
       setSubmittingFeedback(false);
     }
-  };
+  }, [feedbackRating, feedbackText, showToast, t, user]);
 
-  const handleRateApp = () => {
-    // Direct redirect to Google Play Store
+  const handleRateApp = useCallback(() => {
     triggerHaptic('light');
 
     Linking.openURL(urls.playstore)
@@ -200,124 +380,87 @@ const SettingsScreen = () => {
         console.error('Error opening Play Store:', error);
         showToast(t('errors.somethingWentWrong'), 'error');
       });
-  };
+  }, [triggerHaptic, showToast, t]);
 
-  // Calculate time until midnight for reset info
-  const getTimeUntilReset = () => {
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+  const handleThemeToggle = useCallback(() => {
+    triggerHaptic('light');
+    toggleTheme();
+  }, [triggerHaptic, toggleTheme]);
 
-    const timeDiff = tomorrow.getTime() - now.getTime();
-    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+  const handleLanguagePress = useCallback(() => {
+    triggerHaptic('light');
+    languageSelectorRef.current?.openModal();
+  }, [triggerHaptic]);
 
-    return {hours, minutes};
-  };
+  const handleLogout = useCallback(() => {
+    triggerHaptic('heavy');
+    logout();
+  }, [triggerHaptic, logout]);
 
-  const resetTime = getTimeUntilReset();
+  const handleFeedbackPress = useCallback(() => {
+    triggerHaptic('light');
+    setShowFeedbackModal(true);
+  }, [triggerHaptic]);
 
-  const currentProfile = getProfileData();
+  const handlePrivacyPress = useCallback(() => {
+    triggerHaptic('light');
+    Linking.openURL(urls.privacyPolicy);
+  }, [triggerHaptic]);
 
-  const renderRatingStars = () => {
-    return (
-      <View className="flex-row justify-center my-4">
-        {[1, 2, 3, 4, 5].map(star => (
-          <TouchableOpacity
-            key={star}
-            onPress={() => {
-              LayoutAnimation.configureNext(
-                LayoutAnimation.Presets.easeInEaseOut,
-              );
-              setFeedbackRating(star);
-            }}
-            className="mx-2"
-            accessible={true}
-            accessibilityLabel={`Rate ${star} stars`}
-            accessibilityRole="button"
-            accessibilityState={{selected: star <= feedbackRating}}>
-            <StarIcon
-              size={40}
-              color={
-                star <= feedbackRating ? '#F59E0B' : theme.secondaryText + '80'
-              }
-              filled={star <= feedbackRating}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
+  const handleTermsPress = useCallback(() => {
+    Linking.openURL(urls.termsOfService);
+  }, []);
 
   return (
-    <Animated.ScrollView
-      className="flex-1"
-      style={{backgroundColor: theme.background}}
-      contentContainerClassName="pb-[90px] pt-10 px-5"
-      showsVerticalScrollIndicator={false}
-      removeClippedSubviews={true}
-      scrollEventThrottle={16}
-      onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {
-        useNativeDriver: false,
-      })}>
-      {/* Animated Header */}
-      <View className="items-center">
-        {currentProfile.avatar ? (
-          <FastImage
-            source={{uri: currentProfile.avatar}}
-            style={{
-              width: 150,
-              height: 150,
-              marginBottom: 15,
-              borderRadius: 90 / 2,
-              backgroundColor: theme.surface,
-            }}
-            resizeMode={FastImage.resizeMode.cover}
+    <>
+      <ScrollView
+        className="flex-1"
+        style={{backgroundColor: theme.background}}
+        contentContainerStyle={{
+          paddingBottom: 90,
+          paddingTop: 40,
+          paddingHorizontal: 20,
+        }}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}>
+        {/* Header */}
+        <View className="items-center mb-10">
+          <ProfileAvatar
+            avatar={currentProfile.avatar}
+            isDark={isDark}
+            theme={theme}
           />
-        ) : (
-          <FastImage
-            source={isDark ? appConfig.darkFavicon : appConfig.lightFavicon}
-            style={{
-              width: 150,
-              height: 150,
-              marginBottom: 15,
-              borderRadius: 90 / 2,
-              backgroundColor: theme.surface,
-            }}
-            resizeMode={FastImage.resizeMode.cover}
-          />
-        )}
-        {user ? (
-          <>
-            <Text className="text-3xl font-bold" style={{color: theme.text}}>
-              {currentProfile.name}
-            </Text>
-            <Text
-              className="text-white opacity-80 text-sm mt-1"
-              style={{color: theme.text}}>
-              {currentProfile.email}
-            </Text>
-          </>
-        ) : (
-          <TouchableOpacity
-            className="py-4 px-8 rounded-full shadow-lg"
-            style={{backgroundColor: theme.primary}}
-            onPress={show}
-            accessible={true}
-            accessibilityLabel={t('auth.signInRequired')}>
-            <Text className="text-white font-semibold">
-              {t('auth.signInToContinue')}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
-      <View className="mt-10">
-        {/* Enhanced Quota Information Section */}
+          {user ? (
+            <>
+              <Text className="text-3xl font-bold" style={{color: theme.text}}>
+                {currentProfile.name}
+              </Text>
+              <Text
+                className="opacity-80 text-sm mt-1"
+                style={{color: theme.text}}>
+                {currentProfile.email}
+              </Text>
+            </>
+          ) : (
+            <TouchableOpacity
+              className="py-4 px-8 rounded-full shadow-lg"
+              style={{backgroundColor: theme.primary}}
+              onPress={show}
+              accessible={true}
+              accessibilityLabel={t('auth.signInRequired')}
+              activeOpacity={0.8}>
+              <Text className="text-white font-semibold">
+                {t('auth.signInToContinue')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Quota Information */}
         {user && (
           <View
-            className="rounded-3xl mb-6 overflow-hidden shadow-lg mx-0"
+            className="rounded-3xl mb-6 overflow-hidden shadow-lg"
             style={{backgroundColor: theme.surface}}>
             <View
               className="px-5 py-4 border-b flex-row justify-between items-center"
@@ -335,7 +478,6 @@ const SettingsScreen = () => {
               </Text>
             </View>
             <View className="px-5 py-4">
-              {/* Images Remaining with Daily Context */}
               <View className="mb-4">
                 <View className="flex-row justify-between items-center mb-2">
                   <View>
@@ -367,46 +509,18 @@ const SettingsScreen = () => {
                       <Text
                         style={{color: theme.secondaryText}}
                         className="text-xs">
-                        {Math.round(
-                          (user.quota.imagesRemaining /
-                            user.quota.planLimits.totalImages) *
-                            100,
-                        )}
-                        % remaining
+                        {quotaPercentage}% remaining
                       </Text>
                     )}
                   </View>
                 </View>
-                <View
-                  className="h-2 rounded-full"
-                  style={{backgroundColor: theme.background}}>
-                  <View
-                    className="h-full rounded-full"
-                    style={{
-                      backgroundColor:
-                        user.quota && user.quota.imagesRemaining > 5
-                          ? theme.primary
-                          : user.quota && user.quota.imagesRemaining > 0
-                            ? '#f59e0b'
-                            : '#ef4444',
-                      width: `${
-                        user.quota && user.quota.planLimits?.totalImages
-                          ? Math.min(
-                              (user.quota.imagesRemaining /
-                                user.quota.planLimits.totalImages) *
-                                100,
-                              100,
-                            )
-                          : user.quota?.imagesRemaining
-                            ? 100
-                            : 0
-                      }%`,
-                    }}
-                  />
-                </View>
+                <QuotaProgressBar
+                  quota={user.quota}
+                  planLimits={user.quota?.planLimits}
+                  theme={theme}
+                />
               </View>
 
-              {/* Plan Type */}
               <View className="flex-row justify-between items-center">
                 <Text
                   style={{color: theme.text}}
@@ -437,7 +551,7 @@ const SettingsScreen = () => {
           </View>
         )}
 
-        {/* Account Settings Card */}
+        {/* Account Settings */}
         <View
           className="rounded-3xl mb-6 overflow-hidden shadow-lg"
           style={{backgroundColor: theme.surface}}>
@@ -450,140 +564,76 @@ const SettingsScreen = () => {
               {t('settings.account')}
             </Text>
           </View>
-          {/* Edit Profile Option */}
-          <TouchableOpacity
-            className="px-5 py-4 border-b flex-row justify-between items-center"
-            style={{borderColor: theme.secondaryText + '20'}}
+
+          <SettingRow
+            icon={<PersonIcon size={20} color={theme.primary} />}
+            title={t('settings.editProfile')}
             onPress={handleEditProfile}
-            accessible={true}
             accessibilityLabel={t('settings.editProfile')}
-            accessibilityHint={t('settings.editProfileHint')}>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <PersonIcon size={20} color={theme.primary} />
-              </View>
-              <Text style={{color: theme.text}} className="text-base">
-                {t('settings.editProfile')}
-              </Text>
-            </View>
-            <ChevronRightIcon size={20} color={theme.secondaryText} />
-          </TouchableOpacity>
-          {/* Language Settings */}
-          <TouchableOpacity
-            className="px-5 py-4 border-b flex-row justify-between items-center"
-            accessible={true}
+            accessibilityHint={t('settings.editProfileHint')}
+            theme={theme}
+          />
+
+          <SettingRow
+            icon={<LanguageIcon size={20} color={theme.primary} />}
+            title={t('settings.language')}
+            onPress={handleLanguagePress}
             accessibilityLabel={t('settings.changeLanguage')}
             accessibilityHint={t('settings.changeLanguageHint')}
-            style={{borderColor: theme.secondaryText + '20'}}
-            onPress={() => {
-              triggerHaptic('light');
-              languageSelectorRef.current?.openModal();
-            }}>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <LanguageIcon size={20} color={theme.primary} />
-              </View>
-              <Text style={{color: theme.text}} className="text-base">
-                {t('settings.language')}
-              </Text>
-            </View>
-            <LanguageSelector ref={languageSelectorRef} />
-          </TouchableOpacity>
+            theme={theme}
+            rightComponent={<LanguageSelector ref={languageSelectorRef} />}
+          />
 
-          {/* Notification Settings Toggle */}
-          <View
-            className="px-5 py-4 border-b flex-row justify-between items-center"
-            style={{borderColor: theme.secondaryText + '20'}}>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <NotificationIcon size={20} color={theme.primary} />
-              </View>
-              <View>
-                <Text style={{color: theme.text}} className="text-base">
-                  {t('settings.notifications')}
-                </Text>
-                <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {t('settings.notificationsDesc')}
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              className="w-14 h-8 rounded-full p-1.5"
-              style={{
-                backgroundColor: notificationsEnabled
-                  ? theme.primary
-                  : '#cbd5e1',
-                opacity: notificationLoading ? 0.5 : 1,
-              }}
-              onPress={() => handleToggleNotifications(!notificationsEnabled)}
-              disabled={notificationLoading}
-              accessible={true}
-              accessibilityLabel={
-                notificationsEnabled
-                  ? t('settings.notificationsDisabled')
-                  : t('settings.notificationsEnabled')
-              }
-              accessibilityRole="switch"
-              accessibilityState={{checked: notificationsEnabled}}>
-              <View
-                className={`w-5 h-5 rounded-full bg-white ${
-                  notificationsEnabled ? 'ml-6' : 'ml-0'
-                }`}
+          <SettingRow
+            icon={<NotificationIcon size={20} color={theme.primary} />}
+            title={t('settings.notifications')}
+            subtitle={t('settings.notificationsDesc')}
+            theme={theme}
+            showChevron={false}
+            rightComponent={
+              <ToggleSwitch
+                enabled={notificationsEnabled}
+                onToggle={() =>
+                  handleToggleNotifications(!notificationsEnabled)
+                }
+                loading={notificationLoading}
+                theme={theme}
+                accessibilityLabel={
+                  notificationsEnabled
+                    ? t('settings.notificationsDisabled')
+                    : t('settings.notificationsEnabled')
+                }
               />
-            </TouchableOpacity>
-          </View>
+            }
+            hasBorder={true}
+          />
 
-          {/* Dark Mode Option */}
-          <View className="px-5 py-4 flex-row justify-between items-center">
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                {isDark ? (
-                  <DarkModeIcon size={20} color={theme.primary} />
-                ) : (
-                  <LightModeIcon size={20} color={theme.primary} />
-                )}
-              </View>
-              <Text style={{color: theme.text}} className="text-base">
-                {t('settings.darkMode')}
-              </Text>
-            </View>
-            <TouchableOpacity
-              className="w-14 h-8 rounded-full p-1.5"
-              style={{backgroundColor: isDark ? theme.primary : '#cbd5e1'}}
-              onPress={() => {
-                // Haptic feedback for theme toggle
-                triggerHaptic('light');
-                toggleTheme();
-              }}
-              accessible={true}
-              accessibilityLabel={
-                isDark
-                  ? t('settings.switchLightMode')
-                  : t('settings.switchDarkMode')
-              }
-              accessibilityHint={
-                isDark
-                  ? t('settings.switchLightModeHint')
-                  : t('settings.switchDarkModeHint')
-              }
-              accessibilityRole="switch"
-              accessibilityState={{checked: isDark}}>
-              <View
-                className={`w-5 h-5 rounded-full bg-white ${
-                  isDark ? 'ml-6' : 'ml-0'
-                }`}
+          <SettingRow
+            icon={
+              isDark ? (
+                <DarkModeIcon size={20} color={theme.primary} />
+              ) : (
+                <LightModeIcon size={20} color={theme.primary} />
+              )
+            }
+            title={t('settings.darkMode')}
+            theme={theme}
+            showChevron={false}
+            rightComponent={
+              <ToggleSwitch
+                enabled={isDark}
+                onToggle={handleThemeToggle}
+                loading={false}
+                theme={theme}
+                accessibilityLabel={
+                  isDark
+                    ? t('settings.switchLightMode')
+                    : t('settings.switchDarkMode')
+                }
               />
-            </TouchableOpacity>
-          </View>
+            }
+            hasBorder={false}
+          />
         </View>
 
         {/* Feedback Section */}
@@ -600,57 +650,25 @@ const SettingsScreen = () => {
             </Text>
           </View>
 
-          <TouchableOpacity
-            className="px-5 py-4 flex-row justify-between items-center border-b"
-            style={{borderColor: theme.secondaryText + '20'}}
-            onPress={() => {
-              triggerHaptic('light');
-              setShowFeedbackModal(true);
-            }}
-            accessible={true}
+          <SettingRow
+            icon={<FeedbackIcon size={20} color={theme.primary} />}
+            title={t('settings.shareFeedback')}
+            onPress={handleFeedbackPress}
             accessibilityLabel={t('settings.shareFeedback')}
-            accessibilityHint={t('settings.shareFeedbackHint')}>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <FeedbackIcon size={20} color={theme.primary} />
-              </View>
-              <Text className="text-base" style={{color: theme.text}}>
-                {t('settings.shareFeedback')}
-              </Text>
-            </View>
-            <ChevronRightIcon size={20} color={theme.secondaryText} />
-          </TouchableOpacity>
+            accessibilityHint={t('settings.shareFeedbackHint')}
+            theme={theme}
+          />
 
-          <TouchableOpacity
-            className="px-5 py-4 flex-row justify-between items-center"
-            onPress={() => {
-              triggerHaptic('light');
-              handleRateApp();
-            }}
-            accessible={true}
+          <SettingRow
+            icon={<StarIcon size={20} color={theme.primary} />}
+            title={t('settings.rateApp')}
+            subtitle={t('settings.rateAppDesc')}
+            onPress={handleRateApp}
             accessibilityLabel={t('settings.rateApp')}
-            accessibilityHint={t('settings.rateAppHint')}>
-            <View className="flex-row items-center flex-1">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <StarIcon size={20} color={theme.primary} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-base" style={{color: theme.text}}>
-                  {t('settings.rateApp')}
-                </Text>
-                <Text
-                  className="text-sm mt-1"
-                  style={{color: theme.secondaryText}}>
-                  {t('settings.rateAppDesc')}
-                </Text>
-              </View>
-            </View>
-            <ChevronRightIcon size={20} color={theme.secondaryText} />
-          </TouchableOpacity>
+            accessibilityHint={t('settings.rateAppHint')}
+            theme={theme}
+            hasBorder={false}
+          />
         </View>
 
         {/* About Section */}
@@ -689,48 +707,24 @@ const SettingsScreen = () => {
             </View>
           </View>
 
-          {/* Privacy & Terms */}
-          <TouchableOpacity
-            className="px-5 py-4 border-b flex-row justify-between items-center"
-            style={{borderColor: theme.secondaryText + '20'}}
-            onPress={() => {
-              triggerHaptic('light');
-              Linking.openURL(urls.privacyPolicy);
-            }}
-            accessible={true}
+          <SettingRow
+            icon={<ShieldIcon size={20} color={theme.primary} />}
+            title={t('settings.privacyPolicy')}
+            onPress={handlePrivacyPress}
             accessibilityLabel={t('settings.privacyPolicy')}
-            accessibilityHint={t('settings.privacyPolicyHint')}>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <ShieldIcon size={20} color={theme.primary} />
-              </View>
-              <Text className="text-base" style={{color: theme.text}}>
-                {t('settings.privacyPolicy')}
-              </Text>
-            </View>
-            <ChevronRightIcon size={20} color={theme.secondaryText} />
-          </TouchableOpacity>
+            accessibilityHint={t('settings.privacyPolicyHint')}
+            theme={theme}
+          />
 
-          <TouchableOpacity
-            className="px-5 py-4 flex-row justify-between items-center"
-            onPress={() => Linking.openURL(urls.termsOfService)}
-            accessible={true}
+          <SettingRow
+            icon={<ShieldIcon size={20} color={theme.primary} />}
+            title={t('settings.termsOfService')}
+            onPress={handleTermsPress}
             accessibilityLabel={t('settings.termsOfService')}
-            accessibilityHint={t('settings.termsOfServiceHint')}>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{backgroundColor: theme.primary + '15'}}>
-                <ShieldIcon size={20} color={theme.primary} />
-              </View>
-              <Text className="text-base" style={{color: theme.text}}>
-                {t('settings.termsOfService')}
-              </Text>
-            </View>
-            <ChevronRightIcon size={20} color={theme.secondaryText} />
-          </TouchableOpacity>
+            accessibilityHint={t('settings.termsOfServiceHint')}
+            theme={theme}
+            hasBorder={false}
+          />
         </View>
 
         {/* Sign Out Button */}
@@ -738,20 +732,18 @@ const SettingsScreen = () => {
           <TouchableOpacity
             className="rounded-2xl py-4 mb-4 items-center flex-row justify-center shadow-lg"
             style={{backgroundColor: theme.surface}}
-            onPress={() => {
-              triggerHaptic('heavy'); // Strong haptic for logout action
-              logout();
-            }}
+            onPress={handleLogout}
             accessible={true}
             accessibilityLabel={t('auth.signOut')}
-            accessibilityHint={t('auth.signOutHint')}>
+            accessibilityHint={t('auth.signOutHint')}
+            activeOpacity={0.8}>
             <ExitToAppIcon size={20} color="#e11d48" style={{marginRight: 8}} />
             <Text style={{color: '#e11d48'}} className="font-medium text-base">
               {t('auth.signOut')}
             </Text>
           </TouchableOpacity>
         )}
-      </View>
+      </ScrollView>
 
       {/* Feedback Modal */}
       <Modal
@@ -798,7 +790,8 @@ const SettingsScreen = () => {
                       style={{backgroundColor: theme.surface}}
                       accessible={true}
                       accessibilityLabel={t('settings.closeFeedback')}
-                      accessibilityRole="button">
+                      accessibilityRole="button"
+                      activeOpacity={0.7}>
                       <CloseIcon size={20} color={theme.text} />
                     </TouchableOpacity>
                   </View>
@@ -809,7 +802,11 @@ const SettingsScreen = () => {
                     {t('settings.rateExperience')}
                   </Text>
 
-                  {renderRatingStars()}
+                  <RatingStars
+                    rating={feedbackRating}
+                    onRatingChange={setFeedbackRating}
+                    theme={theme}
+                  />
 
                   <Text
                     className="text-base mb-2 mt-4"
@@ -844,7 +841,8 @@ const SettingsScreen = () => {
                     accessible={true}
                     accessibilityLabel={t('settings.submitFeedback')}
                     accessibilityState={{disabled: submittingFeedback}}
-                    accessibilityHint={t('settings.submitFeedbackHint')}>
+                    accessibilityHint={t('settings.submitFeedbackHint')}
+                    activeOpacity={0.8}>
                     {submittingFeedback ? (
                       <Text className="text-white font-medium text-base">
                         {t('settings.submitting')}
@@ -866,7 +864,7 @@ const SettingsScreen = () => {
 
         <Toast config={toastConfig} />
       </Modal>
-    </Animated.ScrollView>
+    </>
   );
 };
 
