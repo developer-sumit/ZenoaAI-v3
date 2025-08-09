@@ -27,11 +27,12 @@ import {
   COMMUNITY_FILTER_OPTIONS,
   DEFAULT_COMMUNITY_FILTER,
 } from '@src/constants';
+import ScrollToTop, {useScrollToTop} from '@src/components/ScrollToTop';
 
 const NUM_COLUMNS = 2;
 type FilterType = (typeof COMMUNITY_FILTER_OPTIONS)[number]['id'];
 
-const HomeScreen = () => {
+const HomeScreen: React.FC = () => {
   const t = useStrings();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
@@ -88,6 +89,7 @@ const HomeScreen = () => {
 
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const {scrollRef, scrollHandler, registerScrollHandler} = useScrollToTop();
 
   // Determine which images to show based on filter
   const imagesToShow = useMemo(() => {
@@ -395,6 +397,15 @@ const HomeScreen = () => {
   // Show loading skeleton only when switching filters and no images for current filter
   const shouldShowSkeleton = isLoadingPublic && imagesToShow.length === 0;
 
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (scrollHandler) {
+        scrollHandler(event);
+      }
+    },
+    [scrollHandler],
+  );
+
   return (
     <View className="flex-1" style={{backgroundColor: theme.background}}>
       {/* Header */}
@@ -454,6 +465,7 @@ const HomeScreen = () => {
           <MasonrySkeleton />
         ) : imagesToShow.length > 0 ? (
           <MasonryFlashList
+            ref={scrollRef}
             data={imagesToShow}
             keyExtractor={(item, index) =>
               `community-${activeFilter}-${item.id}-${index}`
@@ -478,11 +490,18 @@ const HomeScreen = () => {
             onEndReachedThreshold={0.3}
             ListFooterComponent={LoadingFooter}
             extraData={activeFilter}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           />
         ) : (
           EmptyComponent
         )}
       </Animated.View>
+
+      <ScrollToTop
+        scrollRef={scrollRef}
+        registerScrollHandler={registerScrollHandler}
+      />
 
       {/* Image Viewer Modal */}
       {selectedImage && (
