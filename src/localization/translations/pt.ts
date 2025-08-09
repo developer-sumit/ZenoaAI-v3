@@ -201,6 +201,7 @@ export const pt = {
     filters: {
       popular: 'Popular',
       latest: 'Mais recente',
+      trending: 'Em alta',
     },
     noImages: 'Nenhuma imagem da comunidade ainda',
     noImagesDescription:

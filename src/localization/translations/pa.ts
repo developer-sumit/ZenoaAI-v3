@@ -201,6 +201,7 @@ export const pa = {
     filters: {
       popular: 'ਪ੍ਰਸਿੱਧ',
       latest: 'ਤਾਜ਼ਾ',
+      trending: 'ਟ੍ਰੈਂਡਿੰਗ',
     },
     noImages: 'ਅਜੇ ਕੋਈ ਕਮਿਊਨਿਟੀ ਤਸਵੀਰਾਂ ਨਹੀਂ',
     noImagesDescription:

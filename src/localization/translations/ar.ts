@@ -198,6 +198,7 @@ export const ar = {
     filters: {
       popular: 'شائع',
       latest: 'الأحدث',
+      trending: 'رائج',
     },
     noImages: 'لا توجد صور مجتمعية بعد',
     noImagesDescription:

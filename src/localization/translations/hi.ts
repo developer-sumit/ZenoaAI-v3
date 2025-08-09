@@ -199,6 +199,7 @@ export const hi = {
     filters: {
       popular: 'लोकप्रिय',
       latest: 'नवीनतम',
+      trending: 'ट्रेंडिंग',
     },
     noImages: 'अभी तक कोई समुदाय चित्र नहीं',
     noImagesDescription:

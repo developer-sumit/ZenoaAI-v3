@@ -201,6 +201,7 @@ export const id = {
     filters: {
       popular: 'Populer',
       latest: 'Terbaru',
+      trending: 'Trending',
     },
     noImages: 'Belum ada gambar komunitas',
     noImagesDescription:
