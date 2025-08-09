@@ -203,6 +203,7 @@ export const ta = {
     filters: {
       popular: 'பிரபலமானது',
       latest: 'சமீபத்திய',
+      trending: 'டிரெண்டிங்',
     },
     noImages: 'இன்னும் சமூக படங்கள் இல்லை',
     noImagesDescription:

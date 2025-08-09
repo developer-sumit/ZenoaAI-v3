@@ -200,6 +200,7 @@ export const fr = {
     filters: {
       popular: 'Populaire',
       latest: 'Le plus récent',
+      trending: 'Tendance',
     },
     noImages: 'Aucune image communautaire pour le moment',
     noImagesDescription:

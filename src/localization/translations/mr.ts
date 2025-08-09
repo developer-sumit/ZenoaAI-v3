@@ -200,6 +200,7 @@ export const mr = {
     filters: {
       popular: 'लोकप्रिय',
       latest: 'नवीनतम',
+      trending: 'ट्रेंडिंग',
     },
     noImages: 'अजून कोणतीही समुदाय चित्रे नाहीत',
     noImagesDescription:

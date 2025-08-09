@@ -202,6 +202,7 @@ export const te = {
     filters: {
       popular: 'ప్రసిద్ధ',
       latest: 'తాజా',
+      trending: 'ట్రెండింగ్',
     },
     noImages: 'ఇంకా కమ్యూనిటీ చిత్రాలు లేవు',
     noImagesDescription:

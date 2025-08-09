@@ -198,6 +198,7 @@ export const zh = {
     filters: {
       popular: '热门',
       latest: '最新',
+      trending: '趋势',
     },
     noImages: '暂无社区图片',
     noImagesDescription: '当用户分享他们的创作时，社区图片将显示在此处。',
