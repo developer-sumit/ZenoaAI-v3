@@ -445,6 +445,13 @@ export const hi = {
     deleteReasonPlaceholder: 'कृपया हमें और बताएँ...',
     deleteReasonNext: 'अगला',
     deleteReasonBack: 'वापस',
+    selectProfileImage: 'प्रोफ़ाइल चित्र चुनें',
+    selectFromGeneratedImages: 'अपने जनरेट किए गए चित्रों से चुनें',
+    generateImagesFirst:
+      'प्रोफ़ाइल चित्र के रूप में उपयोग करने के लिए पहले कुछ चित्र जनरेट करें',
+    profileImageSelected: 'प्रोफ़ाइल चित्र चुना गया',
+    tapToSelectFromGenerated:
+      'अपने जनरेट किए गए चित्रों से चुनने के लिए टैप करें',
   },
 
   // Email Restriction

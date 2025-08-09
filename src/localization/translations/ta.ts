@@ -451,6 +451,14 @@ export const ta = {
     deleteReasonPlaceholder: 'தயவுசெய்து மேலும் சொல்லுங்கள்...',
     deleteReasonNext: 'அடுத்து',
     deleteReasonBack: 'பின்செல்',
+    selectProfileImage: 'சுயவிவரப் படத்தைத் தேர்ந்தெடு',
+    selectFromGeneratedImages:
+      'உங்கள் உருவாக்கிய படங்களிலிருந்து தேர்வு செய்யுங்கள்',
+    generateImagesFirst:
+      'சுயவிவரப் படமாகப் பயன்படுத்த முதலில் சில படங்களை உருவாக்கவும்',
+    profileImageSelected: 'சுயவிவரப் படம் தேர்ந்தெடுக்கப்பட்டது',
+    tapToSelectFromGenerated:
+      'உங்கள் உருவாக்கிய படங்களிலிருந்து தேர்வு செய்ய தட்டவும்',
   },
 
   // Email Restriction

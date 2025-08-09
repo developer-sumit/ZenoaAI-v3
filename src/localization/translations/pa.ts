@@ -447,6 +447,13 @@ export const pa = {
     deleteReasonPlaceholder: 'ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਹੋਰ ਦੱਸੋ...',
     deleteReasonNext: 'ਅੱਗੇ',
     deleteReasonBack: 'ਪਿੱਛੇ',
+    selectProfileImage: 'ਪ੍ਰੋਫਾਈਲ ਤਸਵੀਰ ਚੁਣੋ',
+    selectFromGeneratedImages: 'ਆਪਣੀਆਂ ਤਿਆਰ ਕੀਤੀਆਂ ਤਸਵੀਰਾਂ ਵਿੱਚੋਂ ਚੁਣੋ',
+    generateImagesFirst:
+      'ਪ੍ਰੋਫਾਈਲ ਤਸਵੀਰ ਵਜੋਂ ਵਰਤਣ ਲਈ ਪਹਿਲਾਂ ਕੁਝ ਤਸਵੀਰਾਂ ਤਿਆਰ ਕਰੋ',
+    profileImageSelected: 'ਪ੍ਰੋਫਾਈਲ ਤਸਵੀਰ ਚੁਣੀ ਗਈ',
+    tapToSelectFromGenerated:
+      'ਆਪਣੀਆਂ ਤਿਆਰ ਕੀਤੀਆਂ ਤਸਵੀਰਾਂ ਵਿੱਚੋਂ ਚੁਣਨ ਲਈ ਟੈਪ ਕਰੋ',
   },
 
   // Email Restriction

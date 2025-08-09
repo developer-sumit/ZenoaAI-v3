@@ -446,6 +446,13 @@ export const mr = {
     deleteReasonPlaceholder: 'कृपया आम्हाला अधिक सांगा...',
     deleteReasonNext: 'पुढील',
     deleteReasonBack: 'मागे',
+    selectProfileImage: 'प्रोफाइल चित्र निवडा',
+    selectFromGeneratedImages: 'तुमच्या तयार केलेल्या चित्रांमधून निवडा',
+    generateImagesFirst:
+      'प्रोफाइल चित्र म्हणून वापरण्यासाठी प्रथम काही चित्रे तयार करा',
+    profileImageSelected: 'प्रोफाइल चित्र निवडले',
+    tapToSelectFromGenerated:
+      'तुमच्या तयार केलेल्या चित्रांमधून निवडण्यासाठी टॅप करा',
   },
 
   // Email Restriction

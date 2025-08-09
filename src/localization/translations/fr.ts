@@ -168,8 +168,8 @@ export const fr = {
     generateImageHint: 'Générer une image à partir de votre description',
     noImages: 'Aucune image pour le moment',
     startCreating: "Commencez à créer votre première image générée par l'IA",
-    quotaRemaining: '{{remaining}} restant aujourd\'hui',
-    quotaRemainingOf: '{{remaining}} sur {{total}} aujourd\'hui',
+    quotaRemaining: "{{remaining}} restant aujourd'hui",
+    quotaRemainingOf: "{{remaining}} sur {{total}} aujourd'hui",
     quotaResetsDaily: 'Se remet à zéro à minuit',
   },
 
@@ -450,6 +450,13 @@ export const fr = {
     deleteReasonPlaceholder: 'Veuillez nous en dire plus...',
     deleteReasonNext: 'Suivant',
     deleteReasonBack: 'Retour',
+    selectProfileImage: 'Sélectionner une image de profil',
+    selectFromGeneratedImages: 'Choisir parmi vos images générées',
+    generateImagesFirst:
+      "Générez d'abord des images pour les utiliser comme photo de profil",
+    profileImageSelected: 'Image de profil sélectionnée',
+    tapToSelectFromGenerated:
+      'Appuyez pour sélectionner parmi vos images générées',
   },
 
   // Email Restriction
