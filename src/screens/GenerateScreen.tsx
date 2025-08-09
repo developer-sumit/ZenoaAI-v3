@@ -92,7 +92,6 @@ const GenerateScreen = () => {
     Keyboard.dismiss(); // Dismiss keyboard on generate
 
     if (!user?.uid) {
-      showToast(t('auth.signInRequired'), 'error');
       show();
       return;
     }
@@ -252,6 +251,7 @@ const GenerateScreen = () => {
         <ImageCard
           image={item}
           onPress={() => setSelectedImage(item)}
+          hideFavorite
           style={{width: '95%'}}
         />
       </View>
@@ -459,7 +459,7 @@ const GenerateScreen = () => {
         )}
 
         {/* Generate Button */}
-        {availableQuota === 0 && (
+        {user && availableQuota === 0 && (
           <View
             className="py-4 mx-4 rounded-2xl"
             style={{backgroundColor: '#fee2e2'}}>

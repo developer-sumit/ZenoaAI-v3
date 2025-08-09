@@ -677,7 +677,7 @@ const AdvancedSettingsScreen: React.FC = () => {
               </View>
             )}
 
-            {availableQuota === 0 && (
+            {user && availableQuota === 0 && (
               <View
                 className="mb-4 p-3 rounded-xl"
                 style={{backgroundColor: '#fee2e2'}}>
