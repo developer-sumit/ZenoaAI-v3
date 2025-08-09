@@ -61,20 +61,28 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
 
     // 4. Authenticate with our server using Firebase ID token
     const response = await authAPI.googleAuth(firebaseIdToken);
-    if (response.data.success) {
-      // Check if this is a restriction-only response (no profile data)
-      if (response.data.emailRestrictionExpiresAt && !response.data.profile) {
-        // User is restricted, create and throw a restriction error
-        const restrictionError = new Error(
-          'This email cannot be used to create a new account due to a recent account deletion.',
-        );
-        (restrictionError as any).errorType = 'EMAIL_RESTRICTION';
-        (restrictionError as any).emailRestrictionExpiresAt = new Date(
-          response.data.emailRestrictionExpiresAt,
-        );
-        throw restrictionError;
-      }
 
+    console.warn('Error response for auth: ', {response});
+
+    // Check if this is a restriction-only response (no profile data)
+    if (
+      response.data &&
+      response.data.success &&
+      response.data.data &&
+      response.data.data.emailRestrictionExpiresAt
+    ) {
+      // User is restricted, create and throw a restriction error
+      const restrictionError = new Error(
+        'This email cannot be used to create a new account due to a recent account deletion.',
+      );
+      (restrictionError as any).errorType = 'EMAIL_RESTRICTION';
+      (restrictionError as any).emailRestrictionExpiresAt = new Date(
+        response.data.data.emailRestrictionExpiresAt,
+      );
+      throw restrictionError;
+    }
+
+    if (response.data && response.data.success) {
       // Ensure we have profile data for normal authentication
       if (!response.data.profile) {
         throw new Error('Invalid response: missing profile data');
@@ -136,6 +144,14 @@ const signInWithGoogle = async (googleIdToken: string): Promise<User> => {
     }
   } catch (error: any) {
     console.error('Google auth error:', error);
+
+    if (error.emailRestrictionExpiresAt) {
+      const authError = new Error(error.message);
+      (authError as any).errorType = error.errorType;
+      (authError as any).emailRestrictionExpiresAt =
+        error.emailRestrictionExpiresAt;
+      throw authError;
+    }
 
     // Format the error message for better UX
     let errorMessage = 'Authentication failed';
