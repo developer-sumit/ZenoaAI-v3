@@ -169,6 +169,9 @@ export const pt = {
     generateImageHint: 'Gerar uma imagem a partir de sua descrição',
     noImages: 'Nenhuma imagem ainda',
     startCreating: 'Comece a criar sua primeira imagem gerada por IA',
+    quotaRemaining: '{{remaining}} restantes hoje',
+    quotaRemainingOf: '{{remaining}} de {{total}} hoje',
+    quotaResetsDaily: 'Redefine à meia-noite',
   },
 
   // Gallery
@@ -403,6 +406,11 @@ export const pt = {
     shareAppHint: 'Compartilhar o aplicativo com seus amigos',
     contactSupport: 'Contatar Suporte',
     contactSupportHint: 'Obter ajuda de nossa equipe de suporte',
+    imagesRemainingDaily: '{{count}} / {{total}} por dia',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/dia',
+    dailyQuota: 'Cota Diária',
+    dailyReset: 'Redefine diariamente à meia-noite',
+    renewsIn: 'Renova em {{hours}}h {{minutes}}m',
   },
 
   // Edit Profile

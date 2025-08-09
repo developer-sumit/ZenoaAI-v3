@@ -166,6 +166,9 @@ export const en = {
     generateImageHint: 'Generate an image from your description',
     noImages: 'No images yet',
     startCreating: 'Start creating your first AI-generated image',
+    quotaRemaining: '{{remaining}} left today',
+    quotaRemainingOf: '{{remaining}} of {{total}} today',
+    quotaResetsDaily: 'Resets at midnight',
   },
 
   // Gallery
@@ -378,7 +381,12 @@ export const en = {
     images: 'Images',
     imagesRemaining: '{{count}} image remaining',
     imagesRemaining_plural: '{{count}} images remaining',
+    imagesRemainingDaily: '{{count}} / {{total}} per day',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/day',
     planType: 'Plan Type',
+    dailyQuota: 'Daily Quota',
+    dailyReset: 'Resets daily at midnight',
+    renewsIn: 'Renews in {{hours}}h {{minutes}}m',
     notifications: 'Notifications',
     notificationsDesc: 'Receive updates about your images',
     notificationsEnabled: 'Notifications enabled',

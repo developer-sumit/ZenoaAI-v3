@@ -172,6 +172,9 @@ export const de = {
     noImages: 'Noch keine Bilder',
     startCreating:
       'Beginnen Sie mit der Erstellung Ihres ersten KI-generierten Bildes',
+    quotaRemaining: '{{remaining}} heute übrig',
+    quotaRemainingOf: '{{remaining}} von {{total}} heute',
+    quotaResetsDaily: 'Wird um Mitternacht zurückgesetzt',
   },
 
   // Gallery
@@ -406,6 +409,11 @@ export const de = {
     shareAppHint: 'Die App mit Ihren Freunden teilen',
     contactSupport: 'Support kontaktieren',
     contactSupportHint: 'Hilfe von unserem Support-Team erhalten',
+    imagesRemainingDaily: '{{count}} / {{total}} pro Tag',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/Tag',
+    dailyQuota: 'Tägliches Kontingent',
+    dailyReset: 'Wird täglich um Mitternacht zurückgesetzt',
+    renewsIn: 'Erneuert sich in {{hours}}h {{minutes}}m',
   },
 
   // Edit Profile

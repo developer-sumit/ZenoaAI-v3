@@ -202,6 +202,22 @@ const SettingsScreen = () => {
       });
   };
 
+  // Calculate time until midnight for reset info
+  const getTimeUntilReset = () => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const timeDiff = tomorrow.getTime() - now.getTime();
+    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return {hours, minutes};
+  };
+
+  const resetTime = getTimeUntilReset();
+
   const currentProfile = getProfileData();
 
   const renderRatingStars = () => {
@@ -298,7 +314,7 @@ const SettingsScreen = () => {
       </View>
 
       <View className="mt-10">
-        {/* Quota Information Section */}
+        {/* Enhanced Quota Information Section */}
         {user && (
           <View
             className="rounded-3xl mb-6 overflow-hidden shadow-lg mx-0"
@@ -309,29 +325,57 @@ const SettingsScreen = () => {
               <Text
                 className="text-lg font-semibold"
                 style={{color: theme.secondaryText}}>
-                {t('settings.quotaTitle')}
+                {t('settings.dailyQuota')}
+              </Text>
+              <Text className="text-xs" style={{color: theme.secondaryText}}>
+                {t('settings.renewsIn', {
+                  hours: resetTime.hours,
+                  minutes: resetTime.minutes,
+                })}
               </Text>
             </View>
             <View className="px-5 py-4">
-              {/* Images Remaining */}
+              {/* Images Remaining with Daily Context */}
               <View className="mb-4">
                 <View className="flex-row justify-between items-center mb-2">
-                  <Text
-                    style={{color: theme.text}}
-                    className="text-base font-medium">
-                    {t('settings.images')}
-                  </Text>
-                  <Text
-                    style={{color: theme.primary}}
-                    className="text-base font-bold">
-                    {user.quota
-                      ? `${user.quota.imagesRemaining}${
-                          user.quota.planLimits.totalImages
-                            ? ` / ${user.quota.planLimits.totalImages}`
-                            : ''
-                        }`
-                      : '0'}
-                  </Text>
+                  <View>
+                    <Text
+                      style={{color: theme.text}}
+                      className="text-base font-medium">
+                      {t('settings.images')}
+                    </Text>
+                    <Text
+                      style={{color: theme.secondaryText}}
+                      className="text-xs">
+                      {t('settings.dailyReset')}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text
+                      style={{color: theme.primary}}
+                      className="text-base font-bold">
+                      {user.quota
+                        ? user.quota.planLimits.totalImages
+                          ? t('settings.imagesRemainingDaily', {
+                              count: user.quota.imagesRemaining,
+                              total: user.quota.planLimits.totalImages,
+                            })
+                          : `${user.quota.imagesRemaining}`
+                        : '0'}
+                    </Text>
+                    {user.quota?.planLimits.totalImages && (
+                      <Text
+                        style={{color: theme.secondaryText}}
+                        className="text-xs">
+                        {Math.round(
+                          (user.quota.imagesRemaining /
+                            user.quota.planLimits.totalImages) *
+                            100,
+                        )}
+                        % remaining
+                      </Text>
+                    )}
+                  </View>
                 </View>
                 <View
                   className="h-2 rounded-full"
@@ -354,15 +398,15 @@ const SettingsScreen = () => {
                               100,
                             )
                           : user.quota?.imagesRemaining
-                            ? 100 // Show full bar if no limit is specified
+                            ? 100
                             : 0
                       }%`,
                     }}
                   />
                 </View>
               </View>
+
               {/* Plan Type */}
-              {/* TODO: Change the color based on the plan type */}
               <View className="flex-row justify-between items-center">
                 <Text
                   style={{color: theme.text}}
