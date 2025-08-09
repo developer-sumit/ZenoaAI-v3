@@ -372,12 +372,7 @@ const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({
                 onEndReachedThreshold={0.5}
                 extraData={selectedImageUrl} // Re-render when selection changes
                 removeClippedSubviews={true}
-                // FlashList specific optimizations
-                overrideItemLayout={(layout, item, index) => {
-                  // Calculate position for grid layout
-                  const columnIndex = index % 3;
-                  const rowIndex = Math.floor(index / 3);
-
+                overrideItemLayout={layout => {
                   layout.span = 1;
                   layout.size = ITEM_SIZE + 10;
                 }}

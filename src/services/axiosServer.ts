@@ -218,6 +218,10 @@ export const imageAPI = {
   flagImage: (imageId: string, reasons: string[]) => {
     return axiosServer.post(`/api/images/${imageId}/flag`, {reasons});
   },
+
+  getAvailableOptions: () => {
+    return axiosServer.get('/api/images/options');
+  },
 };
 
 export default axiosServer;

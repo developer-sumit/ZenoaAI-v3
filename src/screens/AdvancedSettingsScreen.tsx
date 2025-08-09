@@ -19,6 +19,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
@@ -32,10 +33,11 @@ import {Theme, useTheme} from '@src/store/themeStore';
 import {useAuthStore} from '@src/store/authStore';
 import {useHaptics} from '@src/hooks/useHaptics';
 import InfoDialog from '@src/components/InfoDialog';
-import {planLimits} from '@src/constants/planLimits';
 import {ArtStyleType, ImageSize} from '@src/types/image';
 import {useGenerationStore} from '@src/store/generationStore';
 import {useImageStore} from '@src/store/imageStore';
+import {useAvailableOptions} from '@src/hooks/useAvailableOptions';
+import useToast from '@src/hooks/useToast';
 
 // Icons
 import ArrowBackIcon from '@src/assets/icons/ArrowBackIcon';
@@ -45,6 +47,7 @@ import InfoIcon from '@src/assets/icons/InfoIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import SearchIcon from '@src/assets/icons/SearchIcon';
 import LockIcon from '@src/assets/icons/LockIcon';
+import {ENGINE_TYPES} from '@src/constants';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -395,6 +398,7 @@ const AdvancedSettingsScreen: React.FC = () => {
   const {triggerHaptic} = useHaptics();
   const {user} = useAuthStore();
   const {getAvailableQuota} = useImageStore();
+  const {showToast} = useToast();
   const {
     engine,
     aspectRatio,
@@ -416,6 +420,19 @@ const AdvancedSettingsScreen: React.FC = () => {
     setSeed,
   } = useGenerationStore();
 
+  // Use the new options hook
+  const {
+    options,
+    loading: optionsLoading,
+    error: optionsError,
+    refreshOptions,
+    isEngineAvailable,
+    isAspectRatioAvailable,
+    isSizeAvailable,
+    isFeatureAvailable,
+    getMaxBatchCount,
+  } = useAvailableOptions();
+
   // Refs for TextInputs to maintain focus
   const seedInputRef = useRef<TextInput>(null);
   const negativePromptRef = useRef<TextInput>(null);
@@ -425,17 +442,20 @@ const AdvancedSettingsScreen: React.FC = () => {
   const [dialogContent, setDialogContent] = useState({title: '', message: ''});
   const [artStylesDialogVisible, setArtStylesDialogVisible] = useState(false);
 
-  const limits = planLimits[user?.planType || 'free'];
-  const allowedAspectRatios = limits.aspectRatios;
-  const allowedSizes = limits.sizes;
-  const maxBatch = limits.maxBatch;
-
   // Get available quota and apply it to batch limits
   const availableQuota = getAvailableQuota();
-  const effectiveMaxBatch = Math.min(maxBatch, availableQuota);
+  const serverMaxBatch = getMaxBatchCount();
+  const effectiveMaxBatch = Math.min(serverMaxBatch, availableQuota);
 
   // State to track if keyboard is showing
   const [_, setKeyboardVisible] = useState(false);
+
+  // Show error toast if options failed to load
+  useEffect(() => {
+    if (optionsError && !optionsLoading) {
+      showToast(`Failed to load plan options: ${optionsError}`, 'error');
+    }
+  }, [optionsError, optionsLoading, showToast]);
 
   // Keyboard event listeners
   useEffect(() => {
@@ -504,6 +524,66 @@ const AdvancedSettingsScreen: React.FC = () => {
     [setStyles, triggerHaptic],
   );
 
+  const handleLockedFeature = useCallback(
+    (featureName: string) => {
+      triggerHaptic('error');
+      showToast(
+        `${featureName} is only available in ${
+          user?.planType === 'free' ? 'Pro and Enterprise' : 'Enterprise'
+        } plans. Upgrade to unlock this feature.`,
+        'warning',
+      );
+    },
+    [triggerHaptic, showToast, user?.planType],
+  );
+
+  // Show loading state while options are being fetched
+  if (optionsLoading || !options) {
+    return (
+      <SafeAreaView
+        style={{backgroundColor: theme.background}}
+        className="flex-1">
+        {/* Header */}
+        <View className="flex-row items-center justify-between py-3 px-4">
+          <TouchableOpacity
+            onPress={() => {
+              triggerHaptic('selection');
+              navigation.goBack();
+            }}
+            className="p-2"
+            accessible={true}
+            accessibilityLabel={t('common.back')}>
+            <ArrowBackIcon size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text className="text-xl font-semibold" style={{color: theme.text}}>
+            {t('advanced.title')}
+          </Text>
+          <View style={{width: 40}} />
+        </View>
+
+        {/* Loading State */}
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text className="text-lg mt-4" style={{color: theme.text}}>
+            Loading plan options...
+          </Text>
+          {optionsError && (
+            <TouchableOpacity
+              onPress={refreshOptions}
+              className="mt-4 px-6 py-3 rounded-xl"
+              style={{backgroundColor: theme.surface}}>
+              <Text
+                className="text-base font-medium"
+                style={{color: theme.primary}}>
+                {t('common.retry')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={{backgroundColor: theme.background}}
@@ -549,83 +629,72 @@ const AdvancedSettingsScreen: React.FC = () => {
             />
 
             <View className="flex-row gap-2">
-              <TouchableOpacity
-                onPress={() => {
-                  triggerHaptic('selection');
-                  setEngine('quantum');
-                }}
-                style={{
-                  backgroundColor:
-                    engine === 'quantum' ? theme.primary : theme.background,
-                }}
-                className={clsx(
-                  'flex-1 p-4',
-                  engine === 'quantum' ? 'rounded-2xl' : 'rounded-xl',
-                )}>
-                <Text
-                  style={{
-                    color:
-                      engine === 'quantum'
-                        ? isDark
-                          ? theme.text
-                          : 'white'
-                        : theme.text,
-                  }}
-                  className="text-lg font-medium text-center">
-                  Quantum
-                </Text>
-                <Text
-                  style={{
-                    color:
-                      engine === 'quantum'
-                        ? isDark
-                          ? theme.secondaryText
-                          : 'white'
-                        : theme.secondaryText,
-                  }}
-                  className="text-xs text-center mt-1">
-                  {t('advanced.quantumEngineHint')}
-                </Text>
-              </TouchableOpacity>
+              {Object.values(ENGINE_TYPES).map(engineType => {
+                const isAvailable = isEngineAvailable(engineType);
 
-              <TouchableOpacity
-                onPress={() => {
-                  triggerHaptic('selection');
-                  setEngine('nebula');
-                }}
-                style={{
-                  backgroundColor:
-                    engine === 'nebula' ? theme.primary : theme.background,
-                }}
-                className={clsx(
-                  'flex-1 p-4',
-                  engine === 'nebula' ? 'rounded-2xl' : 'rounded-xl',
-                )}>
-                <Text
-                  style={{
-                    color:
-                      engine === 'nebula'
-                        ? isDark
-                          ? theme.text
-                          : 'white'
-                        : theme.text,
-                  }}
-                  className="text-lg font-medium text-center">
-                  Nebula
-                </Text>
-                <Text
-                  style={{
-                    color:
-                      engine === 'nebula'
-                        ? isDark
-                          ? theme.secondaryText
-                          : 'white'
-                        : theme.secondaryText,
-                  }}
-                  className="text-xs text-center mt-1">
-                  {t('advanced.nebulaEngineHint')}
-                </Text>
-              </TouchableOpacity>
+                return (
+                  <TouchableOpacity
+                    key={engineType}
+                    onPress={() => {
+                      if (!isAvailable) {
+                        handleLockedFeature(
+                          `${engineType.charAt(0).toUpperCase() + engineType.slice(1)} Engine`,
+                        );
+                        return;
+                      }
+                      triggerHaptic('selection');
+                      setEngine(engineType as any);
+                    }}
+                    style={{
+                      backgroundColor:
+                        engine === engineType
+                          ? theme.primary
+                          : theme.background,
+                      opacity: isAvailable ? 1 : 0.6,
+                    }}
+                    className={clsx(
+                      'flex-1 p-4 relative',
+                      engine === engineType ? 'rounded-2xl' : 'rounded-xl',
+                    )}>
+                    <Text
+                      style={{
+                        color:
+                          engine === engineType
+                            ? isDark
+                              ? theme.text
+                              : 'white'
+                            : theme.text,
+                      }}
+                      className="text-lg font-medium text-center">
+                      {engineType.charAt(0).toUpperCase() + engineType.slice(1)}
+                    </Text>
+                    <Text
+                      style={{
+                        color:
+                          engine === engineType
+                            ? isDark
+                              ? theme.secondaryText
+                              : 'white'
+                            : theme.secondaryText,
+                      }}
+                      className="text-xs text-center mt-1">
+                      {t(`advanced.${engineType}EngineHint`)}
+                    </Text>
+
+                    {!isAvailable && (
+                      <View
+                        className="absolute top-2 right-2 p-1 rounded-full"
+                        style={{backgroundColor: theme.surface + '80'}}>
+                        <LockIcon
+                          width={16}
+                          height={16}
+                          color={theme.secondaryText}
+                        />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -664,7 +733,7 @@ const AdvancedSettingsScreen: React.FC = () => {
             />
 
             {/* Quota Warning */}
-            {availableQuota < maxBatch && availableQuota > 0 && (
+            {availableQuota < serverMaxBatch && availableQuota > 0 && (
               <View
                 className="mb-3 p-3 rounded-xl"
                 style={{backgroundColor: '#fef3c7'}}>
@@ -692,7 +761,7 @@ const AdvancedSettingsScreen: React.FC = () => {
 
             <View className="flex-row flex-wrap gap-2">
               {[1, 2, 4, 6, 8, 10].map(count => {
-                const isAllowedByPlan = count <= maxBatch;
+                const isAllowedByPlan = count <= serverMaxBatch;
                 const isAllowedByQuota = count <= availableQuota;
                 const isAllowed = isAllowedByPlan && isAllowedByQuota;
 
@@ -700,12 +769,18 @@ const AdvancedSettingsScreen: React.FC = () => {
                   <TouchableOpacity
                     key={count}
                     onPress={() => {
-                      if (!isAllowed) return;
+                      if (!isAllowedByPlan) {
+                        handleLockedFeature(`${count} images batch`);
+                        return;
+                      }
+                      if (!isAllowedByQuota) {
+                        showToast('Not enough quota remaining', 'error');
+                        return;
+                      }
                       triggerHaptic('selection');
                       LayoutAnimation.spring();
                       setNumberOfImages(count);
                     }}
-                    disabled={!isAllowed}
                     style={{
                       backgroundColor:
                         numberOfImages === count
@@ -713,10 +788,10 @@ const AdvancedSettingsScreen: React.FC = () => {
                           : theme.background,
                       minWidth: 55,
                       width: '15%',
-                      opacity: isAllowed ? 1 : 0.5,
+                      opacity: isAllowed ? 1 : 0.6,
                     }}
                     className={clsx(
-                      'px-5 py-2.5 items-center justify-center flex-row',
+                      'px-5 py-2.5 items-center justify-center flex-row relative',
                       numberOfImages === count ? 'rounded-2xl' : 'rounded-xl',
                     )}>
                     <Text
@@ -731,18 +806,13 @@ const AdvancedSettingsScreen: React.FC = () => {
                       className="text-lg">
                       {count}
                     </Text>
-                    {!isAllowed && (
+                    {!isAllowedByPlan && (
                       <View
-                        className="absolute p-2 z-[3] rounded-full border"
-                        style={{
-                          top: -5,
-                          right: -5,
-                          backgroundColor: theme.surface + '80',
-                        }}
-                        pointerEvents="none">
+                        className="absolute top-1 right-1 p-1 rounded-full"
+                        style={{backgroundColor: theme.surface + '80'}}>
                         <LockIcon
-                          width={18}
-                          height={18}
+                          width={12}
+                          height={12}
                           color={theme.secondaryText}
                         />
                       </View>
@@ -783,7 +853,7 @@ const AdvancedSettingsScreen: React.FC = () => {
               />
               <View className="flex-row flex-wrap gap-2">
                 {Object.keys(aspectRatios).map(ratio => {
-                  const isAllowed = allowedAspectRatios.includes(ratio);
+                  const isAvailable = isAspectRatioAvailable(ratio);
                   const [width, height] = ratio.split(':').map(Number);
                   const BASE_SIZE = 24;
                   let displayWidth, displayHeight;
@@ -797,25 +867,28 @@ const AdvancedSettingsScreen: React.FC = () => {
                   const SCALE_FACTOR = 1.5;
                   if (displayWidth < 12) displayWidth *= SCALE_FACTOR;
                   if (displayHeight < 12) displayHeight *= SCALE_FACTOR;
+
                   return (
                     <TouchableOpacity
                       key={ratio}
                       onPress={() => {
-                        if (!isAllowed) return;
+                        if (!isAvailable) {
+                          handleLockedFeature(`${ratio} aspect ratio`);
+                          return;
+                        }
                         triggerHaptic('selection');
                         LayoutAnimation.spring();
                         setAspectRatio(ratio);
                       }}
-                      disabled={!isAllowed}
                       style={{
                         backgroundColor:
                           aspectRatio === ratio
                             ? theme.primary
                             : theme.background,
-                        opacity: isAllowed ? 1 : 0.5,
+                        opacity: isAvailable ? 1 : 0.6,
                       }}
                       className={clsx(
-                        'px-4 py-3 items-center justify-center',
+                        'px-4 py-3 items-center justify-center relative',
                         aspectRatio === ratio ? 'rounded-2xl' : 'rounded-xl',
                       )}>
                       <View
@@ -848,18 +921,13 @@ const AdvancedSettingsScreen: React.FC = () => {
                         className="text-base font-medium">
                         {ratio}
                       </Text>
-                      {!isAllowed && (
+                      {!isAvailable && (
                         <View
-                          className="absolute p-2 z-[3] rounded-full border"
-                          style={{
-                            top: -5,
-                            right: -5,
-                            backgroundColor: theme.surface + '80',
-                          }}
-                          pointerEvents="none">
+                          className="absolute top-1 right-1 p-1 rounded-full"
+                          style={{backgroundColor: theme.surface + '80'}}>
                           <LockIcon
-                            width={18}
-                            height={18}
+                            width={12}
+                            height={12}
                             color={theme.secondaryText}
                           />
                         </View>
@@ -882,24 +950,27 @@ const AdvancedSettingsScreen: React.FC = () => {
                 {Object.entries(
                   aspectRatios[aspectRatio as keyof typeof aspectRatios],
                 ).map(([size, dim]) => {
-                  const isAllowed = allowedSizes.includes(size);
+                  const isAvailable = isSizeAvailable(size);
+
                   return (
                     <TouchableOpacity
-                      key={size[0]}
+                      key={size}
                       onPress={() => {
-                        if (!isAllowed) return;
+                        if (!isAvailable) {
+                          handleLockedFeature(`${size} size`);
+                          return;
+                        }
                         triggerHaptic('selection');
                         LayoutAnimation.spring();
                         setImageSize(size as ImageSize);
                       }}
-                      disabled={!isAllowed}
                       style={{
                         backgroundColor:
                           imageSize === size ? theme.primary : theme.background,
-                        opacity: isAllowed ? 1 : 0.5,
+                        opacity: isAvailable ? 1 : 0.6,
                       }}
                       className={clsx(
-                        'flex-1 p-3 items-center justify-center',
+                        'flex-1 p-3 items-center justify-center relative',
                         imageSize === size ? 'rounded-2xl' : 'rounded-xl',
                       )}>
                       <Text
@@ -927,18 +998,13 @@ const AdvancedSettingsScreen: React.FC = () => {
                         className="text-center text-sm ml-1">
                         {dim.width}x{dim.height}
                       </Text>
-                      {!isAllowed && (
+                      {!isAvailable && (
                         <View
-                          className="absolute p-2 z-[3] rounded-full border"
-                          style={{
-                            top: -5,
-                            right: -5,
-                            backgroundColor: theme.surface + '80',
-                          }}
-                          pointerEvents="none">
+                          className="absolute top-1 right-1 p-1 rounded-full"
+                          style={{backgroundColor: theme.surface + '80'}}>
                           <LockIcon
-                            width={18}
-                            height={18}
+                            width={12}
+                            height={12}
                             color={theme.secondaryText}
                           />
                         </View>
@@ -965,16 +1031,18 @@ const AdvancedSettingsScreen: React.FC = () => {
                   <Text style={{color: theme.text}} className="text-lg">
                     {t('advanced.privateImages')}
                   </Text>
-                  {user?.planType === 'free' && (
+                  {!isFeatureAvailable('privateImages') && (
                     <View className="ml-2 bg-yellow-500 px-2 py-1 rounded-full">
                       <Text className="text-yellow-900 text-xs font-medium">
-                        Pro Only
+                        {options?.userPlan === 'free'
+                          ? 'Pro Only'
+                          : 'Enterprise Only'}
                       </Text>
                     </View>
                   )}
                 </View>
                 <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {user?.planType === 'free'
+                  {!isFeatureAvailable('privateImages')
                     ? t('advanced.upgradeToMakePrivate')
                     : isPrivate
                       ? t('advanced.imagesWillBePrivate')
@@ -985,15 +1053,17 @@ const AdvancedSettingsScreen: React.FC = () => {
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
                   backgroundColor:
-                    isPrivate && user?.planType !== 'free'
+                    isPrivate && isFeatureAvailable('privateImages')
                       ? theme.primary
                       : '#cbd5e1',
                 }}
-                disabled={user?.planType === 'free'}
+                disabled={!isFeatureAvailable('privateImages')}
                 onPress={() => {
-                  if (user?.planType === 'free') {
+                  if (!isFeatureAvailable('privateImages')) {
+                    handleLockedFeature('Private Images');
                     return;
                   }
+                  triggerHaptic('selection');
                   setIsPrivate(!isPrivate);
                 }}
                 accessible={true}
@@ -1019,22 +1089,46 @@ const AdvancedSettingsScreen: React.FC = () => {
               theme={theme}
             />
             <View className="flex-row justify-between items-center py-2">
-              <View className="flex-1">
-                <Text style={{color: theme.text}}>
-                  {t('advanced.premiumImages')}
-                </Text>
+              <View className="flex-1 mr-4">
+                <View className="flex-row items-center">
+                  <Text style={{color: theme.text}}>
+                    {t('advanced.premiumImages')}
+                  </Text>
+                  {!isFeatureAvailable('highResolution') && (
+                    <View className="ml-2 bg-yellow-500 px-2 py-1 rounded-full">
+                      <Text className="text-yellow-900 text-xs font-medium">
+                        {options?.userPlan === 'free'
+                          ? 'Pro Only'
+                          : 'Enterprise Only'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={{color: theme.secondaryText}} className="text-xs">
-                  {isPremium
-                    ? t('advanced.imagesWillBePremium')
-                    : t('advanced.imagesWillBeStandard')}
+                  {!isFeatureAvailable('highResolution')
+                    ? 'Upgrade to unlock high-resolution images'
+                    : isPremium
+                      ? t('advanced.imagesWillBePremium')
+                      : t('advanced.imagesWillBeStandard')}
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() => setIsPremium(!isPremium)}
+                onPress={() => {
+                  if (!isFeatureAvailable('highResolution')) {
+                    handleLockedFeature('High Resolution');
+                    return;
+                  }
+                  triggerHaptic('selection');
+                  setIsPremium(!isPremium);
+                }}
                 className="w-14 h-8 rounded-full p-1.5"
                 style={{
-                  backgroundColor: isPremium ? theme.primary : '#cbd5e1',
+                  backgroundColor:
+                    isPremium && isFeatureAvailable('highResolution')
+                      ? theme.primary
+                      : '#cbd5e1',
                 }}
+                disabled={!isFeatureAvailable('highResolution')}
                 accessible={true}
                 accessibilityLabel={t('advanced.quality')}
                 accessibilityRole="switch"
