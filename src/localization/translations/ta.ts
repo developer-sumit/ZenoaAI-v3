@@ -171,6 +171,9 @@ export const ta = {
     generateImageHint: 'உங்கள் விளக்கத்திலிருந்து ஒரு படத்தை உருவாக்கவும்',
     noImages: 'இன்னும் படங்கள் இல்லை',
     startCreating: 'உங்கள் முதல் AI-உருவாக்கிய படத்தை உருவாக்கத் தொடங்குங்கள்',
+    quotaRemaining: '{{remaining}} இன்று மீதம்',
+    quotaRemainingOf: '{{remaining}} இல் {{total}} இன்று',
+    quotaResetsDaily: 'நள்ளிரவில் மீட்டமைக்கப்படும்',
   },
 
   // Gallery
@@ -200,6 +203,7 @@ export const ta = {
     filters: {
       popular: 'பிரபலமானது',
       latest: 'சமீபத்திய',
+      trending: 'டிரெண்டிங்',
     },
     noImages: 'இன்னும் சமூக படங்கள் இல்லை',
     noImagesDescription:
@@ -404,6 +408,11 @@ export const ta = {
     shareAppHint: 'உங்கள் நண்பர்களுடன் பயன்பாட்டைப் பகிர்',
     contactSupport: 'ஆதரவைத் தொடர்புகொள்',
     contactSupportHint: 'எங்கள் ஆதரவு குழுவிடம் உதவி பெறு',
+    imagesRemainingDaily: '{{count}} / {{total}} ஒரு நாளில்',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/நாள்',
+    dailyQuota: 'தினசரி ஒதுக்கீடு',
+    dailyReset: 'நள்ளிரவில் தினமும் மீட்டமைக்கப்படும்',
+    renewsIn: '{{hours}}மண {{minutes}}நி இல் புதுப்பிப்பு',
   },
 
   // Edit Profile
@@ -442,6 +451,14 @@ export const ta = {
     deleteReasonPlaceholder: 'தயவுசெய்து மேலும் சொல்லுங்கள்...',
     deleteReasonNext: 'அடுத்து',
     deleteReasonBack: 'பின்செல்',
+    selectProfileImage: 'சுயவிவரப் படத்தைத் தேர்ந்தெடு',
+    selectFromGeneratedImages:
+      'உங்கள் உருவாக்கிய படங்களிலிருந்து தேர்வு செய்யுங்கள்',
+    generateImagesFirst:
+      'சுயவிவரப் படமாகப் பயன்படுத்த முதலில் சில படங்களை உருவாக்கவும்',
+    profileImageSelected: 'சுயவிவரப் படம் தேர்ந்தெடுக்கப்பட்டது',
+    tapToSelectFromGenerated:
+      'உங்கள் உருவாக்கிய படங்களிலிருந்து தேர்வு செய்ய தட்டவும்',
   },
 
   // Email Restriction

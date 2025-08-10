@@ -166,6 +166,9 @@ export const zh = {
     generateImageHint: '根据您的描述生成图片',
     noImages: '暂无图片',
     startCreating: '开始创建您的第一张 AI 生成图片',
+    quotaRemaining: '今天还剩{{remaining}}张',
+    quotaRemainingOf: '今天{{remaining}}张，共{{total}}张',
+    quotaResetsDaily: '午夜重置',
   },
 
   // Gallery
@@ -195,6 +198,7 @@ export const zh = {
     filters: {
       popular: '热门',
       latest: '最新',
+      trending: '趋势',
     },
     noImages: '暂无社区图片',
     noImagesDescription: '当用户分享他们的创作时，社区图片将显示在此处。',
@@ -394,6 +398,11 @@ export const zh = {
     shareAppHint: '与您的朋友分享此应用',
     contactSupport: '联系支持',
     contactSupportHint: '从我们的支持团队获得帮助',
+    imagesRemainingDaily: '{{count}} / {{total}} 每天',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/天',
+    dailyQuota: '每日配额',
+    dailyReset: '每天午夜重置',
+    renewsIn: '{{hours}}小时{{minutes}}分钟后更新',
   },
 
   // Edit Profile
@@ -430,6 +439,11 @@ export const zh = {
     deleteReasonPlaceholder: '请告诉我们更多...',
     deleteReasonNext: '下一步',
     deleteReasonBack: '返回',
+    selectProfileImage: '选择头像',
+    selectFromGeneratedImages: '从您生成的图片中选择',
+    generateImagesFirst: '请先生成一些图片以用作头像',
+    profileImageSelected: '头像已选择',
+    tapToSelectFromGenerated: '点击从您生成的图片中选择',
   },
 
   // Email Restriction

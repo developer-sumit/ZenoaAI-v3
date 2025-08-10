@@ -169,6 +169,9 @@ export const id = {
     generateImageHint: 'Buat gambar dari deskripsi Anda',
     noImages: 'Belum ada gambar',
     startCreating: 'Mulai buat gambar AI-generated pertama Anda',
+    quotaRemaining: '{{remaining}} tersisa hari ini',
+    quotaRemainingOf: '{{remaining}} dari {{total}} hari ini',
+    quotaResetsDaily: 'Direset pada tengah malam',
   },
 
   // Gallery
@@ -198,6 +201,7 @@ export const id = {
     filters: {
       popular: 'Populer',
       latest: 'Terbaru',
+      trending: 'Trending',
     },
     noImages: 'Belum ada gambar komunitas',
     noImagesDescription:
@@ -402,6 +406,11 @@ export const id = {
     shareAppHint: 'Bagikan aplikasi ini dengan teman-teman Anda',
     contactSupport: 'Hubungi Dukungan',
     contactSupportHint: 'Dapatkan bantuan dari tim dukungan kami',
+    imagesRemainingDaily: '{{count}} / {{total}} per hari',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/hari',
+    dailyQuota: 'Kuota Harian',
+    dailyReset: 'Direset setiap hari pada tengah malam',
+    renewsIn: 'Diperbarui dalam {{hours}}j {{minutes}}m',
   },
 
   // Edit Profile
@@ -439,6 +448,12 @@ export const id = {
     deleteReasonPlaceholder: 'Tolong beritahu kami lebih banyak...',
     deleteReasonNext: 'Selanjutnya',
     deleteReasonBack: 'Kembali',
+    selectProfileImage: 'Pilih Gambar Profil',
+    selectFromGeneratedImages: 'Pilih dari gambar yang Anda buat',
+    generateImagesFirst:
+      'Buat beberapa gambar dulu untuk digunakan sebagai foto profil',
+    profileImageSelected: 'Gambar profil terpilih',
+    tapToSelectFromGenerated: 'Ketuk untuk memilih dari gambar yang Anda buat',
   },
 
   // Email Restriction

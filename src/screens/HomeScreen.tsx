@@ -1,11 +1,12 @@
 import clsx from 'clsx';
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef, useMemo} from 'react';
 import {
   View,
   Text,
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {MasonryFlashList} from '@shopify/flash-list';
@@ -26,55 +27,240 @@ import {
   COMMUNITY_FILTER_OPTIONS,
   DEFAULT_COMMUNITY_FILTER,
 } from '@src/constants';
+import ScrollToTop, {useScrollToTop} from '@src/components/ScrollToTop';
 
 const NUM_COLUMNS = 2;
 type FilterType = (typeof COMMUNITY_FILTER_OPTIONS)[number]['id'];
 
-const HomeScreen = () => {
+const HomeScreen: React.FC = () => {
   const t = useStrings();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
-  const {publicImages, popularImages, isLoadingPublic, fetchPublicImages} =
-    useImageStore();
+  const {
+    publicImages,
+    trendingImages,
+    popularImages,
+    isLoadingPublic,
+    fetchPublicImages,
+  } = useImageStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(
     null,
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>(
     DEFAULT_COMMUNITY_FILTER,
   );
 
-  // Determine which images to show based on filter
-  const imagesToShow =
-    activeFilter === 'popular' ? popularImages : publicImages;
+  // Initialize filter states with all possible filter options
+  const [filterStates, setFilterStates] = useState<
+    Record<
+      FilterType,
+      {
+        loaded: boolean;
+        currentPage: number;
+        hasMore: boolean;
+        lastFetchTime: number;
+      }
+    >
+  >(() => {
+    // Initialize all filter options to prevent undefined errors
+    const initialStates = {} as Record<
+      FilterType,
+      {
+        loaded: boolean;
+        currentPage: number;
+        hasMore: boolean;
+        lastFetchTime: number;
+      }
+    >;
 
-  useFocusEffect(
-    useCallback(() => {
-      if (activeFilter === 'popular') {
-        if (popularImages.length === 0) {
-          fetchPublicImages(1, 20, activeFilter);
+    COMMUNITY_FILTER_OPTIONS.forEach(option => {
+      initialStates[option.id as FilterType] = {
+        loaded: false,
+        currentPage: 1,
+        hasMore: true,
+        lastFetchTime: 0,
+      };
+    });
+    return initialStates;
+  });
+
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const {scrollRef, scrollHandler, registerScrollHandler} = useScrollToTop();
+
+  // Determine which images to show based on filter
+  const imagesToShow = useMemo(() => {
+    switch (activeFilter) {
+      case 'popular':
+        return popularImages;
+      case 'trending':
+        return trendingImages;
+      case 'latest':
+      default:
+        return publicImages;
+    }
+  }, [activeFilter, popularImages, trendingImages, publicImages]);
+
+  // Get current filter state with safe fallback
+  const currentFilterState = useMemo(() => {
+    return (
+      filterStates[activeFilter] || {
+        loaded: false,
+        currentPage: 1,
+        hasMore: true,
+        lastFetchTime: 0,
+      }
+    );
+  }, [filterStates, activeFilter]);
+
+  // Check if data needs to be fetched (cache validity: 5 minutes)
+  const shouldFetchData = useCallback(
+    (filter: FilterType) => {
+      const filterState = filterStates[filter];
+      if (!filterState) return true; // If no state exists, fetch data
+
+      const now = Date.now();
+      const cacheAge = now - filterState.lastFetchTime;
+      const maxCacheAge = 5 * 60 * 1000; // 5 minutes
+
+      // Get the correct images array based on filter
+      let images: GeneratedImage[];
+      switch (filter) {
+        case 'popular':
+          images = popularImages;
+          break;
+        case 'trending':
+          images = trendingImages;
+          break;
+        case 'latest':
+        default:
+          images = publicImages;
+          break;
+      }
+
+      return (
+        !filterState.loaded || cacheAge > maxCacheAge || images.length === 0
+      );
+    },
+    [filterStates, popularImages, trendingImages, publicImages],
+  );
+
+  // Update filter state
+  const updateFilterState = useCallback(
+    (
+      filter: FilterType,
+      updates: Partial<(typeof filterStates)[FilterType]>,
+    ) => {
+      setFilterStates(prev => ({
+        ...prev,
+        [filter]: {
+          ...(prev[filter] || {
+            loaded: false,
+            currentPage: 1,
+            hasMore: true,
+            lastFetchTime: 0,
+          }),
+          ...updates,
+        },
+      }));
+    },
+    [],
+  );
+
+  // Smooth transition animation
+  const animateTransition = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(contentOpacity, {
+        toValue: 0.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateY, {
+        toValue: -10,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentTranslateY, {
+          toValue: 0,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [contentOpacity, contentTranslateY]);
+
+  const handleFilterChange = useCallback(
+    async (newFilter: FilterType) => {
+      if (newFilter === activeFilter) return;
+
+      triggerHaptic('selection');
+      animateTransition();
+      setActiveFilter(newFilter);
+
+      // Only fetch if data is not cached or cache is stale
+      if (shouldFetchData(newFilter)) {
+        console.log(`Fetching fresh data for filter: ${newFilter}`);
+        try {
+          await fetchPublicImages(1, 20, newFilter);
+          updateFilterState(newFilter, {
+            loaded: true,
+            currentPage: 1,
+            lastFetchTime: Date.now(),
+          });
+        } catch (error) {
+          console.error(`Failed to fetch data for filter ${newFilter}:`, error);
         }
       } else {
-        if (publicImages.length === 0) {
-          fetchPublicImages(1, 20, activeFilter);
-        }
+        console.log(`Using cached data for filter: ${newFilter}`);
       }
-    }, [
-      fetchPublicImages,
-      publicImages.length,
-      popularImages.length,
+    },
+    [
       activeFilter,
-    ]),
+      triggerHaptic,
+      animateTransition,
+      filterStates,
+      shouldFetchData,
+      fetchPublicImages,
+      updateFilterState,
+    ],
+  );
+
+  // Initial data loading
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldFetchData(activeFilter)) {
+        console.log(`Initial load for filter: ${activeFilter}`);
+        fetchPublicImages(1, 20, activeFilter).then(() => {
+          updateFilterState(activeFilter, {
+            loaded: true,
+            currentPage: 1,
+            lastFetchTime: Date.now(),
+          });
+        });
+      }
+    }, [activeFilter, shouldFetchData, fetchPublicImages, updateFilterState]),
   );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    setCurrentPage(1);
-    setHasMore(true);
+
+    // Reset filter state
+    updateFilterState(activeFilter, {
+      currentPage: 1,
+      hasMore: true,
+      lastFetchTime: Date.now(),
+    });
+
     try {
       await fetchPublicImages(1, 20, activeFilter);
       triggerHaptic('success');
@@ -84,25 +270,46 @@ const HomeScreen = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchPublicImages, activeFilter]);
+  }, [fetchPublicImages, activeFilter, triggerHaptic, updateFilterState]);
 
   const handleLoadMore = useCallback(async () => {
-    if (!isLoadingPublic && hasMore && imagesToShow.length > 0) {
+    if (
+      !isLoadingPublic &&
+      currentFilterState?.hasMore &&
+      imagesToShow.length > 0
+    ) {
       setLoadingMore(true);
-      const nextPage = currentPage + 1;
+      const nextPage = currentFilterState.currentPage + 1;
+
       try {
         const prevLength = imagesToShow.length;
         await fetchPublicImages(nextPage, 20, activeFilter);
-        setCurrentPage(nextPage);
+
+        // Update filter state
+        updateFilterState(activeFilter, {
+          currentPage: nextPage,
+          lastFetchTime: Date.now(),
+        });
 
         // Check if we reached the end by comparing lengths after a short delay
         setTimeout(() => {
-          const newLength =
-            activeFilter === 'popular'
-              ? useImageStore.getState().popularImages.length
-              : useImageStore.getState().publicImages.length;
+          // Get the correct images array for length comparison
+          let newLength: number;
+          switch (activeFilter) {
+            case 'popular':
+              newLength = useImageStore.getState().popularImages.length;
+              break;
+            case 'trending':
+              newLength = useImageStore.getState().trendingImages.length;
+              break;
+            case 'latest':
+            default:
+              newLength = useImageStore.getState().publicImages.length;
+              break;
+          }
+
           if (newLength === prevLength) {
-            setHasMore(false);
+            updateFilterState(activeFilter, {hasMore: false});
           }
         }, 100);
       } catch (error) {
@@ -113,11 +320,12 @@ const HomeScreen = () => {
     }
   }, [
     isLoadingPublic,
-    hasMore,
+    currentFilterState?.hasMore,
+    currentFilterState?.currentPage,
     imagesToShow.length,
-    currentPage,
     fetchPublicImages,
     activeFilter,
+    updateFilterState,
   ]);
 
   const renderItem = useCallback(
@@ -129,7 +337,73 @@ const HomeScreen = () => {
         </View>
       );
     },
-    [setSelectedImage],
+    [],
+  );
+
+  const LoadingFooter = useMemo(() => {
+    if (!loadingMore) return null;
+    return (
+      <View className="py-5 items-center">
+        <ActivityIndicator size="small" color={theme.primary} />
+      </View>
+    );
+  }, [loadingMore, theme.primary]);
+
+  const EmptyComponent = useMemo(
+    () => (
+      <EmptyState
+        icon={<CommunityIcon size={64} color={theme.secondaryText} />}
+        title={t('community.noImages')}
+        description={t('community.noImagesDescription')}
+      />
+    ),
+    [theme.secondaryText, t],
+  );
+
+  const FilterButtons = useMemo(
+    () =>
+      COMMUNITY_FILTER_OPTIONS.map(option => (
+        <TouchableOpacity
+          key={option.id}
+          onPress={() => handleFilterChange(option.id)}
+          className="px-5 py-3 rounded-full mt-2 mb-3"
+          accessible={true}
+          accessibilityLabel={t('community.filterBy', {type: option.label})}
+          accessibilityRole="button"
+          style={{
+            backgroundColor:
+              activeFilter === option.id ? theme.surface : 'transparent',
+          }}>
+          <Text
+            style={{
+              color: activeFilter === option.id ? theme.primary : theme.text,
+              fontWeight: activeFilter === option.id ? 'bold' : 'normal',
+              fontSize: 16,
+            }}>
+            {t(`community.filters.${option.id.toLowerCase()}`)}
+          </Text>
+        </TouchableOpacity>
+      )),
+    [
+      activeFilter,
+      theme.surface,
+      theme.primary,
+      theme.text,
+      t,
+      handleFilterChange,
+    ],
+  );
+
+  // Show loading skeleton only when switching filters and no images for current filter
+  const shouldShowSkeleton = isLoadingPublic && imagesToShow.length === 0;
+
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (scrollHandler) {
+        scrollHandler(event);
+      }
+    },
+    [scrollHandler],
   );
 
   return (
@@ -163,85 +437,71 @@ const HomeScreen = () => {
 
         <View
           className="py-1 px-3 rounded-full"
-          style={{backgroundColor: theme.primary}}
+          style={{backgroundColor: theme.surface}}
           accessible={true}
           accessibilityLabel={`Version ${appConfig.version}`}>
-          <Text className="text-xs font-medium text-white">
+          <Text
+            className="text-xs font-bold"
+            style={{color: theme.secondaryText}}>
             v{appConfig.version}
           </Text>
         </View>
       </View>
 
-      {/* Filter Menu Modal */}
+      {/* Filter Menu */}
       <View className="flex-row rounded-3xl items-center pl-4">
-        {COMMUNITY_FILTER_OPTIONS.map(option => (
-          <TouchableOpacity
-            key={option.id}
-            onPress={() => {
-              triggerHaptic('selection');
-              setActiveFilter(option.id);
-              setCurrentPage(1);
-              setHasMore(true);
-              fetchPublicImages(1, 20, option.id);
-            }}
-            className="px-2.5 pb-4 pt-5"
-            accessible={true}
-            accessibilityLabel={t('community.filterBy', {type: option.label})}
-            accessibilityRole="button">
-            <Text
-              style={{
-                color: activeFilter === option.id ? theme.primary : theme.text,
-                fontWeight: activeFilter === option.id ? 'bold' : 'normal',
-                fontSize: 16,
-              }}>
-              {t(`community.filters.${option.id.toLowerCase()}`)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {FilterButtons}
       </View>
 
-      {/* Images Grid */}
-      {isLoadingPublic && imagesToShow.length === 0 ? (
-        <MasonrySkeleton />
-      ) : imagesToShow.length > 0 ? (
-        <MasonryFlashList
-          data={imagesToShow}
-          keyExtractor={(item, index) => `community-${item.id}-${index}`}
-          numColumns={NUM_COLUMNS}
-          renderItem={renderItem}
-          estimatedItemSize={200}
-          removeClippedSubviews={true}
-          className="rounded-3xl mx-4"
-          contentContainerClassName="pb-24"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[theme.primary]}
-              tintColor={theme.primary}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={
-            loadingMore ? (
-              <View className="py-5 items-center">
-                <ActivityIndicator size="small" color={theme.primary} />
-              </View>
-            ) : (
-              <></>
-            )
-          }
-          extraData={{imagesToShow}}
-        />
-      ) : (
-        <EmptyState
-          icon={<CommunityIcon size={64} color={theme.secondaryText} />}
-          title={t('community.noImages')}
-          description={t('community.noImagesDescription')}
-        />
-      )}
+      {/* Animated Content Container */}
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: contentOpacity,
+          transform: [{translateY: contentTranslateY}],
+        }}>
+        {/* Images Grid */}
+        {shouldShowSkeleton ? (
+          <MasonrySkeleton />
+        ) : imagesToShow.length > 0 ? (
+          <MasonryFlashList
+            ref={scrollRef}
+            data={imagesToShow}
+            keyExtractor={(item, index) =>
+              `community-${activeFilter}-${item.id}-${index}`
+            }
+            numColumns={NUM_COLUMNS}
+            renderItem={renderItem}
+            estimatedItemSize={200}
+            removeClippedSubviews={true}
+            getItemType={() => 'image'}
+            className="rounded-3xl mx-4 mt-2"
+            contentContainerClassName="pb-24"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[theme.primary]}
+                tintColor={theme.primary}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={LoadingFooter}
+            extraData={activeFilter}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
+        ) : (
+          EmptyComponent
+        )}
+      </Animated.View>
+
+      <ScrollToTop
+        scrollRef={scrollRef}
+        registerScrollHandler={registerScrollHandler}
+      />
 
       {/* Image Viewer Modal */}
       {selectedImage && (

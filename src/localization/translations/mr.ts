@@ -168,6 +168,9 @@ export const mr = {
     generateImageHint: 'तुमच्या वर्णनावरून चित्र तयार करा',
     noImages: 'अजून चित्रे नाहीत',
     startCreating: 'तुमचे पहिले AI-निर्मित चित्र तयार करणे सुरू करा',
+    quotaRemaining: '{{remaining}} आज उरले',
+    quotaRemainingOf: '{{remaining}} पैकी {{total}} आज',
+    quotaResetsDaily: 'मध्यरात्री रीसेट होते',
   },
 
   // Gallery
@@ -197,6 +200,7 @@ export const mr = {
     filters: {
       popular: 'लोकप्रिय',
       latest: 'नवीनतम',
+      trending: 'ट्रेंडिंग',
     },
     noImages: 'अजून कोणतीही समुदाय चित्रे नाहीत',
     noImagesDescription:
@@ -400,6 +404,11 @@ export const mr = {
     shareAppHint: 'तुमच्या मित्रांसोबत अॅप शेअर करा',
     contactSupport: 'समर्थनाशी संपर्क साधा',
     contactSupportHint: 'आमच्या समर्थन टीमकडून मदत मिळवा',
+    imagesRemainingDaily: '{{count}} / {{total}} दररोज',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/दिवस',
+    dailyQuota: 'दैनिक कोटा',
+    dailyReset: 'मध्यरात्री रोज रीसेट होते',
+    renewsIn: '{{hours}}त {{minutes}}मि मध्ये नूतनीकरण',
   },
 
   // Edit Profile
@@ -437,6 +446,13 @@ export const mr = {
     deleteReasonPlaceholder: 'कृपया आम्हाला अधिक सांगा...',
     deleteReasonNext: 'पुढील',
     deleteReasonBack: 'मागे',
+    selectProfileImage: 'प्रोफाइल चित्र निवडा',
+    selectFromGeneratedImages: 'तुमच्या तयार केलेल्या चित्रांमधून निवडा',
+    generateImagesFirst:
+      'प्रोफाइल चित्र म्हणून वापरण्यासाठी प्रथम काही चित्रे तयार करा',
+    profileImageSelected: 'प्रोफाइल चित्र निवडले',
+    tapToSelectFromGenerated:
+      'तुमच्या तयार केलेल्या चित्रांमधून निवडण्यासाठी टॅप करा',
   },
 
   // Email Restriction

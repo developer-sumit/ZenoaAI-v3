@@ -141,7 +141,7 @@ export const te = {
     clearInputsHint:
       'అన్ని టెక్స్ట్ ఇన్‌పుట్‌లను క్లియర్ చేస్తుంది మరియు సెట్టింగ్‌లను రీసెట్ చేస్తుంది',
     allCleared: 'అన్నీ క్లియర్ చేయబడ్డాయి',
-    selectedOptions: 'தேர்ந்தெடுக்கப்பட்ட விருப்பங்கள்',
+    selectedOptions: 'தேர்ந்தெடுக்கப்பட்ட விருப்பాలు',
     generationSuccess: '{{count}} చిత్రం సృష్టించబడింది',
     generationSuccess_plural: '{{count}} చిత్రాలు సృష్టించబడ్డాయి',
     generationFailed: 'చిత్రాలను సృష్టించడంలో విఫలమైంది',
@@ -170,6 +170,9 @@ export const te = {
     noImages: 'ఇంకా చిత్రాలు లేవు',
     startCreating:
       'మీ మొదటి AI-ఉత్పత్తి చేసిన చిత్రాన్ని సృష్టించడం ప్రారంభించండి',
+    quotaRemaining: '{{remaining}} ఈరోజు మిగిలాయి',
+    quotaRemainingOf: '{{remaining}} లో {{total}} ఈరోజు',
+    quotaResetsDaily: 'అర్ధరాత్రి రీసెట్ అవుతుంది',
   },
 
   // Gallery
@@ -199,6 +202,7 @@ export const te = {
     filters: {
       popular: 'ప్రసిద్ధ',
       latest: 'తాజా',
+      trending: 'ట్రెండింగ్',
     },
     noImages: 'ఇంకా కమ్యూనిటీ చిత్రాలు లేవు',
     noImagesDescription:
@@ -406,6 +410,11 @@ export const te = {
     shareAppHint: 'మీ స్నేహితులతో యాప్‌ను షేర్ చేయండి',
     contactSupport: 'సపోర్ట్‌ను సంప్రదించండి',
     contactSupportHint: 'మా సపోర్ట్ టీమ్ నుండి సహాయం పొందండి',
+    imagesRemainingDaily: '{{count}} / {{total}} రోజుకు',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/రోజు',
+    dailyQuota: 'రోజువారీ కోటా',
+    dailyReset: 'రోజు అర్ధరాత్రి రీసెట్ అవుతుంది',
+    renewsIn: '{{hours}}గం {{minutes}}ని లో పునరుద్ధరణ',
   },
 
   // Edit Profile
@@ -443,6 +452,13 @@ export const te = {
     deleteReasonPlaceholder: 'దయచేసి మాకు మరింత చెప్పండి...',
     deleteReasonNext: 'తదుపరి',
     deleteReasonBack: 'వెనుకకు',
+    selectProfileImage: 'ప్రొఫైల్ చిత్రాన్ని ఎంచుకోండి',
+    selectFromGeneratedImages: 'మీరు తయారు చేసిన చిత్రాల నుండి ఎంచుకోండి',
+    generateImagesFirst:
+      'ప్రొఫైల్ చిత్రంగా ఉపయోగించడానికి ముందుగా కొన్ని చిత్రాలను సృష్టించండి',
+    profileImageSelected: 'ప్రొఫైల్ చిత్రం ఎంచుకోబడింది',
+    tapToSelectFromGenerated:
+      'మీరు సృష్టించిన చిత్రాల నుండి ఎంచుకోవడానికి టాప్ చేయండి',
   },
 
   // Email Restriction

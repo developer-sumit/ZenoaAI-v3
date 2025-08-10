@@ -21,6 +21,7 @@ export const PLAN_TYPES = {
 
 export const COMMUNITY_FILTER_OPTIONS = [
   {id: 'popular', label: 'Popular'},
+  {id: 'trending', label: 'Trending'},
   {id: 'latest', label: 'Latest'},
 ] as const;
 

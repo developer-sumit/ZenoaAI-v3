@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  ActivityIndicator,
 } from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import {BlurView} from '@react-native-community/blur';
@@ -31,6 +32,8 @@ import EmailIcon from '@src/assets/icons/EmailIcon';
 import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
 import UserNotFound from '@src/components/UserNotFound';
+import ImageSelectionModal from '@src/components/ImageSelectionModal';
+import {useImageStore} from '@src/store/imageStore';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -60,9 +63,11 @@ const EditProfileScreen = () => {
   const [photoUri, setPhotoUri] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
+  const [showImageSelectionModal, setShowImageSelectionModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
@@ -89,6 +94,8 @@ const EditProfileScreen = () => {
   }, [user]);
 
   const handleBackPress = () => {
+    if (isDeletingAccount) return; // Prevent back navigation during deletion
+
     triggerHaptic('selection');
     animatePress(saveButtonScale, 150);
     navigation.goBack();
@@ -106,13 +113,19 @@ const EditProfileScreen = () => {
       triggerHaptic('selection');
       animatePress(saveButtonScale, 150);
 
-      if (name !== user.profile.username || bio !== user.profile.bio) {
+      // Check if any profile data has changed
+      if (
+        name !== user.profile.username ||
+        bio !== user.profile.bio ||
+        photoUri !== user.profile.avatar
+      ) {
         try {
           const updatedUserData: Partial<User> = {
             profile: {
               ...user.profile,
               username: name.trim(),
               bio: bio.trim(),
+              avatar: photoUri,
             },
           };
 
@@ -148,14 +161,19 @@ const EditProfileScreen = () => {
   const handleAvatarPress = () => {
     triggerHaptic('light');
     animatePress(avatarScale, 200);
-    // TODO: Implement image picker for avatar upload
-    // For now, show info message that this feature will be added
-    showToast(t('profile.uploadPhoto'), 'info');
+    setShowImageSelectionModal(true);
+  };
+
+  const handleImageSelection = (imageUrl: string) => {
+    setPhotoUri(imageUrl);
+    showToast(t('profile.profileImageSelected'), 'success');
   };
 
   const handleAccountDeletion = async () => {
     try {
+      setIsDeletingAccount(true);
       triggerHaptic('warning');
+
       if (user?.uid) {
         showToast(t('profile.deletingAccount'), 'info');
         const deletionReason =
@@ -168,14 +186,66 @@ const EditProfileScreen = () => {
           deletionReason,
         );
 
-        showToast(message, success ? 'success' : 'error');
-        triggerHaptic('success');
-        showToast(t('profile.accountDeleted'), 'success');
-        await logout();
+        if (success) {
+          triggerHaptic('success');
+          showToast(t('profile.accountDeleted'), 'success');
+
+          // Complete user logout and cleanup
+          await performCompleteLogout();
+        } else {
+          throw new Error(message || 'Failed to delete account');
+        }
       }
     } catch (error) {
+      console.error('Account deletion error:', error);
       triggerHaptic('error');
       showToast(t('errors.failedToDeleteAccount'), 'error');
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const performCompleteLogout = async () => {
+    try {
+      // 1. Clear all images from store
+      useImageStore.getState().clearImages();
+
+      // 2. Clear all user data and auth state
+      await logout();
+
+      // 3. Clear any remaining cached data
+      await clearAllCaches();
+
+      // 4. Reset navigation to prevent back navigation
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home' as never}],
+      });
+
+      console.log('Complete logout successful after account deletion');
+    } catch (logoutError) {
+      console.error('Error during complete logout:', logoutError);
+      // Even if logout fails, try to navigate away
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home' as never}],
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const clearAllCaches = async () => {
+    try {
+      // Clear any remaining user-related data that might be cached
+      const {FastImage} = require('react-native-fast-image');
+
+      // Clear image cache
+      await FastImage.clearMemoryCache();
+      await FastImage.clearDiskCache();
+
+      console.log('All caches cleared after account deletion');
+    } catch (error) {
+      console.warn('Error clearing caches:', error);
     }
   };
 
@@ -198,6 +268,15 @@ const EditProfileScreen = () => {
     setShowDeleteModal(true);
   };
 
+  const handleCloseModals = () => {
+    if (isDeletingAccount) return; // Prevent closing modals during deletion
+
+    setShowDeleteModal(false);
+    setShowReasonModal(false);
+    setSelectedReason('');
+    setCustomReason('');
+  };
+
   if (!user) {
     return <UserNotFound />;
   }
@@ -214,8 +293,12 @@ const EditProfileScreen = () => {
         <View className="px-5 flex-row items-center justify-between py-5">
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center"
-            style={{backgroundColor: theme.surface}}
+            style={{
+              backgroundColor: theme.surface,
+              opacity: isDeletingAccount ? 0.5 : 1,
+            }}
             onPress={handleBackPress}
+            disabled={isDeletingAccount}
             accessible={true}
             accessibilityLabel={t('common.back')}>
             <ArrowBackIcon size={20} color={theme.text} />
@@ -229,13 +312,13 @@ const EditProfileScreen = () => {
             className="rounded-full px-5 py-2.5"
             style={{
               backgroundColor: theme.primary,
-              opacity: isSaving ? 0.7 : 1,
+              opacity: isSaving || isDeletingAccount ? 0.7 : 1,
             }}
             onPress={saveProfile}
-            disabled={isSaving}
+            disabled={isSaving || isDeletingAccount}
             accessible={true}
             accessibilityLabel={t('profile.saveChanges')}
-            accessibilityState={{disabled: isSaving}}>
+            accessibilityState={{disabled: isSaving || isDeletingAccount}}>
             <Text className="text-white font-medium text-sm">
               {isSaving ? t('profile.saving') : t('common.save')}
             </Text>
@@ -260,12 +343,7 @@ const EditProfileScreen = () => {
                 }}>
                 <FastImage
                   source={{uri: photoUri}}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderWidth: 4,
-                    borderColor: theme.surface,
-                  }}
+                  style={{width: '100%', height: '100%'}}
                   resizeMode={FastImage.resizeMode.cover}
                 />
               </View>
@@ -278,17 +356,19 @@ const EditProfileScreen = () => {
                     backgroundColor: theme.primary,
                     borderWidth: 3,
                     borderColor: theme.background,
+                    opacity: isDeletingAccount ? 0.5 : 1,
                   }}
                   onPress={handleAvatarPress}
+                  disabled={isDeletingAccount}
                   accessible={true}
-                  accessibilityLabel={t('profile.uploadPhoto')}>
+                  accessibilityLabel={t('profile.selectProfileImage')}>
                   <CameraIcon size={20} color="white" />
                 </TouchableOpacity>
               </Animated.View>
             </View>
 
             <Text className="text-sm mt-4" style={{color: theme.secondaryText}}>
-              {t('profile.tapCamera')}
+              {t('profile.tapToSelectFromGenerated')}
             </Text>
           </View>
 
@@ -332,6 +412,7 @@ const EditProfileScreen = () => {
                     }}
                     placeholder={t('profile.yourName')}
                     placeholderTextColor={theme.secondaryText}
+                    editable={!isDeletingAccount}
                     accessible={true}
                     accessibilityLabel={t('profile.yourName')}
                     accessibilityHint={t('profile.fullNameHint')}
@@ -369,6 +450,7 @@ const EditProfileScreen = () => {
                     multiline={true}
                     numberOfLines={3}
                     textAlignVertical="top"
+                    editable={!isDeletingAccount}
                     accessible={true}
                     accessibilityLabel={t('profile.bio')}
                     accessibilityHint={t('profile.bioHint')}
@@ -416,6 +498,8 @@ const EditProfileScreen = () => {
               <TouchableOpacity
                 className="px-5 py-4 flex-row items-center"
                 onPress={handleDeleteAccountPress}
+                disabled={isDeletingAccount}
+                style={{opacity: isDeletingAccount ? 0.5 : 1}}
                 accessible={true}
                 accessibilityLabel={t('profile.deleteAccount')}
                 accessibilityHint={t('profile.deleteAccountHint')}>
@@ -437,6 +521,13 @@ const EditProfileScreen = () => {
           </View>
         </Animated.View>
       </KeyboardAwareScrollView>
+
+      {/* Image Selection Modal */}
+      <ImageSelectionModal
+        visible={showImageSelectionModal}
+        onClose={() => setShowImageSelectionModal(false)}
+        onSelectImage={handleImageSelection}
+      />
 
       {/* Reason Selection Modal */}
       <Modal visible={showReasonModal} transparent animationType="fade">
@@ -544,7 +635,7 @@ const EditProfileScreen = () => {
                   <TouchableOpacity
                     className="py-3.5 px-6 rounded-xl flex-1 mr-3"
                     style={{backgroundColor: theme.surface}}
-                    onPress={() => setShowReasonModal(false)}>
+                    onPress={handleCloseModals}>
                     <Text
                       className="text-base text-center"
                       style={{color: theme.text}}>
@@ -613,46 +704,56 @@ const EditProfileScreen = () => {
                   <View
                     className="w-16 h-16 rounded-full items-center justify-center mb-4"
                     style={{backgroundColor: '#e11d4815'}}>
-                    <TrashIcon size={32} color="#e11d48" />
+                    {isDeletingAccount ? (
+                      <ActivityIndicator size="large" color="#e11d48" />
+                    ) : (
+                      <TrashIcon size={32} color="#e11d48" />
+                    )}
                   </View>
                   <Text
                     className="text-2xl font-semibold mb-2 text-center"
                     style={{color: theme.text}}>
-                    {t('profile.deleteAccountWarning')}
+                    {isDeletingAccount
+                      ? t('profile.deletingAccount')
+                      : t('profile.deleteAccountWarning')}
                   </Text>
                   <Text
                     className="text-base mb-6 text-center leading-6"
                     style={{color: theme.secondaryText}}>
-                    {t('profile.deleteAccountHint')}
+                    {isDeletingAccount
+                      ? 'Please wait while we delete your account...'
+                      : t('profile.deleteAccountHint')}
                   </Text>
                 </View>
 
-                <View className="flex-row justify-between">
-                  <TouchableOpacity
-                    className="py-3.5 px-6 rounded-xl flex-1 mr-3"
-                    style={{backgroundColor: theme.surface}}
-                    onPress={() => setShowDeleteModal(false)}
-                    accessible={true}
-                    accessibilityLabel={t('profile.cancelAccountDelete')}>
-                    <Text
-                      className="text-base text-center"
-                      style={{color: theme.text}}>
-                      {t('profile.cancelAccountDelete')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="py-3.5 px-6 rounded-xl flex-1"
-                    style={{backgroundColor: '#e11d48'}}
-                    onPress={handleAccountDeletion}
-                    accessible={true}
-                    accessibilityLabel={t('profile.confirmAccountDelete')}>
-                    <Text
-                      className="text-base text-center"
-                      style={{color: 'white'}}>
-                      {t('profile.confirmAccountDelete')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {!isDeletingAccount && (
+                  <View className="flex-row justify-between">
+                    <TouchableOpacity
+                      className="py-3.5 px-6 rounded-xl flex-1 mr-3"
+                      style={{backgroundColor: theme.surface}}
+                      onPress={() => setShowDeleteModal(false)}
+                      accessible={true}
+                      accessibilityLabel={t('profile.cancelAccountDelete')}>
+                      <Text
+                        className="text-base text-center"
+                        style={{color: theme.text}}>
+                        {t('profile.cancelAccountDelete')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="py-3.5 px-6 rounded-xl flex-1"
+                      style={{backgroundColor: '#e11d48'}}
+                      onPress={handleAccountDeletion}
+                      accessible={true}
+                      accessibilityLabel={t('profile.confirmAccountDelete')}>
+                      <Text
+                        className="text-base text-center"
+                        style={{color: 'white'}}>
+                        {t('profile.confirmAccountDelete')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
           </View>

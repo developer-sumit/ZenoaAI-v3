@@ -35,6 +35,7 @@ import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
 import Routes from '@src/constants/routes';
 import appConfig from '@src/config/app.config';
+import {toastConfig} from '@src/config/toastConfig';
 import {useGenerationStore} from '@src/store/generationStore';
 
 // Icons
@@ -106,6 +107,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
 
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [flagging, setFlagging] = useState(false);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
   const [fullscreenMode, setFullscreenMode] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -147,13 +149,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
         setShowDeleteDialog(false);
         return true;
       }
-      if (showFlagDialog) {
+      if (showFlagDialog && !flagging) {
+        // Prevent back during flagging
         setShowFlagDialog(false);
         setFlagReason('');
         setSelectedFlagReasons([]); // Clear selections on close
         return true;
       }
-      if (displayImage) {
+      if (displayImage && !flagging) {
+        // Prevent close during flagging
         onClose?.();
         return true;
       }
@@ -166,7 +170,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
     );
 
     return () => backHandler.remove();
-  }, [displayImage, onClose, fullscreenMode, showDeleteDialog, showFlagDialog]);
+  }, [
+    displayImage,
+    onClose,
+    fullscreenMode,
+    showDeleteDialog,
+    showFlagDialog,
+    flagging,
+  ]);
 
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen mode, current mode:', fullscreenMode);
@@ -217,6 +228,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
       return;
     }
 
+    if (flagging) return; // Prevent changes during flagging
+
     setSelectedFlagReasons(prev =>
       prev.includes(reason)
         ? prev.filter(r => r !== reason)
@@ -240,11 +253,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
     }
 
     try {
+      setFlagging(true);
+      triggerHaptic('warning');
+
       const success = await flagImage(
         displayImage.id,
         reasonsToSubmit, // Pass the array of reasons
       );
+
       if (success) {
+        triggerHaptic('success');
         showToast('Image reported successfully', 'success');
         // Close the viewer immediately if flagged successfully, as it's now hidden from public view
         onClose?.();
@@ -253,13 +271,25 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
       }
     } catch (error) {
       console.error('Error flagging image:', error);
+      triggerHaptic('error');
       showToast('Failed to report image', 'error');
     } finally {
-      // Always close the dialog whether successful or not, but only clear fields on success or cancel
-      setShowFlagDialog(false);
-      setFlagReason('');
-      setSelectedFlagReasons([]);
+      if (isMounted.current) {
+        setFlagging(false);
+        // Always close the dialog whether successful or not, but only clear fields on success or cancel
+        setShowFlagDialog(false);
+        setFlagReason('');
+        setSelectedFlagReasons([]);
+      }
     }
+  };
+
+  const handleCloseFlagDialog = () => {
+    if (flagging) return; // Prevent closing during flagging
+
+    setShowFlagDialog(false);
+    setFlagReason('');
+    setSelectedFlagReasons([]);
   };
 
   const togglePromptExpansion = () => {
@@ -419,7 +449,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
           onRequestClose={() => {
             if (fullscreenMode) {
               setFullscreenMode(false);
-            } else {
+            } else if (!flagging) {
+              // Prevent close during flagging
               onClose?.();
             }
           }}
@@ -510,7 +541,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                   <TouchableOpacity
                     onPress={onClose}
                     className="absolute top-2.5 left-2.5 p-2.5 rounded-full"
-                    style={{backgroundColor: theme.surface}}
+                    style={{
+                      backgroundColor: theme.surface,
+                      opacity: flagging ? 0.5 : 1,
+                    }}
+                    disabled={flagging}
                     accessible={true}
                     accessibilityLabel={t('imageViewer.closeHint')}>
                     <CloseIcon size={24} color={theme.text} />
@@ -522,6 +557,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                   <View className="absolute top-2 right-2 flex-row">
                     <Menu>
                       <MenuTrigger
+                        disabled={flagging}
                         customStyles={{
                           TriggerTouchableComponent: TouchableOpacity,
                           triggerWrapper: {
@@ -532,6 +568,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                             justifyContent: 'center',
                             borderWidth: 1,
                             borderColor: theme.secondaryText + '40',
+                            opacity: flagging ? 0.5 : 1,
                           },
                         }}>
                         <MoreVertIcon size={24} color={theme.text} />
@@ -595,7 +632,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                           </>
                         )}
                         {/* Flag/Report Option - Always visible */}
-                        <MenuOption onSelect={handleFlagPress}>
+                        <MenuOption
+                          onSelect={handleFlagPress}
+                          disabled={flagging}>
                           <View className="flex-row items-center gap-2 py-2">
                             <FlagIcon size={20} color={theme.text} />
                             <Text
@@ -851,7 +890,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                   <TouchableOpacity
                     onPress={handleRemix}
                     className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                    style={{backgroundColor: theme.surface}}
+                    style={{
+                      backgroundColor: theme.surface,
+                      opacity: flagging ? 0.5 : 1,
+                    }}
+                    disabled={flagging}
                     accessible={true}
                     accessibilityLabel="Remix this image"
                     accessibilityHint="Navigate to home screen with this image's settings to create a similar image">
@@ -865,7 +908,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                   <TouchableOpacity
                     onPress={handleToggleFavorite}
                     className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                    style={{backgroundColor: theme.surface}}
+                    style={{
+                      backgroundColor: theme.surface,
+                      opacity: flagging ? 0.5 : 1,
+                    }}
+                    disabled={flagging}
                     accessible={true}
                     accessibilityLabel={
                       displayImage?.isFavorite
@@ -895,12 +942,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                   {/* Download Button */}
                   <TouchableOpacity
                     onPress={handleDownloadPress}
-                    disabled={downloading}
+                    disabled={downloading || flagging}
                     className="flex-row items-center justify-center rounded-2xl py-3.5 px-4 flex-1 gap-2"
-                    style={{backgroundColor: theme.primary}}
+                    style={{
+                      backgroundColor: theme.primary,
+                      opacity: downloading || flagging ? 0.7 : 1,
+                    }}
                     accessible={true}
                     accessibilityLabel={t('imageViewer.download')}
-                    accessibilityState={{disabled: downloading}}
+                    accessibilityState={{disabled: downloading || flagging}}
                     accessibilityHint={t('imageViewer.downloadHint')}>
                     {downloading ? (
                       <ActivityIndicator color="white" />
@@ -917,7 +967,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
               </View>
             </SafeAreaView>
 
-            <Toast />
+            <Toast config={toastConfig} />
           </MenuProvider>
         </Modal>
       ) : (
@@ -1015,91 +1065,135 @@ const ImageViewer: React.FC<ImageViewerProps> = ({image, onClose}) => {
                 style={{backgroundColor: '#ef4444'}}
               />
               <View className="p-6">
-                <Text
-                  className="text-2xl font-semibold mb-3 text-center"
-                  style={{color: theme.text}}>
-                  Report Image
-                </Text>
-                <Text
-                  className="text-base mb-6 text-center leading-6"
-                  style={{color: theme.secondaryText}}>
-                  Please select a reason(s) for reporting this image:
-                </Text>
+                <View className="items-center mb-4">
+                  <View
+                    className="w-16 h-16 rounded-full items-center justify-center mb-4"
+                    style={{backgroundColor: '#ef444415'}}>
+                    {flagging ? (
+                      <ActivityIndicator size="large" color="#ef4444" />
+                    ) : (
+                      <FlagIcon size={32} color="#ef4444" />
+                    )}
+                  </View>
+                  <Text
+                    className="text-2xl font-semibold mb-3 text-center"
+                    style={{color: theme.text}}>
+                    {flagging ? 'Reporting Image...' : 'Report Image'}
+                  </Text>
+                  <Text
+                    className="text-base mb-6 text-center leading-6"
+                    style={{color: theme.secondaryText}}>
+                    {flagging
+                      ? 'Please wait while we process your report...'
+                      : 'Please select a reason(s) for reporting this image:'}
+                  </Text>
+                </View>
 
-                <View className="mb-6">
-                  {reportReasons.map((reason, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      className="flex-row items-center rounded-xl py-3.5 px-4 mb-3"
-                      style={{backgroundColor: theme.surface}}
-                      onPress={() => handleToggleFlagReason(reason)}
-                      accessible={true}
-                      accessibilityLabel={`Toggle report reason: ${reason}`}>
-                      {selectedFlagReasons.includes(reason) ? (
-                        <CheckBoxIcon size={20} color={theme.primary} />
-                      ) : (
-                        <CheckBoxOutlineBlankIcon
-                          size={20}
-                          color={theme.secondaryText}
-                        />
-                      )}
+                {!flagging && (
+                  <>
+                    <View className="mb-6">
+                      {reportReasons.map((reason, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          className="flex-row items-center rounded-xl py-3.5 px-4 mb-3"
+                          style={{backgroundColor: theme.surface}}
+                          onPress={() => handleToggleFlagReason(reason)}
+                          accessible={true}
+                          accessibilityLabel={`Toggle report reason: ${reason}`}>
+                          {selectedFlagReasons.includes(reason) ? (
+                            <CheckBoxIcon size={20} color={theme.primary} />
+                          ) : (
+                            <CheckBoxOutlineBlankIcon
+                              size={20}
+                              color={theme.secondaryText}
+                            />
+                          )}
+                          <Text
+                            className="font-medium ml-3"
+                            style={{color: theme.text}}>
+                            {reason}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                      <TextInput
+                        placeholder="Other (please specify)"
+                        placeholderTextColor={theme.secondaryText + '80'}
+                        value={flagReason}
+                        onChangeText={setFlagReason}
+                        onSubmitEditing={handleFlagSubmit}
+                        className="rounded-xl py-3.5 px-4 border"
+                        style={{
+                          backgroundColor: theme.surface,
+                          color: theme.text,
+                          borderColor: theme.secondaryText + '40',
+                        }}
+                        multiline
+                        numberOfLines={3}
+                        maxLength={200}
+                        accessibilityLabel="Other report reason"
+                      />
+                    </View>
+
+                    <View className="flex-row justify-between">
+                      <TouchableOpacity
+                        className="py-3.5 px-6 rounded-xl flex-1 mr-3"
+                        style={{backgroundColor: theme.surface}}
+                        onPress={handleCloseFlagDialog}
+                        accessible={true}
+                        accessibilityLabel="Cancel report">
+                        <Text
+                          className="text-center font-medium"
+                          style={{color: theme.text}}>
+                          {t('common.cancel')}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="py-3.5 px-6 rounded-xl flex-1 flex-row items-center justify-center"
+                        style={{
+                          backgroundColor:
+                            selectedFlagReasons.length === 0 &&
+                            !flagReason.trim()
+                              ? theme.secondaryText + '50'
+                              : theme.primary,
+                        }}
+                        onPress={handleFlagSubmit}
+                        disabled={
+                          selectedFlagReasons.length === 0 && !flagReason.trim()
+                        }
+                        accessible={true}
+                        accessibilityLabel="Submit report">
+                        <Text
+                          className="font-medium text-center"
+                          style={{
+                            color:
+                              selectedFlagReasons.length === 0 &&
+                              !flagReason.trim()
+                                ? theme.text
+                                : 'white',
+                          }}>
+                          Submit Report
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
+                {flagging && (
+                  <View className="items-center">
+                    <View className="flex-row items-center">
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.primary}
+                        style={{marginRight: 8}}
+                      />
                       <Text
-                        className="font-medium ml-3"
-                        style={{color: theme.text}}>
-                        {reason}
+                        className="text-base"
+                        style={{color: theme.secondaryText}}>
+                        Processing report...
                       </Text>
-                    </TouchableOpacity>
-                  ))}
-                  <TextInput
-                    placeholder="Other (please specify)"
-                    placeholderTextColor={theme.secondaryText + '80'}
-                    value={flagReason}
-                    onChangeText={setFlagReason}
-                    onSubmitEditing={handleFlagSubmit}
-                    className="rounded-xl py-3.5 px-4 border"
-                    style={{
-                      backgroundColor: theme.surface,
-                      color: theme.text,
-                      borderColor: theme.secondaryText + '40',
-                    }}
-                    multiline
-                    numberOfLines={3}
-                    maxLength={200}
-                    accessibilityLabel="Other report reason"
-                  />
-                </View>
-
-                <View className="flex-row justify-between">
-                  <TouchableOpacity
-                    className="py-3.5 px-6 rounded-xl flex-1 mr-3"
-                    style={{backgroundColor: theme.surface}}
-                    onPress={() => {
-                      setShowFlagDialog(false);
-                      setFlagReason('');
-                      setSelectedFlagReasons([]);
-                    }}
-                    accessible={true}
-                    accessibilityLabel="Cancel report">
-                    <Text
-                      className="text-center font-medium"
-                      style={{color: theme.text}}>
-                      {t('common.cancel')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="py-3.5 px-6 rounded-xl flex-1"
-                    style={{backgroundColor: theme.primary}}
-                    onPress={handleFlagSubmit}
-                    disabled={
-                      selectedFlagReasons.length === 0 && !flagReason.trim()
-                    }
-                    accessible={true}
-                    accessibilityLabel="Submit report">
-                    <Text className="text-white font-medium text-center">
-                      Submit Report
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
           </View>

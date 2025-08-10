@@ -52,7 +52,8 @@ const GenerateScreen = () => {
   const navigator = useAppNavigation();
   const {triggerHaptic} = useHaptics();
   const {animatePress} = useAnimations();
-  const {error, generateImage} = useImageStore();
+  const {error, generateImage, validateBatchGeneration, getAvailableQuota} =
+    useImageStore();
   const {show} = useLoginModalStore();
   const {
     prompt,
@@ -86,7 +87,8 @@ const GenerateScreen = () => {
   // Android Quick Actions
   useAndroidQuickActions();
 
-  const handleImageGeneration = async () => {
+  const handleImageGeneration = useCallback(async () => {
+    animatePress(generateButtonScale);
     Keyboard.dismiss(); // Dismiss keyboard on generate
 
     if (!user?.uid) {
@@ -94,8 +96,32 @@ const GenerateScreen = () => {
       return;
     }
 
+    if (!prompt.trim()) {
+      showToast(t('generate.enterPrompt'), 'error');
+      return;
+    }
+
+    // Validate quota before generation
+    const validation = validateBatchGeneration(numberOfImages);
+
+    if (!validation.canGenerate) {
+      showToast(validation.message || 'Cannot generate images', 'error');
+      return;
+    }
+
+    // Show warning if count was adjusted
+    if (validation.message && validation.adjustedCount !== numberOfImages) {
+      showToast(validation.message, 'info');
+    }
+
+    // Check for inappropriate content
+    if (!contentFilter.isClean(prompt)) {
+      showToast(contentFilter.getErrorMessage(), 'error');
+      return;
+    }
+
     let tempImages = [];
-    for (let i = 0; i < numberOfImages; i++) {
+    for (let i = 0; i < validation.adjustedCount; i++) {
       const placeholderImage: GeneratedImage = {
         id: `placeholder-${i}`,
         userId: user?.uid || '',
@@ -106,7 +132,7 @@ const GenerateScreen = () => {
         styles: styles || [],
         width: imageWidth || 512,
         height: imageHeight || 512,
-        seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
+        seed: seed ? parseInt(seed, 10) : 0,
         imageSize: imageSize,
         aspectRatio: aspectRatio,
         negativePrompt: negativePrompt || '',
@@ -121,28 +147,8 @@ const GenerateScreen = () => {
     }
     setImages(tempImages);
 
-    // Haptic feedback for generation start
-    triggerHaptic('medium');
-
-    if (!prompt.trim()) {
-      showToast(t('generate.enterPrompt'), 'error');
-      return;
-    }
-
-    // Check for inappropriate content
-    if (!contentFilter.isClean(prompt)) {
-      showToast(contentFilter.getErrorMessage(), 'error');
-      return;
-    }
-
-    if (!user?.uid) {
-      showToast(t('auth.signInRequired'), 'error');
-      return;
-    }
-
-    setIsGenerating(true); // Start loading
-
     try {
+      setIsGenerating(true); // Start loading
       const apiSettings: ImageGenerationRequest = {
         engineType: engine,
         prompt: prompt.trim(),
@@ -151,7 +157,7 @@ const GenerateScreen = () => {
         width: imageWidth || 512,
         height: imageHeight || 512,
         imageSize: imageSize,
-        seed: seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000),
+        seed: seed ? parseInt(seed, 10) : 0,
         negativePrompt,
         isPrivate,
         highQuality: isPremium,
@@ -159,7 +165,7 @@ const GenerateScreen = () => {
 
       console.log('Generating with:', {apiSettings});
 
-      const promises = Array.from({length: numberOfImages}, () =>
+      const promises = Array.from({length: validation.adjustedCount}, () =>
         generateImage(apiSettings),
       );
       const results = await Promise.all(promises);
@@ -210,7 +216,23 @@ const GenerateScreen = () => {
     } finally {
       setIsGenerating(false); // End loading after all images are processed
     }
-  };
+  }, [
+    prompt,
+    numberOfImages,
+    validateBatchGeneration,
+    engine,
+    imageSize,
+    imageWidth,
+    imageHeight,
+    styles,
+    seed,
+    negativePrompt,
+    isPrivate,
+    isPremium,
+    triggerHaptic,
+    showToast,
+    navigator,
+  ]);
 
   const clearInputs = useCallback(() => {
     triggerHaptic('light');
@@ -229,6 +251,7 @@ const GenerateScreen = () => {
         <ImageCard
           image={item}
           onPress={() => setSelectedImage(item)}
+          hideFavorite
           style={{width: '95%'}}
         />
       </View>
@@ -256,6 +279,9 @@ const GenerateScreen = () => {
     negativePrompt,
     isPrivate,
   ]);
+
+  // Get available quota for UI display
+  const availableQuota = getAvailableQuota();
 
   return (
     <KeyboardAvoidingView
@@ -432,6 +458,24 @@ const GenerateScreen = () => {
           </View>
         )}
 
+        {/* Generate Button */}
+        {user && availableQuota === 0 && (
+          <View
+            className="py-4 mx-4 rounded-2xl"
+            style={{backgroundColor: '#fee2e2'}}>
+            <Text
+              className="text-center font-medium"
+              style={{color: '#dc2626'}}>
+              No image quota remaining
+            </Text>
+            <Text
+              className="text-center text-sm mt-1"
+              style={{color: '#991b1b'}}>
+              Upgrade your plan or wait for quota reset
+            </Text>
+          </View>
+        )}
+
         {/* Generated Images Grid */}
         <View className="flex-1 mt-3">
           <FlashList
@@ -589,10 +633,7 @@ const GenerateScreen = () => {
                 className="flex-1"
                 style={{transform: [{scale: generateButtonScale}]}}>
                 <TouchableOpacity
-                  onPress={() => {
-                    animatePress(generateButtonScale);
-                    handleImageGeneration();
-                  }}
+                  onPress={handleImageGeneration}
                   disabled={isGenerating || prompt.trim().length === 0}
                   style={{
                     opacity:
