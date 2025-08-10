@@ -278,6 +278,8 @@ const verifyToken = async (token: string): Promise<boolean> => {
  */
 const signOut = async (): Promise<void> => {
   try {
+    console.log('Starting complete sign out process');
+
     // Get current user before signing out
     const currentUser = auth().currentUser;
 
@@ -289,7 +291,6 @@ const signOut = async (): Promise<void> => {
           if (__DEV__) {
             console.log('Notifying server about logout');
           }
-
           await authAPI.logout();
         }
       } catch (serverError) {
@@ -320,8 +321,21 @@ const signOut = async (): Promise<void> => {
       console.warn('Google sign out failed:', googleSignOutError);
     }
 
+    // Clear any user-related local storage if current user was available
+    if (currentUser) {
+      try {
+        const {performCompleteDataCleanup} = require('./userService').default;
+        await performCompleteDataCleanup(currentUser.uid);
+      } catch (cleanupError) {
+        console.warn(
+          'Failed to perform complete data cleanup during logout:',
+          cleanupError,
+        );
+      }
+    }
+
     if (__DEV__) {
-      console.log('User signed out successfully');
+      console.log('Complete sign out successful');
     }
   } catch (error) {
     console.error('Sign out error:', error);

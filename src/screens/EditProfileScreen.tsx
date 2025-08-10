@@ -33,6 +33,7 @@ import CameraIcon from '@src/assets/icons/CameraIcon';
 import TrashIcon from '@src/assets/icons/TrashIcon';
 import UserNotFound from '@src/components/UserNotFound';
 import ImageSelectionModal from '@src/components/ImageSelectionModal';
+import {useImageStore} from '@src/store/imageStore';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -188,7 +189,9 @@ const EditProfileScreen = () => {
         if (success) {
           triggerHaptic('success');
           showToast(t('profile.accountDeleted'), 'success');
-          await logout();
+
+          // Complete user logout and cleanup
+          await performCompleteLogout();
         } else {
           throw new Error(message || 'Failed to delete account');
         }
@@ -198,6 +201,51 @@ const EditProfileScreen = () => {
       triggerHaptic('error');
       showToast(t('errors.failedToDeleteAccount'), 'error');
       setIsDeletingAccount(false);
+    }
+  };
+
+  const performCompleteLogout = async () => {
+    try {
+      // 1. Clear all images from store
+      useImageStore.getState().clearImages();
+
+      // 2. Clear all user data and auth state
+      await logout();
+
+      // 3. Clear any remaining cached data
+      await clearAllCaches();
+
+      // 4. Reset navigation to prevent back navigation
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home' as never}],
+      });
+
+      console.log('Complete logout successful after account deletion');
+    } catch (logoutError) {
+      console.error('Error during complete logout:', logoutError);
+      // Even if logout fails, try to navigate away
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home' as never}],
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const clearAllCaches = async () => {
+    try {
+      // Clear any remaining user-related data that might be cached
+      const {FastImage} = require('react-native-fast-image');
+
+      // Clear image cache
+      await FastImage.clearMemoryCache();
+      await FastImage.clearDiskCache();
+
+      console.log('All caches cleared after account deletion');
+    } catch (error) {
+      console.warn('Error clearing caches:', error);
     }
   };
 

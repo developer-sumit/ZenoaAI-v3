@@ -12,6 +12,7 @@ import {BlurView} from '@react-native-community/blur';
 import {useTheme} from '@src/store/themeStore';
 import {useStrings} from '@src/hooks/useStrings';
 import {useHaptics} from '@src/hooks/useHaptics';
+import {useAuthStore} from '@src/store/authStore';
 
 // Icons
 import CloseIcon from '@src/assets/icons/CloseIcon';
@@ -37,6 +38,7 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
   const t = useStrings();
   const {isDark, theme} = useTheme();
   const {triggerHaptic} = useHaptics();
+  const {logout} = useAuthStore();
   const [timeRemaining, setTimeRemaining] = useState({
     days: daysRemaining || 0,
     hours: hoursRemaining || 0,
@@ -109,8 +111,16 @@ const EmailRestrictionDialog: React.FC<EmailRestrictionDialogProps> = ({
     return () => clearInterval(interval);
   }, [visible, expiresAt]);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     triggerHaptic('light');
+
+    // Ensure complete logout when dialog is closed
+    try {
+      await logout();
+    } catch (error) {
+      console.warn('Failed to logout when closing restriction dialog:', error);
+    }
+
     onClose();
   };
 
