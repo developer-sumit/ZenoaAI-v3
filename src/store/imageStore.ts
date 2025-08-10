@@ -6,17 +6,18 @@ import imageService from '@src/services/imageService';
 import {ImageGenerationRequest} from '@src/types/image';
 
 interface ImageState {
-  images: GeneratedImage[]; // All user images (for gallery, profile, etc.)
-  publicImages: GeneratedImage[]; // Public images from all users (for community feed)
-  popularImages: GeneratedImage[]; // Popular images (if needed)
-  favoriteImages: GeneratedImage[]; // User's favorite images
+  images: GeneratedImage[];
+  publicImages: GeneratedImage[];
+  popularImages: GeneratedImage[];
+  trendingImages: GeneratedImage[];
+  favoriteImages: GeneratedImage[];
   isLoading: boolean;
   isLoadingPublic: boolean;
-  isLoadingMore: boolean; // For loading more images pagination
+  isLoadingMore: boolean;
   isLoadingMoreFavorites: boolean;
   error: string | null;
-  hasMoreImages: boolean; // Indicates if there are more images to load
-  currentPage: number; // Current page number for pagination
+  hasMoreImages: boolean;
+  currentPage: number;
   hasMoreFavoriteImages: boolean;
   favoriteCurrentPage: number;
 
@@ -48,6 +49,14 @@ interface ImageState {
   updatePrivacy: (imageId: string, isPrivate: boolean) => Promise<boolean>;
   flagImage: (imageId: string, reasons: string[]) => Promise<boolean>;
   clearImages: () => void;
+
+  // Add helper methods
+  getAvailableQuota: () => number;
+  validateBatchGeneration: (requestedCount: number) => {
+    canGenerate: boolean;
+    adjustedCount: number;
+    message?: string;
+  };
 }
 
 // Debounce utility (simple version)
@@ -57,14 +66,15 @@ export const useImageStore = create<ImageState>()((set, get) => ({
   images: [],
   publicImages: [],
   popularImages: [],
+  trendingImages: [],
   favoriteImages: [],
   isLoading: false,
   isLoadingPublic: false,
   isLoadingMore: false,
+  isLoadingMoreFavorites: false,
   error: null,
   hasMoreImages: true,
   currentPage: 1,
-  isLoadingMoreFavorites: false,
   hasMoreFavoriteImages: true,
   favoriteCurrentPage: 1,
 
@@ -134,11 +144,12 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         return;
       }
 
-      // If it's the first page, replace all images
-      // Otherwise, append to existing images
+      // Handle different filters
       if (page === 1) {
         if (filter === 'popular') {
           set({popularImages: data});
+        } else if (filter === 'trending') {
+          set({trendingImages: data});
         } else {
           set({publicImages: data});
         }
@@ -146,6 +157,10 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         if (filter === 'popular') {
           set(state => ({
             popularImages: [...state.popularImages, ...data],
+          }));
+        } else if (filter === 'trending') {
+          set(state => ({
+            trendingImages: [...state.trendingImages, ...data],
           }));
         } else {
           set(state => ({
@@ -211,6 +226,39 @@ export const useImageStore = create<ImageState>()((set, get) => ({
     await get().fetchFavoriteImages(nextPage, 20, false);
   },
 
+  // Helper to get current available quota
+  getAvailableQuota: () => {
+    const user = useAuthStore.getState().user;
+    return Math.max(0, user?.quota?.imagesRemaining || 0);
+  },
+
+  // Validate and adjust batch generation count
+  validateBatchGeneration: (requestedCount: number) => {
+    const availableQuota = get().getAvailableQuota();
+
+    if (availableQuota <= 0) {
+      return {
+        canGenerate: false,
+        adjustedCount: 0,
+        message:
+          'No image quota remaining. Please upgrade your plan or wait for quota reset.',
+      };
+    }
+
+    if (requestedCount <= availableQuota) {
+      return {
+        canGenerate: true,
+        adjustedCount: requestedCount,
+      };
+    }
+
+    return {
+      canGenerate: true,
+      adjustedCount: availableQuota,
+      message: `Adjusted from ${requestedCount} to ${availableQuota} images based on your remaining quota.`,
+    };
+  },
+
   generateImage: async (settings: ImageGenerationRequest) => {
     set({error: null});
 
@@ -227,33 +275,40 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         };
       }
 
-      const user = useAuthStore.getState().user;
-      if (user) {
-        useAuthStore.getState().updateUser({
-          statistics: {
-            ...user.statistics,
-            imagesGenerated: (user.statistics?.imagesGenerated || 0) + 1,
-          },
-          quota: {
-            ...user.quota,
-            imagesRemaining: (user.quota?.imagesRemaining || 0) - 1,
-          },
-        });
-      }
-
-      // Add the new image to the store
+      // Add the new image(s) to the store
+      const imagesToAdd = Array.isArray(data.images)
+        ? data.images
+        : [data.images];
       set(state => ({
-        images: [...state.images, data],
+        images: [...imagesToAdd, ...state.images], // Add new images at the beginning
         error: null,
       }));
 
+      if (data.user) {
+        useAuthStore.getState().updateUser(data.user);
+      } else {
+        const user = useAuthStore.getState().user;
+        if (user) {
+          useAuthStore.getState().updateUser({
+            statistics: {
+              ...user.statistics,
+              imagesGenerated: (user.statistics?.imagesGenerated || 0) + 1,
+            },
+            quota: {
+              ...user.quota,
+              imagesRemaining: (user.quota?.imagesRemaining || 0) + 1,
+            },
+          });
+        }
+      }
+
       return {
         success: true,
-        data,
+        data: data.images,
         message: 'Image generated successfully',
       };
     } catch (error: any) {
-      console.error('Failed to generate image batch:', error);
+      console.error('Failed to generate image:', error);
       set({error: 'Failed to generate image'});
       return {
         success: false,
@@ -288,6 +343,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       get().images.find(img => img.id === imageId) ||
       get().publicImages.find(img => img.id === imageId) ||
       get().popularImages.find(img => img.id === imageId) ||
+      get().trendingImages.find(img => img.id === imageId) ||
       get().favoriteImages.find(img => img.id === imageId);
 
     if (!currentImage) {
@@ -329,6 +385,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
 
       const updatedImages = state.images.map(update);
       const updatedPublicImages = state.publicImages.map(update);
+      const updatedTrendingImages = state.trendingImages.map(update);
       const updatedPopularImages = state.popularImages.map(update);
       // For favoriteImages, if we are unfavoriting, we should remove it from the list
       const updatedFavoriteImages = revert
@@ -368,6 +425,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         publicImages: updatedPublicImages,
         popularImages: updatedPopularImages,
         favoriteImages: updatedFavoriteImages,
+        trendingImages: updatedTrendingImages,
       };
     };
 
@@ -454,6 +512,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
         // Filter out the flagged image from public and popular lists immediately
         publicImages: state.publicImages.filter(img => img.id !== imageId),
         popularImages: state.popularImages.filter(img => img.id !== imageId),
+        trendingImages: state.trendingImages.filter(img => img.id !== imageId),
       }));
 
       const {success, message} = await imageService.flagImage(imageId, reasons);
@@ -511,6 +570,7 @@ export const useImageStore = create<ImageState>()((set, get) => ({
       images: [],
       favoriteImages: [],
       popularImages: [],
+      trendingImages: [],
       publicImages: [],
       currentPage: 1,
       hasMoreImages: true,

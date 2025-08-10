@@ -167,6 +167,9 @@ export const hi = {
     generateImageHint: 'अपने विवरण से एक चित्र जनरेट करें',
     noImages: 'अभी तक कोई चित्र नहीं',
     startCreating: 'अपना पहला AI-जनित चित्र बनाना शुरू करें',
+    quotaRemaining: '{{remaining}} आज बचे हैं',
+    quotaRemainingOf: '{{remaining}} का {{total}} आज',
+    quotaResetsDaily: 'मध्यरात्रि में रीसेट होता है',
   },
 
   // Gallery
@@ -196,6 +199,7 @@ export const hi = {
     filters: {
       popular: 'लोकप्रिय',
       latest: 'नवीनतम',
+      trending: 'ट्रेंडिंग',
     },
     noImages: 'अभी तक कोई समुदाय चित्र नहीं',
     noImagesDescription:
@@ -379,7 +383,12 @@ export const hi = {
     images: 'चित्र',
     imagesRemaining: '{{count}} चित्र शेष',
     imagesRemaining_plural: '{{count}} चित्र शेष',
+    imagesRemainingDaily: '{{count}} / {{total}} प्रति दिन',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/दिन',
     planType: 'योजना प्रकार',
+    dailyQuota: 'दैनिक कोटा',
+    dailyReset: 'मध्यरात्रि में रीसेट होता है',
+    renewsIn: '{{hours}}घ {{minutes}}मि में नवीनीकरण',
     notifications: 'सूचनाएँ',
     notificationsDesc: 'अपने चित्रों के बारे में अपडेट प्राप्त करें',
     notificationsEnabled: 'सूचनाएँ सक्षम',
@@ -436,6 +445,13 @@ export const hi = {
     deleteReasonPlaceholder: 'कृपया हमें और बताएँ...',
     deleteReasonNext: 'अगला',
     deleteReasonBack: 'वापस',
+    selectProfileImage: 'प्रोफ़ाइल चित्र चुनें',
+    selectFromGeneratedImages: 'अपने जनरेट किए गए चित्रों से चुनें',
+    generateImagesFirst:
+      'प्रोफ़ाइल चित्र के रूप में उपयोग करने के लिए पहले कुछ चित्र जनरेट करें',
+    profileImageSelected: 'प्रोफ़ाइल चित्र चुना गया',
+    tapToSelectFromGenerated:
+      'अपने जनरेट किए गए चित्रों से चुनने के लिए टैप करें',
   },
 
   // Email Restriction

@@ -1,7 +1,7 @@
 import EncryptedStorage from 'react-native-encrypted-storage';
 
 import {userAPI} from './axiosServer';
-import {User, IUserQuota} from '@src/types/user';
+import {User} from '@src/types/user';
 import {ResponseData} from '@src/types/api';
 import {DEFAULT_PLAN_TYPE} from '@src/constants';
 
@@ -312,6 +312,7 @@ const updateProfile = async (
     const apiData = {
       username: profileData.profile?.username || data.profile.username,
       bio: profileData.profile?.bio || data.profile.bio,
+      avatar: profileData.profile?.avatar || data.profile.avatar,
     };
 
     // Call the API endpoint using userAPI (token automatically added)
@@ -368,7 +369,7 @@ const deleteUserAccount = async (
   reason?: string,
 ): Promise<ResponseData<void>> => {
   try {
-    console.log('Initiating account deletion process');
+    console.log('Initiating complete account deletion process');
 
     // Get user data to store email for restriction
     const {success, data} = await getUser(userId);
@@ -411,9 +412,8 @@ const deleteUserAccount = async (
       );
     }
 
-    // Clear all user data from local storage
-    await EncryptedStorage.removeItem(`user_${userId}`);
-    await EncryptedStorage.removeItem('currentUserId');
+    // Complete data cleanup
+    await performCompleteDataCleanup(userId);
 
     console.log('Account successfully deleted and all data cleared');
     return {
@@ -426,6 +426,165 @@ const deleteUserAccount = async (
       success: false,
       message: 'Failed to delete account',
     };
+  }
+};
+
+/**
+ * Performs complete cleanup of all user-related data from local storage
+ */
+const performCompleteDataCleanup = async (userId: string): Promise<void> => {
+  try {
+    console.log('Starting complete data cleanup for user:', userId);
+
+    // Remove all user-specific data first
+    await EncryptedStorage.removeItem(`user_${userId}`);
+    await EncryptedStorage.removeItem('currentUserId');
+    await EncryptedStorage.removeItem('authToken');
+
+    // Clear any FCM token
+    await EncryptedStorage.removeItem('fcm_token');
+
+    // Get all storage keys for comprehensive cleanup
+    // Note: EncryptedStorage doesn't have getAllKeys, so we'll use a fallback approach
+    const allKeys = await getAllStorageKeys();
+    console.log('Found storage keys for cleanup:', allKeys.length);
+
+    // Define patterns for user-related keys
+    const userRelatedPatterns = [
+      userId, // Any key containing the user ID
+      'user_', // User data keys
+      'token', // Auth/session tokens
+      'session', // Session data
+      'auth', // Auth-related data
+      'fcm', // FCM tokens
+      'notification', // Notification settings
+      'cache_', // User-specific cache
+      'preference_', // User preferences
+      'setting_', // User settings
+    ];
+
+    // Filter keys that match user-related patterns (except email restrictions)
+    const userRelatedKeys = allKeys.filter((key: string) => {
+      // Keep email restrictions for security purposes
+      if (key.startsWith('email_restriction_')) {
+        return false;
+      }
+
+      // Remove keys that match user-related patterns
+      return userRelatedPatterns.some(
+        pattern => key.includes(pattern) || key.startsWith(pattern),
+      );
+    });
+
+    console.log('User-related keys to remove:', userRelatedKeys);
+
+    // Remove all user-related keys
+    const removalPromises = userRelatedKeys.map(async (key: string) => {
+      try {
+        await EncryptedStorage.removeItem(key);
+        console.log(`✓ Removed storage key: ${key}`);
+        return {key, success: true};
+      } catch (error) {
+        console.warn(`✗ Failed to remove key ${key}:`, error);
+        return {key, success: false, error};
+      }
+    });
+
+    // Wait for all removals to complete
+    const results = await Promise.allSettled(removalPromises);
+
+    // Log cleanup summary
+    const successful = results.filter(
+      (r: any) => r.status === 'fulfilled',
+    ).length;
+    const failed = results.filter((r: any) => r.status === 'rejected').length;
+
+    console.log(
+      `Data cleanup completed: ${successful} successful, ${failed} failed`,
+    );
+
+    // Clear any additional app-specific storage that might exist
+    await clearAdditionalStorages();
+
+    console.log('Complete data cleanup performed successfully');
+  } catch (error) {
+    console.error('Error during complete data cleanup:', error);
+    throw error; // Re-throw to allow proper error handling
+  }
+};
+
+/**
+ * Gets all storage keys using a fallback approach since EncryptedStorage doesn't expose getAllKeys
+ */
+const getAllStorageKeys = async (): Promise<string[]> => {
+  try {
+    // Since EncryptedStorage doesn't have getAllKeys, we'll maintain a list of known keys
+    // and use common patterns to find user-related data
+    const commonKeys = [
+      'currentUserId',
+      'authToken',
+      'fcm_token',
+      'user_preferences',
+      'app_settings',
+      'theme_preference',
+      'language_preference',
+    ];
+
+    // Get current user ID to construct user-specific keys
+    const currentUserId = await EncryptedStorage.getItem('currentUserId');
+    if (currentUserId) {
+      commonKeys.push(`user_${currentUserId}`);
+    }
+
+    // Filter out keys that don't exist
+    const existingKeys = [];
+    for (const key of commonKeys) {
+      try {
+        const value = await EncryptedStorage.getItem(key);
+        if (value !== null) {
+          existingKeys.push(key);
+        }
+      } catch (error) {
+        // Key doesn't exist, skip
+      }
+    }
+
+    return existingKeys;
+  } catch (error) {
+    console.warn('Error getting storage keys:', error);
+    return [];
+  }
+};
+
+/**
+ * Clear additional storage systems that might contain user data
+ */
+const clearAdditionalStorages = async (): Promise<void> => {
+  try {
+    // Clear MMKV storage if used by theme/language stores
+    const {MMKV} = require('react-native-mmkv');
+    const mmkvStorage = new MMKV();
+
+    // Get all MMKV keys
+    const mmkvKeys = mmkvStorage.getAllKeys();
+
+    // Clear user-specific MMKV data (be careful not to clear global settings)
+    const userSpecificMMKVKeys = mmkvKeys.filter(
+      (key: string) =>
+        key.includes('user_') ||
+        key.includes('auth') ||
+        key.includes('session'),
+    );
+
+    userSpecificMMKVKeys.forEach((key: string) => {
+      mmkvStorage.delete(key);
+      console.log(`✓ Cleared MMKV key: ${key}`);
+    });
+
+    console.log('Additional storage cleanup completed');
+  } catch (error) {
+    console.warn('Error clearing additional storages:', error);
+    // Don't throw here as this is not critical
   }
 };
 
@@ -464,68 +623,6 @@ const clearCurrentUserData = async (): Promise<void> => {
     console.log('Cleared current user data');
   } catch (error) {
     console.error('Error clearing current user data:', error);
-  }
-};
-
-/**
- * Checks the current quota information for a user.
- *
- * @param userId - The unique identifier of the user whose quota to check
- * @returns A Promise that resolves to the user's quota information, or null if the check fails
- *
- * @remarks
- * This function calls the user API to retrieve quota information and transforms the response
- * into an IUserQuota object. If the API call fails or returns an unsuccessful response,
- * the function logs the error and returns null instead of throwing.
- *
- * The quota object includes:
- * - imagesRemaining: Number of images remaining
- * - lastRefreshedAt: Date when the quota was last refreshed (optional)
- *
- * @example
- * ```typescript
- * const quota = await checkQuota('user123');
- * if (quota) {
- *   console.log(`Images remaining: ${quota.imagesRemaining}`);
- * }
- * ```
- */
-const checkQuota = async (): Promise<ResponseData<IUserQuota>> => {
-  try {
-    // Call the API endpoint using userAPI (token automatically added)
-    const response = await userAPI.checkQuota();
-
-    if (!response.data.success) {
-      return {
-        success: false,
-        message: response.data.message || 'Failed to check quota',
-        data: null,
-      };
-    }
-    const apiQuota = response.data.data;
-    const quota: IUserQuota = {
-      imagesRemaining: apiQuota.imagesRemaining || 0, // Default for free plan
-      lastRefreshedAt: apiQuota.lastRefreshedAt
-        ? new Date(apiQuota.lastRefreshedAt)
-        : undefined,
-      planLimits: {
-        totalImages: apiQuota.planLimits?.totalImages || 0, // Default for free
-      },
-    };
-
-    console.log('Quota refreshed successfully:', quota);
-    return {
-      success: true,
-      message: 'Quota refreshed successfully',
-      data: quota,
-    };
-  } catch (error) {
-    console.error('Error checking user quota:', error);
-    return {
-      success: false,
-      message: 'Error refreshing user quota',
-      data: null,
-    };
   }
 };
 
@@ -701,7 +798,7 @@ const userService = {
   updateProfile,
   deleteUserAccount,
   clearCurrentUserData,
-  checkQuota,
+  performCompleteDataCleanup,
   checkEmailAvailability,
   checkEmailRestriction,
   removeEmailRestriction,

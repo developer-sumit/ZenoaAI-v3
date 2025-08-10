@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import auth from '@react-native-firebase/auth';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 import {User} from '@src/types/user';
 import userService from '@src/services/userService';
@@ -178,32 +179,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // Logout function that uses the updated auth service
+  // Enhanced logout function for complete cleanup
   logout: async () => {
     try {
       set({isLoading: true});
 
+      // Get user info before clearing
+      const {user} = get();
+      const userId = user?.uid;
+
       // Use the auth service to handle logout
       await authService.signOut();
 
-      // Clear user data from local storage
-      const {user} = get();
-      if (user) {
-        await userService.clearCurrentUserData();
+      // Clear user data from local storage if we have a user ID
+      if (userId) {
+        // Perform complete data cleanup
+        await userService.performCompleteDataCleanup(userId);
+      } else {
+        // Fallback cleanup if no user ID available
+        await performFallbackCleanup();
       }
 
+      // Clear all image store data
       useImageStore.getState().clearImages();
 
+      // Clear generation store data if available
+      try {
+        const {useGenerationStore} = require('./generationStore');
+        if (useGenerationStore.getState().clearAll) {
+          useGenerationStore.getState().clearAll();
+        }
+      } catch (error) {
+        console.warn('Failed to clear generation store:', error);
+      }
+
+      // Reset auth state completely
       set({
         user: null,
         idToken: null,
         isLoading: false,
+        initialized: true, // Keep initialized true to prevent reauth attempts
       });
 
-      console.log('User logged out successfully');
+      console.log('Complete user logout successful');
     } catch (error) {
       console.error('Error during logout:', error);
-      set({isLoading: false});
+      // Even if logout fails, clear the state
+      set({
+        user: null,
+        idToken: null,
+        isLoading: false,
+        initialized: true,
+      });
       throw error;
     }
   },
@@ -255,3 +282,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+// Add fallback cleanup function
+const performFallbackCleanup = async (): Promise<void> => {
+  try {
+    // Clear any auth-related data without requiring user ID
+    await EncryptedStorage.removeItem('authToken');
+    await EncryptedStorage.removeItem('currentUserId');
+    await EncryptedStorage.removeItem('fcm_token');
+
+    console.log('Fallback cleanup completed');
+  } catch (error) {
+    console.error('Error in fallback cleanup:', error);
+  }
+};

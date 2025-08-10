@@ -168,6 +168,9 @@ export const fr = {
     generateImageHint: 'Générer une image à partir de votre description',
     noImages: 'Aucune image pour le moment',
     startCreating: "Commencez à créer votre première image générée par l'IA",
+    quotaRemaining: "{{remaining}} restant aujourd'hui",
+    quotaRemainingOf: "{{remaining}} sur {{total}} aujourd'hui",
+    quotaResetsDaily: 'Se remet à zéro à minuit',
   },
 
   // Gallery
@@ -197,6 +200,7 @@ export const fr = {
     filters: {
       popular: 'Populaire',
       latest: 'Le plus récent',
+      trending: 'Tendance',
     },
     noImages: 'Aucune image communautaire pour le moment',
     noImagesDescription:
@@ -402,6 +406,11 @@ export const fr = {
     shareAppHint: "Partager l'application avec vos amis",
     contactSupport: 'Contacter le support',
     contactSupportHint: "Obtenir de l'aide de notre équipe de support",
+    imagesRemainingDaily: '{{count}} / {{total}} par jour',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/jour',
+    dailyQuota: 'Quota Quotidien',
+    dailyReset: 'Se remet à zéro quotidiennement à minuit',
+    renewsIn: 'Se renouvelle dans {{hours}}h {{minutes}}m',
   },
 
   // Edit Profile
@@ -441,6 +450,13 @@ export const fr = {
     deleteReasonPlaceholder: 'Veuillez nous en dire plus...',
     deleteReasonNext: 'Suivant',
     deleteReasonBack: 'Retour',
+    selectProfileImage: 'Sélectionner une image de profil',
+    selectFromGeneratedImages: 'Choisir parmi vos images générées',
+    generateImagesFirst:
+      "Générez d'abord des images pour les utiliser comme photo de profil",
+    profileImageSelected: 'Image de profil sélectionnée',
+    tapToSelectFromGenerated:
+      'Appuyez pour sélectionner parmi vos images générées',
   },
 
   // Email Restriction

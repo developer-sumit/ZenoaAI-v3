@@ -117,20 +117,16 @@ const LoginBottomSheet: React.FC = () => {
 
       const currentUser = auth().currentUser;
       const userEmail = currentUser?.email || data.user?.email;
+
+      // Check local email restrictions BEFORE proceeding with server auth
       if (userEmail) {
         const restriction = await userService.checkEmailRestriction(userEmail);
         if (restriction.isRestricted) {
           triggerHaptic('error');
-          try {
-            await auth().signOut();
-            await GoogleSignin.revokeAccess();
-            await GoogleSignin.signOut();
-          } catch (signOutError) {
-            console.warn(
-              'Failed to sign out after local restriction:',
-              signOutError,
-            );
-          }
+
+          // Perform complete logout immediately
+          await performCompleteLogoutOnRestriction();
+
           setRestrictionData({
             expiresAt: restriction.expiresAt,
             daysRemaining: restriction.daysRemaining,
@@ -150,15 +146,12 @@ const LoginBottomSheet: React.FC = () => {
       showToast(t('auth.signInSuccessful'), 'success');
     } catch (error: any) {
       console.error('Sign-in error:', error);
-      if ((error as any).errorType === 'EMAIL_RESTRICTION') {
+      if (error.errorType === 'EMAIL_RESTRICTION') {
         triggerHaptic('error');
-        try {
-          await auth().signOut();
-          await GoogleSignin.revokeAccess();
-          await GoogleSignin.signOut();
-        } catch (signOutError) {
-          console.warn('Failed to sign out after restriction:', signOutError);
-        }
+
+        // Perform complete logout on server restriction
+        await performCompleteLogoutOnRestriction();
+
         if (error.emailRestrictionExpiresAt) {
           const expiresAt = new Date(error.emailRestrictionExpiresAt);
           const now = new Date();
@@ -186,9 +179,81 @@ const LoginBottomSheet: React.FC = () => {
         }
         return;
       }
+
+      // For any other error, also ensure complete logout
+      await performCompleteLogoutOnRestriction();
       showToast(t('auth.signInFailed'), 'error');
     } finally {
       setSigningIn(false);
+    }
+  };
+
+  /**
+   * Performs complete logout when email restriction is detected
+   * This ensures no traces of the restricted user remain in the app
+   */
+  const performCompleteLogoutOnRestriction = async () => {
+    try {
+      console.log('Performing complete logout due to email restriction');
+
+      // 1. Sign out from Firebase Auth
+      const currentUser = auth().currentUser;
+      if (currentUser) {
+        await auth().signOut();
+      }
+
+      // 2. Sign out from Google
+      try {
+        await GoogleSignin.revokeAccess();
+        await GoogleSignin.signOut();
+      } catch (googleSignOutError) {
+        console.warn(
+          'Google sign out failed during restriction cleanup:',
+          googleSignOutError,
+        );
+      }
+
+      // 3. Clear auth store completely
+      const {logout} = useAuthStore.getState();
+      await logout();
+
+      // 4. Clear any cached data
+      try {
+        await clearAllCaches();
+      } catch (cacheError) {
+        console.warn(
+          'Failed to clear caches during restriction cleanup:',
+          cacheError,
+        );
+      }
+
+      console.log('Complete logout successful due to email restriction');
+    } catch (error) {
+      console.error('Error during restriction logout:', error);
+      // Even if logout fails, ensure auth state is cleared
+      try {
+        const {logout} = useAuthStore.getState();
+        await logout();
+      } catch (fallbackError) {
+        console.error('Fallback logout also failed:', fallbackError);
+      }
+    }
+  };
+
+  const clearAllCaches = async () => {
+    try {
+      // Clear FastImage cache
+      const {FastImage} = require('react-native-fast-image');
+      await FastImage.clearMemoryCache();
+      await FastImage.clearDiskCache();
+
+      // Clear image store
+      const {useImageStore} = require('@src/store/imageStore');
+      useImageStore.getState().clearImages();
+
+      console.log('All caches cleared during restriction cleanup');
+    } catch (error) {
+      console.warn('Error clearing caches during restriction cleanup:', error);
     }
   };
 

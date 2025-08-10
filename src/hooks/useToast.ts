@@ -3,7 +3,7 @@ import Toast from 'react-native-toast-message';
 /**
  * Defines the possible types for a toast message.
  */
-type ToastType = 'success' | 'error' | 'info' | 'any';
+type ToastType = 'success' | 'error' | 'info' | 'warning' | 'any';
 
 /**
  * Defines the options for showing a toast message.

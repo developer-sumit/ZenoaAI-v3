@@ -169,6 +169,9 @@ export const pa = {
     generateImageHint: 'ਆਪਣੇ ਵਰਣਨ ਤੋਂ ਇੱਕ ਤਸਵੀਰ ਤਿਆਰ ਕਰੋ',
     noImages: 'ਅਜੇ ਕੋਈ ਤਸਵੀਰ ਨਹੀਂ',
     startCreating: 'ਆਪਣੀ ਪਹਿਲੀ AI-ਤਿਆਰ ਕੀਤੀ ਤਸਵੀਰ ਬਣਾਉਣਾ ਸ਼ੁਰੂ ਕਰੋ',
+    quotaRemaining: '{{remaining}} ਅੱਜ ਬਾਕੀ',
+    quotaRemainingOf: '{{remaining}} ਦਾ {{total}} ਅੱਜ',
+    quotaResetsDaily: 'ਅੱਧੀ ਰਾਤ ਨੂੰ ਰੀਸੈਟ ਹੁੰਦਾ ਹੈ',
   },
 
   // Gallery
@@ -198,6 +201,7 @@ export const pa = {
     filters: {
       popular: 'ਪ੍ਰਸਿੱਧ',
       latest: 'ਤਾਜ਼ਾ',
+      trending: 'ਟ੍ਰੈਂਡਿੰਗ',
     },
     noImages: 'ਅਜੇ ਕੋਈ ਕਮਿਊਨਿਟੀ ਤਸਵੀਰਾਂ ਨਹੀਂ',
     noImagesDescription:
@@ -401,6 +405,11 @@ export const pa = {
     shareAppHint: 'ਆਪਣੇ ਦੋਸਤਾਂ ਨਾਲ ਐਪ ਸਾਂਝਾ ਕਰੋ',
     contactSupport: 'ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ',
     contactSupportHint: 'ਸਾਡੀ ਸਹਾਇਤਾ ਟੀਮ ਤੋਂ ਮਦਦ ਪ੍ਰਾਪਤ ਕਰੋ',
+    imagesRemainingDaily: '{{count}} / {{total}} ਪ੍ਰਤੀ ਦਿਨ',
+    imagesRemainingDailyShort: '{{count}}/{{total}}/ਦਿਨ',
+    dailyQuota: 'ਰੋਜ਼ਾਨਾ ਕੋਟਾ',
+    dailyReset: 'ਅੱਧੀ ਰਾਤ ਨੂੰ ਰੋਜ਼ਾਨਾ ਰੀਸੈਟ ਹੁੰਦਾ ਹੈ',
+    renewsIn: '{{hours}}ਘ {{minutes}}ਮਿ ਵਿੱਚ ਨਵੀਨੀਕਰਣ',
   },
 
   // Edit Profile
@@ -438,6 +447,13 @@ export const pa = {
     deleteReasonPlaceholder: 'ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਹੋਰ ਦੱਸੋ...',
     deleteReasonNext: 'ਅੱਗੇ',
     deleteReasonBack: 'ਪਿੱਛੇ',
+    selectProfileImage: 'ਪ੍ਰੋਫਾਈਲ ਤਸਵੀਰ ਚੁਣੋ',
+    selectFromGeneratedImages: 'ਆਪਣੀਆਂ ਤਿਆਰ ਕੀਤੀਆਂ ਤਸਵੀਰਾਂ ਵਿੱਚੋਂ ਚੁਣੋ',
+    generateImagesFirst:
+      'ਪ੍ਰੋਫਾਈਲ ਤਸਵੀਰ ਵਜੋਂ ਵਰਤਣ ਲਈ ਪਹਿਲਾਂ ਕੁਝ ਤਸਵੀਰਾਂ ਤਿਆਰ ਕਰੋ',
+    profileImageSelected: 'ਪ੍ਰੋਫਾਈਲ ਤਸਵੀਰ ਚੁਣੀ ਗਈ',
+    tapToSelectFromGenerated:
+      'ਆਪਣੀਆਂ ਤਿਆਰ ਕੀਤੀਆਂ ਤਸਵੀਰਾਂ ਵਿੱਚੋਂ ਚੁਣਨ ਲਈ ਟੈਪ ਕਰੋ',
   },
 
   // Email Restriction
