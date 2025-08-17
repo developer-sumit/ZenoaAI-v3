@@ -754,16 +754,9 @@ const SettingsScreen = () => {
                 style={{backgroundColor: theme.primary + '15'}}>
                 <InfoOutlineIcon size={20} color={theme.primary} />
               </View>
-              <View>
-                <Text style={{color: theme.text}} className="text-base">
-                  {appConfig.name} v{appConfig.version}
-                </Text>
-                <Text
-                  style={{color: theme.secondaryText}}
-                  className="text-sm mt-1">
-                  {appConfig.author.name}
-                </Text>
-              </View>
+              <Text style={{color: theme.text}} className="text-base">
+                {appConfig.name} v{appConfig.version}
+              </Text>
             </View>
           </View>
 
