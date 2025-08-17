@@ -25,6 +25,66 @@ export interface Theme {
   secondaryText: string;
 }
 
+export interface ColorPalette {
+  name: string;
+  primary: string;
+  lightSurface?: string;
+  lightBackground?: string;
+  darkSurface?: string;
+  darkBackground?: string;
+}
+
+export const defaultColorPalettes: ColorPalette[] = [
+  {
+    name: 'Teal',
+    primary: '#0D9488',
+  },
+  {
+    name: 'Blue',
+    primary: '#3B82F6',
+  },
+  {
+    name: 'Purple',
+    primary: '#8B5CF6',
+  },
+  {
+    name: 'Pink',
+    primary: '#EC4899',
+  },
+  {
+    name: 'Orange',
+    primary: '#F97316',
+  },
+  {
+    name: 'Green',
+    primary: '#10B981',
+  },
+  {
+    name: 'Red',
+    primary: '#EF4444',
+  },
+  {
+    name: 'Indigo',
+    primary: '#6366F1',
+  },
+  {
+    name: 'Yellow',
+    primary: '#F59E0B',
+  },
+  {
+    name: 'Emerald',
+    primary: '#059669',
+  },
+  {
+    name: 'Rose',
+    primary: '#F43F5E',
+  },
+  {
+    name: 'Cyan',
+    primary: '#06B6D4',
+  },
+];
+
 export const lightTheme: Theme = {
   primary: '#0D9488',
   background: '#F5F7FA',
@@ -41,14 +101,30 @@ export const darkTheme: Theme = {
   secondaryText: '#8C93A3',
 };
 
+const createThemeWithPalette = (palette: ColorPalette, isDark: boolean): Theme => {
+  const baseTheme = isDark ? darkTheme : lightTheme;
+  return {
+    ...baseTheme,
+    primary: palette.primary,
+    surface: isDark 
+      ? (palette.darkSurface || baseTheme.surface)
+      : (palette.lightSurface || baseTheme.surface),
+    background: isDark 
+      ? (palette.darkBackground || baseTheme.background)
+      : (palette.lightBackground || baseTheme.background),
+  };
+};
+
 export type ThemeMode = 'light' | 'dark';
 
 interface ThemeState {
   mode: ThemeMode;
   currentTheme: Theme;
   isDark: boolean;
+  selectedPalette: ColorPalette;
   setMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
+  setPalette: (palette: ColorPalette) => void;
   getThemeColors: () => Theme;
 }
 
@@ -58,20 +134,29 @@ export const useThemeStore = create<ThemeState>()(
       mode: 'light',
       currentTheme: lightTheme,
       isDark: false,
+      selectedPalette: defaultColorPalettes[0], // Default to Teal
 
       setMode: (mode: ThemeMode) => {
         const isDark = mode === 'dark';
-        const currentTheme = isDark ? darkTheme : lightTheme;
+        const {selectedPalette} = get();
+        const currentTheme = createThemeWithPalette(selectedPalette, isDark);
 
         set({mode, isDark, currentTheme});
       },
 
       toggleTheme: () => {
-        const {isDark} = get();
+        const {isDark, selectedPalette} = get();
         const newMode: ThemeMode = isDark ? 'light' : 'dark';
-        const newTheme = isDark ? lightTheme : darkTheme;
+        const newTheme = createThemeWithPalette(selectedPalette, !isDark);
 
         set({mode: newMode, isDark: !isDark, currentTheme: newTheme});
+      },
+
+      setPalette: (palette: ColorPalette) => {
+        const {isDark} = get();
+        const currentTheme = createThemeWithPalette(palette, isDark);
+        
+        set({selectedPalette: palette, currentTheme});
       },
 
       getThemeColors: () => {
@@ -86,9 +171,18 @@ export const useThemeStore = create<ThemeState>()(
 );
 
 export const useTheme = () => {
-  const {currentTheme, isDark, mode, setMode, toggleTheme} = useThemeStore();
+  const {currentTheme, isDark, mode, setMode, toggleTheme, selectedPalette, setPalette} = useThemeStore();
 
-  return {theme: currentTheme, isDark, mode, setMode, toggleTheme};
+  return {
+    theme: currentTheme, 
+    isDark, 
+    mode, 
+    setMode, 
+    toggleTheme, 
+    selectedPalette, 
+    setPalette,
+    availablePalettes: defaultColorPalettes
+  };
 };
 
 // Utility function to create themed styles

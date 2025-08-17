@@ -47,6 +47,7 @@ import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import NotificationIcon from '@src/assets/icons/NotificationIcon';
+import PaletteIcon from '@src/assets/icons/PaletteIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -387,6 +388,11 @@ const SettingsScreen = () => {
     toggleTheme();
   }, [triggerHaptic, toggleTheme]);
 
+  const handleColorPalettePress = useCallback(() => {
+    triggerHaptic('light');
+    navigation.navigate(Routes.COLOR_PALETTE as never);
+  }, [triggerHaptic, navigation]);
+
   const handleLanguagePress = useCallback(() => {
     triggerHaptic('light');
     languageSelectorRef.current?.openModal();
@@ -632,6 +638,17 @@ const SettingsScreen = () => {
                 }
               />
             }
+            hasBorder={true}
+          />
+
+          <SettingRow
+            icon={<PaletteIcon size={20} color={theme.primary} />}
+            title={t('settings.colorPalette')}
+            subtitle={t('settings.colorPaletteDescription')}
+            onPress={handleColorPalettePress}
+            accessibilityLabel={t('settings.changeColorPalette')}
+            accessibilityHint={t('settings.changeColorPaletteHint')}
+            theme={theme}
             hasBorder={false}
           />
         </View>
