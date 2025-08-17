@@ -8,4 +8,5 @@ export default {
   SETTINGS: 'Settings',
   EDIT_PROFILE: 'EditProfile',
   ADVANCED_SETTINGS: 'AdvancedSettings',
+  COLOR_PALETTE: 'ColorPalette',
 };

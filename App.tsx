@@ -53,6 +53,7 @@ import SettingsScreen from '@src/screens/SettingsScreen';
 import GalleryLayout from '@src/screens/GalleryLayout';
 import EditProfileScreen from '@src/screens/EditProfileScreen';
 import AdvancedSettingsScreen from '@src/screens/AdvancedSettingsScreen';
+import ColorPaletteScreen from '@src/screens/ColorPaletteScreen';
 import {toastConfig} from '@src/config/toastConfig';
 
 enableScreens();
@@ -300,6 +301,11 @@ function App() {
                   <Stack.Screen
                     name={Routes.EDIT_PROFILE}
                     component={EditProfileScreen}
+                  />
+                  <Stack.Screen
+                    name={Routes.COLOR_PALETTE}
+                    component={ColorPaletteScreen}
+                    options={{headerShown: false, gestureEnabled: true}}
                   />
                 </Stack.Navigator>
               )}
