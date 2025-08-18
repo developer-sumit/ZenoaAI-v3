@@ -30,7 +30,6 @@ import Routes from '@src/constants/routes';
 import {contentFilter} from '@src/utils/contentFilter';
 import {SCREEN_HEIGHT} from '@src/constants';
 import {useStrings} from '@src/hooks/useStrings';
-import {useAndroidQuickActions} from '@src/hooks/useAndroidQuickActions';
 import {artStyles} from '@src/data/styles';
 import {useGenerationStore} from '@src/store/generationStore';
 import {useLoginModalStore} from '@src/components/LoginBottomSheet';
@@ -83,9 +82,6 @@ const GenerateScreen = () => {
 
   // Animation values for micro interactions
   const generateButtonScale = useRef(new Animated.Value(1)).current;
-
-  // Android Quick Actions
-  useAndroidQuickActions();
 
   const handleImageGeneration = useCallback(async () => {
     animatePress(generateButtonScale);

@@ -107,7 +107,7 @@ const SplashScreen = () => {
         <Text
           className="text-xs opacity-50"
           style={{color: theme.secondaryText}}>
-          v{appConfig.version} • {appConfig.author.name}
+          v{appConfig.version}
         </Text>
       </Animated.View>
     </View>

@@ -47,6 +47,7 @@ import ExitToAppIcon from '@src/assets/icons/ExitToAppIcon';
 import InfoOutlineIcon from '@src/assets/icons/InfoOutlineIcon';
 import LanguageIcon from '@src/assets/icons/LanguageIcon';
 import NotificationIcon from '@src/assets/icons/NotificationIcon';
+import PaletteIcon from '@src/assets/icons/PaletteIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -387,6 +388,11 @@ const SettingsScreen = () => {
     toggleTheme();
   }, [triggerHaptic, toggleTheme]);
 
+  const handleColorPalettePress = useCallback(() => {
+    triggerHaptic('light');
+    navigation.navigate(Routes.COLOR_PALETTE as never);
+  }, [triggerHaptic, navigation]);
+
   const handleLanguagePress = useCallback(() => {
     triggerHaptic('light');
     languageSelectorRef.current?.openModal();
@@ -432,16 +438,9 @@ const SettingsScreen = () => {
           />
 
           {user ? (
-            <>
-              <Text className="text-3xl font-bold" style={{color: theme.text}}>
-                {currentProfile.name}
-              </Text>
-              <Text
-                className="opacity-80 text-sm mt-1"
-                style={{color: theme.text}}>
-                {currentProfile.email}
-              </Text>
-            </>
+            <Text className="text-3xl font-bold" style={{color: theme.text}}>
+              {currentProfile.name}
+            </Text>
           ) : (
             <TouchableOpacity
               className="py-4 px-8 rounded-full shadow-lg"
@@ -477,19 +476,23 @@ const SettingsScreen = () => {
                 })}
               </Text>
             </View>
-            <View className="px-5 py-4">
+
+            {/* Text to Image Section */}
+            <View
+              className="px-5 py-4 border-b"
+              style={{borderColor: theme.secondaryText + '20'}}>
               <View className="mb-4">
                 <View className="flex-row justify-between items-center mb-2">
                   <View>
                     <Text
                       style={{color: theme.text}}
                       className="text-base font-medium">
-                      {t('settings.images')}
+                      {t('settings.textToImage')}
                     </Text>
                     <Text
                       style={{color: theme.secondaryText}}
                       className="text-xs">
-                      {t('settings.dailyReset')}
+                      {t('settings.textToImageDesc')}
                     </Text>
                   </View>
                   <View className="items-end">
@@ -520,7 +523,53 @@ const SettingsScreen = () => {
                   theme={theme}
                 />
               </View>
+            </View>
 
+            {/* Image to Image Section - Coming Soon */}
+            <View
+              className="px-5 py-4 border-b"
+              style={{borderColor: theme.secondaryText + '20'}}>
+              <View className="flex-row justify-between items-center">
+                <View className="flex-1">
+                  <View className="flex-row items-center">
+                    <Text
+                      style={{color: theme.text}}
+                      className="text-base font-medium mr-2">
+                      {t('settings.imageToImage')}
+                    </Text>
+                    <View
+                      className="px-2 py-1 rounded-full"
+                      style={{backgroundColor: theme.primary + '15'}}>
+                      <Text
+                        style={{color: theme.primary}}
+                        className="text-xs font-medium">
+                        {t('settings.comingSoon')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    style={{color: theme.secondaryText}}
+                    className="text-xs mt-1">
+                    {t('settings.imageToImageDesc')}
+                  </Text>
+                </View>
+                <View className="items-end ml-4">
+                  <Text
+                    style={{color: theme.secondaryText}}
+                    className="text-base font-medium">
+                    --
+                  </Text>
+                  <Text
+                    style={{color: theme.secondaryText}}
+                    className="text-xs">
+                    Soon
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Plan Type Section */}
+            <View className="px-5 py-4">
               <View className="flex-row justify-between items-center">
                 <Text
                   style={{color: theme.text}}
@@ -632,6 +681,17 @@ const SettingsScreen = () => {
                 }
               />
             }
+            hasBorder={true}
+          />
+
+          <SettingRow
+            icon={<PaletteIcon size={20} color={theme.primary} />}
+            title={t('settings.colorPalette')}
+            subtitle={t('settings.colorPaletteDescription')}
+            onPress={handleColorPalettePress}
+            accessibilityLabel={t('settings.changeColorPalette')}
+            accessibilityHint={t('settings.changeColorPaletteHint')}
+            theme={theme}
             hasBorder={false}
           />
         </View>
@@ -694,16 +754,9 @@ const SettingsScreen = () => {
                 style={{backgroundColor: theme.primary + '15'}}>
                 <InfoOutlineIcon size={20} color={theme.primary} />
               </View>
-              <View>
-                <Text style={{color: theme.text}} className="text-base">
-                  {appConfig.name} v{appConfig.version}
-                </Text>
-                <Text
-                  style={{color: theme.secondaryText}}
-                  className="text-sm mt-1">
-                  {appConfig.author.name}
-                </Text>
-              </View>
+              <Text style={{color: theme.text}} className="text-base">
+                {appConfig.name} v{appConfig.version}
+              </Text>
             </View>
           </View>
 
