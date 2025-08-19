@@ -24,7 +24,6 @@ import {useHaptics} from '@src/hooks/useHaptics';
 import {useAnimations} from '@src/hooks/useAnimations';
 import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
-import EmptyState from '@src/components/EmptyState';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
 import {contentFilter} from '@src/utils/contentFilter';
@@ -33,8 +32,6 @@ import {useStrings} from '@src/hooks/useStrings';
 import {artStyles} from '@src/data/styles';
 import {useGenerationStore} from '@src/store/generationStore';
 import {useLoginModalStore} from '@src/components/LoginBottomSheet';
-
-// Icons
 import TuneIcon from '@src/assets/icons/TuneIcon';
 import CloseIcon from '@src/assets/icons/CloseIcon';
 import MagicWand from '@src/assets/icons/MagicWandIcon';
@@ -286,210 +283,410 @@ const GenerateScreen = () => {
       behavior="position"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
       <View className="flex-1">
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <Text className="text-3xl font-bold" style={{color: theme.text}}>
-            {t('generate.title')}
-          </Text>
-          <View className="flex-row items-center gap-2">
-            <View
-              className="rounded-full px-4 py-2.5"
-              style={{backgroundColor: theme.surface}}>
-              <Text className="font-bold text-base" style={{color: theme.text}}>
-                <Text style={{color: theme.primary}}>
+        {/* Modern Header with Avatar and Stats */}
+        <View className="px-6 py-4">
+          <View className="flex-row items-center justify-between mb-4">
+            <View>
+              <Text
+                className="text-3xl font-bold mb-1"
+                style={{color: theme.text, fontFamily: 'Poppins-Bold'}}>
+                {t('generate.title')}
+              </Text>
+              <Text
+                className="text-base opacity-70"
+                style={{
+                  color: theme.secondaryText,
+                  fontFamily: 'Poppins-Regular',
+                }}>
+                Create stunning AI artwork
+              </Text>
+            </View>
+            <View className="flex-row gap-3">
+              <View
+                className="px-4 py-2.5 rounded-2xl border border-opacity-10"
+                style={{
+                  backgroundColor: theme.surface,
+                  borderColor: theme.primary,
+                }}>
+                <Text
+                  className="font-semibold text-sm"
+                  style={{
+                    color: theme.primary,
+                    fontFamily: 'Poppins-SemiBold',
+                  }}>
                   {user?.planType ? user.planType.toUpperCase() : 'FREE'}
                 </Text>
-              </Text>
-            </View>
-            <View
-              className="rounded-full px-4 py-2.5"
-              style={{backgroundColor: theme.surface}}>
-              <Text className="font-bold text-base" style={{color: theme.text}}>
-                {user && user.quota
-                  ? `${user.quota.imagesRemaining}${
-                      user.quota.planLimits.totalImages
-                        ? ` / ${user.quota.planLimits.totalImages}`
-                        : ''
-                    }`
-                  : '0 / ∞'}
-              </Text>
+              </View>
+              <View
+                className="px-4 py-2.5 rounded-2xl"
+                style={{backgroundColor: theme.surface}}>
+                <Text
+                  className="font-semibold text-sm"
+                  style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                  {user && user.quota
+                    ? `${user.quota.imagesRemaining}${
+                        user.quota.planLimits.totalImages
+                          ? ` / ${user.quota.planLimits.totalImages}`
+                          : ''
+                      }`
+                    : '0 / ∞'}
+                </Text>
+              </View>
             </View>
           </View>
+
+          {/* Quota Progress Bar */}
+          {user && user.quota && user.quota.planLimits.totalImages && (
+            <View className="mb-4">
+              <View
+                className="h-2 rounded-full overflow-hidden"
+                style={{backgroundColor: theme.secondaryText + '20'}}>
+                <View
+                  className="h-full rounded-full"
+                  style={{
+                    backgroundColor:
+                      user.quota.imagesRemaining > 5
+                        ? theme.primary
+                        : user.quota.imagesRemaining > 0
+                          ? '#f59e0b'
+                          : '#ef4444',
+                    width: `${Math.round((user.quota.imagesRemaining / user.quota.planLimits.totalImages) * 100)}%`,
+                  }}
+                />
+              </View>
+            </View>
+          )}
         </View>
 
-        {/* Selected Options Display (Collapsible) */}
+        {/* Modern Settings Preview Card */}
         {hasSelectedOptions && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setShowSettingsDetails(!showSettingsDetails)}
-            className="mx-4 mb-3 px-3 py-5 rounded-2xl flex-row items-center justify-between"
-            style={{backgroundColor: theme.surface}}>
-            <Text className="text-sm font-semibold" style={{color: theme.text}}>
-              {t('generate.selectedOptions')}
-            </Text>
-            {showSettingsDetails ? (
-              <ChevronUpIcon color={theme.secondaryText} />
-            ) : (
-              <ChevronDownIcon color={theme.secondaryText} />
-            )}
-          </TouchableOpacity>
-        )}
-
-        {showSettingsDetails && hasSelectedOptions && (
-          <View
-            className="mx-4 p-3 rounded-2xl"
-            style={{backgroundColor: theme.surface}}>
-            {prompt.length > 0 && (
-              <Text
-                className="text-lg mb-1"
-                style={{color: theme.secondaryText}}>
-                -&nbsp;
-                <Text className="font-bold" style={{color: theme.text}}>
-                  {t('imageViewer.prompt')}:
-                </Text>
-                &nbsp;
-                {prompt.length > 70 ? `${prompt.substring(0, 70)}...` : prompt}
-              </Text>
-            )}
-            <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
-              -&nbsp;
-              <Text className="font-bold" style={{color: theme.text}}>
-                {t('advanced.featureInfo.aiEngine.title')}:
-              </Text>
-              &nbsp;
-              {engine}
-            </Text>
-            <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
-              -&nbsp;
-              <Text className="font-bold" style={{color: theme.text}}>
-                {t('advanced.featureInfo.aspectRatio.title')}:
-              </Text>
-              &nbsp;
-              {aspectRatio}
-            </Text>
-            {styles.length > 0 && (
-              <View className="mb-1">
-                <Text className="text-lg" style={{color: theme.secondaryText}}>
-                  -&nbsp;
-                  <Text className="font-bold" style={{color: theme.text}}>
-                    {t('advanced.featureInfo.artStyles.title')}:
+          <View className="mx-6 mb-4">
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setShowSettingsDetails(!showSettingsDetails)}
+              className="px-5 py-4 rounded-3xl flex-row items-center justify-between"
+              style={{
+                backgroundColor: theme.surface,
+                borderWidth: 1,
+                borderColor: theme.primary + '15',
+              }}>
+              <View className="flex-row items-center">
+                <View
+                  className="w-10 h-10 rounded-2xl items-center justify-center mr-3"
+                  style={{backgroundColor: theme.primary + '20'}}>
+                  <TuneIcon size={20} color={theme.primary} />
+                </View>
+                <View>
+                  <Text
+                    className="font-semibold text-base"
+                    style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                    {t('generate.selectedOptions')}
                   </Text>
-                </Text>
-                <View className="flex-row flex-wrap mt-1 mx-4">
-                  {styles.map(styleName => {
-                    const styleData = artStyles.find(s => s.name === styleName);
-                    return (
-                      <View
-                        key={styleName}
-                        className="justify-center items-center mr-3 mb-2">
-                        {styleData?.image && (
-                          <FastImage
-                            source={{uri: styleData.image}}
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 6,
-                              marginRight: 5,
-                            }}
-                          />
-                        )}
-                        <Text style={{color: theme.primary}}>{styleName}</Text>
-                      </View>
-                    );
-                  })}
+                  <Text
+                    className="text-sm opacity-70"
+                    style={{
+                      color: theme.secondaryText,
+                      fontFamily: 'Poppins-Regular',
+                    }}>
+                    Tap to {showSettingsDetails ? 'hide' : 'view'} details
+                  </Text>
                 </View>
               </View>
-            )}
-            <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
-              -&nbsp;
-              <Text className="font-bold" style={{color: theme.text}}>
-                {t('advanced.featureInfo.batchCount.title')}:
-              </Text>
-              &nbsp;
-              {numberOfImages}
-            </Text>
-            <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
-              -&nbsp;
-              <Text className="font-bold" style={{color: theme.text}}>
-                {t('advanced.premiumImages')}:
-              </Text>
-              &nbsp;
-              {isPremium ? t('common.yes') : t('common.no')}
-            </Text>
-            {seed && (
-              <Text
-                className="text-lg mb-1"
-                style={{color: theme.secondaryText}}>
-                -&nbsp;
-                <Text className="font-bold" style={{color: theme.text}}>
-                  {t('advanced.featureInfo.seed.title')}:
-                </Text>
-                &nbsp;
-                {seed}
-              </Text>
-            )}
-            {negativePrompt && negativePrompt.length > 0 && (
-              <Text
-                className="text-lg mb-1"
-                style={{color: theme.secondaryText}}>
-                -&nbsp;
-                <Text className="font-bold" style={{color: theme.text}}>
-                  {t('advanced.negativePrompt')}:
-                </Text>
-                &nbsp;
-                {negativePrompt.length > 70
-                  ? `${negativePrompt.substring(0, 70)}...`
-                  : negativePrompt}
-              </Text>
-            )}
-
-            <Text className="text-lg mb-1" style={{color: theme.secondaryText}}>
-              -&nbsp;
-              <Text className="font-bold" style={{color: theme.text}}>
-                {t('advanced.privateImages')}:
-              </Text>
-              &nbsp;
-              {isPrivate ? t('common.yes') : t('common.no')}
-            </Text>
+              <View
+                className="w-8 h-8 rounded-xl items-center justify-center"
+                style={{backgroundColor: theme.background}}>
+                {showSettingsDetails ? (
+                  <ChevronUpIcon size={18} color={theme.primary} />
+                ) : (
+                  <ChevronDownIcon size={18} color={theme.primary} />
+                )}
+              </View>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Generate Button */}
+        {/* Animated Settings Details */}
+        {showSettingsDetails && hasSelectedOptions && (
+          <View
+            className="mx-6 mb-4 p-5 rounded-3xl border"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.primary + '10',
+            }}>
+            {prompt.length > 0 && (
+              <View
+                className="mb-4 p-4 rounded-2xl"
+                style={{backgroundColor: theme.background}}>
+                <Text
+                  className="font-semibold mb-2"
+                  style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                  {t('imageViewer.prompt')}
+                </Text>
+                <Text
+                  className="text-base leading-5"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Regular',
+                  }}>
+                  {prompt.length > 100
+                    ? `${prompt.substring(0, 100)}...`
+                    : prompt}
+                </Text>
+              </View>
+            )}
+
+            <View className="space-y-3">
+              <View className="flex-row items-center justify-between py-2">
+                <Text
+                  className="font-medium"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  {t('advanced.featureInfo.aiEngine.title')}
+                </Text>
+                <Text
+                  className="font-semibold"
+                  style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                  {engine}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center justify-between py-2">
+                <Text
+                  className="font-medium"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  {t('advanced.featureInfo.aspectRatio.title')}
+                </Text>
+                <Text
+                  className="font-semibold"
+                  style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                  {aspectRatio}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center justify-between py-2">
+                <Text
+                  className="font-medium"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  {t('advanced.featureInfo.batchCount.title')}
+                </Text>
+                <Text
+                  className="font-semibold"
+                  style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                  {numberOfImages}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center justify-between py-2">
+                <Text
+                  className="font-medium"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  {t('advanced.premiumImages')}
+                </Text>
+                <View
+                  className="px-3 py-1 rounded-full"
+                  style={{
+                    backgroundColor: isPremium
+                      ? theme.primary + '20'
+                      : theme.secondaryText + '20',
+                  }}>
+                  <Text
+                    className="font-semibold text-sm"
+                    style={{
+                      color: isPremium ? theme.primary : theme.secondaryText,
+                      fontFamily: 'Poppins-SemiBold',
+                    }}>
+                    {isPremium ? t('common.yes') : t('common.no')}
+                  </Text>
+                </View>
+              </View>
+
+              {styles.length > 0 && (
+                <View className="py-2">
+                  <Text
+                    className="font-medium mb-3"
+                    style={{
+                      color: theme.secondaryText,
+                      fontFamily: 'Poppins-Medium',
+                    }}>
+                    {t('advanced.featureInfo.artStyles.title')}
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {styles.map(styleName => {
+                      const styleData = artStyles.find(
+                        s => s.name === styleName,
+                      );
+                      return (
+                        <View
+                          key={styleName}
+                          className="flex-row items-center px-3 py-2 rounded-2xl"
+                          style={{backgroundColor: theme.primary + '15'}}>
+                          {styleData?.image && (
+                            <FastImage
+                              source={{uri: styleData.image}}
+                              style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: 6,
+                                marginRight: 8,
+                              }}
+                            />
+                          )}
+                          <Text
+                            className="font-medium text-sm"
+                            style={{
+                              color: theme.primary,
+                              fontFamily: 'Poppins-Medium',
+                            }}>
+                            {styleName}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {seed && (
+                <View className="flex-row items-center justify-between py-2">
+                  <Text
+                    className="font-medium"
+                    style={{
+                      color: theme.secondaryText,
+                      fontFamily: 'Poppins-Medium',
+                    }}>
+                    {t('advanced.featureInfo.seed.title')}
+                  </Text>
+                  <Text
+                    className="font-semibold"
+                    style={{color: theme.text, fontFamily: 'Poppins-SemiBold'}}>
+                    {seed}
+                  </Text>
+                </View>
+              )}
+
+              {negativePrompt && negativePrompt.length > 0 && (
+                <View className="py-2">
+                  <Text
+                    className="font-medium mb-2"
+                    style={{
+                      color: theme.secondaryText,
+                      fontFamily: 'Poppins-Medium',
+                    }}>
+                    {t('advanced.negativePrompt')}
+                  </Text>
+                  <Text
+                    className="text-sm"
+                    style={{color: theme.text, fontFamily: 'Poppins-Regular'}}>
+                    {negativePrompt.length > 80
+                      ? `${negativePrompt.substring(0, 80)}...`
+                      : negativePrompt}
+                  </Text>
+                </View>
+              )}
+
+              <View className="flex-row items-center justify-between py-2">
+                <Text
+                  className="font-medium"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  {t('advanced.privateImages')}
+                </Text>
+                <View
+                  className="px-3 py-1 rounded-full"
+                  style={{
+                    backgroundColor: isPrivate
+                      ? theme.primary + '20'
+                      : theme.secondaryText + '20',
+                  }}>
+                  <Text
+                    className="font-semibold text-sm"
+                    style={{
+                      color: isPrivate ? theme.primary : theme.secondaryText,
+                      fontFamily: 'Poppins-SemiBold',
+                    }}>
+                    {isPrivate ? t('common.yes') : t('common.no')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Modern Quota Warning */}
         {user && availableQuota === 0 && (
           <View
-            className="py-4 mx-4 rounded-2xl"
-            style={{backgroundColor: '#fee2e2'}}>
+            className="mx-6 mb-4 p-5 rounded-3xl border-2"
+            style={{
+              backgroundColor: '#fef2f2',
+              borderColor: '#fecaca',
+            }}>
+            <View className="flex-row items-center mb-2">
+              <View
+                className="w-10 h-10 rounded-2xl items-center justify-center mr-3"
+                style={{backgroundColor: '#fee2e2'}}>
+                <Text className="text-xl">⚠️</Text>
+              </View>
+              <Text
+                className="font-semibold text-lg"
+                style={{color: '#dc2626', fontFamily: 'Poppins-SemiBold'}}>
+                No quota remaining
+              </Text>
+            </View>
             <Text
-              className="text-center font-medium"
-              style={{color: '#dc2626'}}>
-              No image quota remaining
-            </Text>
-            <Text
-              className="text-center text-sm mt-1"
-              style={{color: '#991b1b'}}>
-              Upgrade your plan or wait for quota reset
+              className="text-base"
+              style={{color: '#991b1b', fontFamily: 'Poppins-Regular'}}>
+              Upgrade your plan or wait for quota reset to continue generating
+              images
             </Text>
           </View>
         )}
 
-        {/* Generated Images Grid */}
-        <View className="flex-1 mt-3">
+        {/* Modern Images Grid */}
+        <View className="flex-1 px-6">
           <FlashList
             data={images}
             keyExtractor={(_, index) => index.toString()}
             estimatedItemSize={300}
-            className="rounded-3xl mx-4"
+            className="rounded-3xl"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 215, paddingHorizontal: 10}}
+            contentContainerStyle={{paddingBottom: 215, paddingHorizontal: 4}}
             renderItem={renderItem}
             numColumns={2}
             ListEmptyComponent={
-              <View style={{minHeight: SCREEN_HEIGHT / 2}}>
-                <EmptyState
-                  icon={<MagicWand size={48} color={theme.primary} />}
-                  title={t('generate.noImages')}
-                  description={t('generate.startCreating')}
-                />
+              <View
+                style={{minHeight: SCREEN_HEIGHT / 3}}
+                className="items-center justify-center">
+                <View
+                  className="w-24 h-24 rounded-3xl items-center justify-center mb-4"
+                  style={{backgroundColor: theme.surface}}>
+                  <MagicWand size={36} color={theme.primary} />
+                </View>
+                <Text
+                  className="text-2xl font-bold mb-2"
+                  style={{color: theme.text, fontFamily: 'Poppins-Bold'}}>
+                  {t('generate.noImages')}
+                </Text>
+                <Text
+                  className="text-base text-center opacity-70 leading-6"
+                  style={{
+                    color: theme.secondaryText,
+                    fontFamily: 'Poppins-Regular',
+                  }}>
+                  {t('generate.startCreating')}
+                </Text>
               </View>
             }
             keyboardShouldPersistTaps="handled"
@@ -498,44 +695,58 @@ const GenerateScreen = () => {
           />
         </View>
 
-        {/* Bottom Input Area */}
-        <View className="absolute bottom-28 left-0 right-0 px-4 py-2 z-10">
+        {/* Modern Bottom Input Area */}
+        <View className="absolute bottom-28 left-0 right-0 px-6 py-2 z-10">
           <View
-            className="rounded-3xl shadow-md"
+            className="rounded-3xl border"
             style={{
               backgroundColor: theme.surface,
+              borderColor: theme.primary + '15',
               ...Platform.select({
                 ios: {
                   shadowColor: '#000',
-                  shadowOffset: {width: 0, height: 2},
-                  shadowOpacity: 0.1,
-                  shadowRadius: 3,
+                  shadowOffset: {width: 0, height: 8},
+                  shadowOpacity: 0.15,
+                  shadowRadius: 20,
                 },
                 android: {
-                  elevation: 12,
+                  elevation: 16,
                 },
               }),
             }}>
-            <View className="flex-row items-center">
-              <TextInput
-                value={prompt}
-                onChangeText={setPrompt}
-                placeholder={t('generate.promptPlaceholder')}
-                placeholderTextColor="#94a3b8"
-                className="text-lg p-4 max-h-[120px] flex-1"
-                style={{color: theme.text}}
-                multiline
-                numberOfLines={3}
-                accessible={true}
-                accessibilityLabel={t('generate.imageDescription')}
-                accessibilityHint={t('generate.imageDescriptionHint')}
-              />
-              <Animated.View>
+            {/* Input Section */}
+            <View className="px-5 py-4">
+              <View className="flex-row items-end">
+                <View className="flex-1">
+                  <TextInput
+                    value={prompt}
+                    onChangeText={setPrompt}
+                    placeholder={t('generate.promptPlaceholder')}
+                    placeholderTextColor={theme.secondaryText + '80'}
+                    className="text-lg max-h-[120px] min-h-[48px]"
+                    style={{
+                      color: theme.text,
+                      fontFamily: 'Poppins-Regular',
+                      textAlignVertical: 'top',
+                    }}
+                    multiline
+                    numberOfLines={3}
+                    accessible={true}
+                    accessibilityLabel={t('generate.imageDescription')}
+                    accessibilityHint={t('generate.imageDescriptionHint')}
+                  />
+                </View>
                 <TouchableOpacity
                   onPress={() =>
                     setShowPromptSuggestions(!showPromptSuggestions)
                   }
-                  className="pr-4"
+                  className="ml-3 w-12 h-12 rounded-2xl items-center justify-center"
+                  style={{
+                    backgroundColor:
+                      prompt.length === 0
+                        ? theme.primary + '20'
+                        : theme.background,
+                  }}
                   accessible={true}
                   accessibilityLabel={t('generate.promptSuggestions')}
                   accessibilityHint={t('generate.promptSuggestionsHint')}
@@ -547,43 +758,51 @@ const GenerateScreen = () => {
                     }
                   />
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
+
+              {/* Selected Styles Pills */}
+              {styles.length > 0 && (
+                <View
+                  className="flex-row flex-wrap gap-2 mt-4 pt-4"
+                  style={{borderTopWidth: 1, borderTopColor: theme.background}}>
+                  {styles.map(style => (
+                    <TouchableOpacity
+                      key={style}
+                      style={{backgroundColor: theme.primary + '15'}}
+                      onPress={() => {
+                        const newStyles = styles.filter(s => s !== style);
+                        setStyles(newStyles);
+                      }}
+                      className="py-2 px-4 rounded-2xl flex-row items-center"
+                      accessible={true}
+                      accessibilityLabel={t(
+                        'advanced.featureInfo.artStyles.title',
+                      )}
+                      accessibilityRole="button"
+                      accessibilityHint={t(
+                        'advanced.featureInfo.artStyles.message',
+                      )}>
+                      <Text
+                        style={{
+                          color: theme.primary,
+                          fontFamily: 'Poppins-Medium',
+                        }}
+                        className="text-sm">
+                        {style}
+                      </Text>
+                      <View className="ml-2">
+                        <CloseIcon size={14} color={theme.primary} />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
-            {/* Selected Styles Pills (if any) */}
-            {styles.length > 0 && (
-              <View className="flex-row flex-wrap gap-1.5 px-4 pb-2">
-                {styles.map(style => (
-                  <TouchableOpacity
-                    key={style}
-                    style={{backgroundColor: theme.primary + '15'}}
-                    onPress={() => {
-                      const newStyles = styles.filter(s => s !== style);
-                      setStyles(newStyles);
-                    }}
-                    className="py-1 px-3 rounded-full flex-row items-center"
-                    accessible={true}
-                    accessibilityLabel={t(
-                      'advanced.featureInfo.artStyles.title',
-                    )}
-                    accessibilityRole="button"
-                    accessibilityHint={t(
-                      'advanced.featureInfo.artStyles.message',
-                    )}>
-                    <Text style={{color: theme.primary}} className="text-xs">
-                      {style}
-                    </Text>
-                    <View className="ml-1.5">
-                      <CloseIcon size={12} color={theme.primary} />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
+            {/* Action Buttons */}
             <View
-              className="flex-row justify-end p-2 border-t gap-2"
-              style={{borderColor: theme.surface}}>
+              className="flex-row p-4 border-t"
+              style={{borderColor: theme.background}}>
               <TouchableOpacity
                 onPress={clearInputs}
                 disabled={
@@ -592,11 +811,11 @@ const GenerateScreen = () => {
                 style={{
                   opacity:
                     isGenerating || (prompt.length === 0 && styles.length === 0)
-                      ? 0.5
+                      ? 0.4
                       : 1,
-                  backgroundColor: theme.surface,
+                  backgroundColor: theme.background,
                 }}
-                className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center"
+                className="py-4 px-6 rounded-2xl flex-row items-center justify-center"
                 accessible={true}
                 accessibilityLabel={t('generate.clearInputs')}
                 accessibilityState={{
@@ -607,17 +826,20 @@ const GenerateScreen = () => {
                 accessibilityRole="button"
                 accessibilityHint={t('generate.clearInputsHint')}>
                 <RefreshIcon size={20} color={theme.text} />
-                <Text style={{color: theme.text}} className="ml-2 font-medium">
+                <Text
+                  style={{color: theme.text, fontFamily: 'Poppins-Medium'}}
+                  className="ml-2">
                   {t('common.clear')}
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  triggerHaptic('light'); // Add haptic feedback for navigation
+                  triggerHaptic('light');
                   navigator.navigate({route: Routes.ADVANCED_SETTINGS});
                 }}
-                className="p-3 rounded-2xl"
+                className="w-14 h-14 ml-3 rounded-2xl items-center justify-center"
                 style={{backgroundColor: theme.primary + '20'}}
                 accessible={true}
                 accessibilityLabel={t('advanced.title')}
@@ -625,8 +847,9 @@ const GenerateScreen = () => {
                 accessibilityHint={t('advanced.title')}>
                 <TuneIcon size={24} color={theme.primary} />
               </TouchableOpacity>
+
               <Animated.View
-                className="flex-1"
+                className="flex-1 ml-3"
                 style={{transform: [{scale: generateButtonScale}]}}>
                 <TouchableOpacity
                   onPress={handleImageGeneration}
@@ -636,7 +859,7 @@ const GenerateScreen = () => {
                       isGenerating || prompt.trim().length === 0 ? 0.5 : 1,
                     backgroundColor: theme.primary,
                   }}
-                  className="py-3.5 px-5 rounded-2xl flex-row items-center justify-center flex-1"
+                  className="py-4 px-6 rounded-2xl flex-row items-center justify-center"
                   accessible={true}
                   accessibilityLabel={t('generate.titleImage')}
                   accessibilityRole="button"
@@ -646,13 +869,15 @@ const GenerateScreen = () => {
                   }}
                   accessibilityHint={t('generate.titleImageHint')}>
                   {isGenerating ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color="white" size="small" />
                   ) : (
                     <>
-                      <Text className="text-white mr-2 font-medium">
+                      <Text
+                        className="text-white mr-3 font-semibold text-base"
+                        style={{fontFamily: 'Poppins-SemiBold'}}>
                         {t('generate.title')}
                       </Text>
-                      <MagicWand color="white" />
+                      <MagicWand color="white" size={20} />
                     </>
                   )}
                 </TouchableOpacity>
