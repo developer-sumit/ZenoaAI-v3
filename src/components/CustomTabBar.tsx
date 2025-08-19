@@ -11,7 +11,7 @@ import {useAnimations} from '@src/hooks/useAnimations';
 // Icons
 import HomeIcon from '@src/assets/icons/HomeIcon';
 import SettingsIcon from '@src/assets/icons/SettingsIcon';
-import GenerateIcon from '@src/assets/icons/GenerateIcon';
+import MagicWandIcon from '@src/assets/icons/MagicWandIcon';
 import GalleryIcon from '@src/assets/icons/GalleryIcon';
 import routes from '@src/constants/routes';
 
@@ -39,7 +39,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
       case routes.HOME:
         return <HomeIcon size={size} color={iconColor} />;
       case routes.GENERATE:
-        return <GenerateIcon size={size} color={iconColor} />;
+        return <MagicWandIcon size={size} color={iconColor} />;
       case routes.GALLERY:
         return <GalleryIcon size={size} color={iconColor} />;
       case routes.SETTINGS:
