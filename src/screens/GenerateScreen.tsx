@@ -26,7 +26,6 @@ import {GeneratedImage, ImageGenerationRequest} from '@src/types/image';
 import PromptSuggestions from '@src/components/PromptSuggestion';
 import useAppNavigation from '@src/hooks/useAppNavigation';
 import Routes from '@src/constants/routes';
-import {contentFilter} from '@src/utils/contentFilter';
 import {SCREEN_HEIGHT} from '@src/constants';
 import {useStrings} from '@src/hooks/useStrings';
 import {artStyles} from '@src/data/styles';
@@ -105,12 +104,6 @@ const GenerateScreen = () => {
     // Show warning if count was adjusted
     if (validation.message && validation.adjustedCount !== numberOfImages) {
       showToast(validation.message, 'info');
-    }
-
-    // Check for inappropriate content
-    if (!contentFilter.isClean(prompt)) {
-      showToast(contentFilter.getErrorMessage(), 'error');
-      return;
     }
 
     let tempImages = [];
