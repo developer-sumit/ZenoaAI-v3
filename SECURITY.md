@@ -25,6 +25,6 @@ Please include as much detail as possible to help reproduce and assess the issue
 
 ## Security Best Practices for Contributors & Self-Hosters
 
-- Never commit `.env`, `.env.production`, `android/keystore.properties`, or `.keystore`/`.jks` files.
+- Never commit `.env`, `.env.production`, `android/keystore.properties`, `google-services.json`, `GoogleService-Info.plist`, or `.keystore`/`.jks` files.
 - Rotate any API keys or Firebase credentials immediately if accidentally exposed.
 - Review Firebase Firestore & Storage security rules before deploying to production.
