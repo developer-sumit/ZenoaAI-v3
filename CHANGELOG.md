@@ -1,5 +1,126 @@
 # 📝 Changelog
 
+All notable changes to **Zenoa AI (v3)** are documented in this file.
+
+---
+
+## 🚀 v3.7.0 (2025-08-18)
+
+### ✨ Features
+- **🖼️ Text-to-Image & Image-to-Image:** Added support for both text-to-image and image-to-image generation modes with full localization support.
+- **🎨 Color Palette Screen:** Added a dedicated Color Palette screen integrated with theme management, allowing users to customize accent colors across 13 supported languages.
+
+### 🔧 Improvements
+- **🏷️ Version Display:** Simplified version display in Settings and Splash screens.
+- **🧹 Android Quick Actions:** Removed unused Android Quick Actions implementation and related icon assets.
+
+---
+
+## 🚀 v3.6.0 (2025-08-10)
+
+### ✨ Features
+- **👤 Profile Avatar Selection:** Added `ImageSelectionModal` for choosing profile avatars with localized strings across all supported languages and `avatar` field support in profile updates.
+- **⬆️ Scroll to Top:** Implemented `ScrollToTop` component and integrated it into `HomeScreen`, `GalleryScreen`, and `FavoriteScreen`.
+- **🔥 Community Trending Filter:** Replaced the `hot` filter with `trending` in community filters, updating state management and multi-language translations.
+- **📊 Daily Quota Display:** Enhanced quota information in `SettingsScreen` with daily context and reset time, plus image quota validation and warnings in generation screens.
+- **⚙️ Dynamic Options Service:** Implemented options service and hook for fetching available generation options in `AdvancedSettingsScreen`.
+- **🚩 Image Reporting & Account Deletion:** Enhanced image reporting in `ImageViewer`, added account deletion handling in `EditProfileScreen`, and implemented complete logout and local data cleanup on account deletion or email restriction.
+
+### 🔧 Improvements
+- **⚙️ Settings UI:** Refactored `SettingsScreen` to enhance UI components and improve notification handling.
+- **🍞 Custom Toast:** Integrated custom toast configuration across the app and fixed toast visibility duration.
+- **🃏 ImageCard:** Added `hideFavorite` prop and updated visibility logic in `GenerateScreen` and `AdvancedSettingsScreen`.
+- **🔐 Auth Flow:** Improved email restriction handling in the authentication flow and removed unused user quota logic.
+
+---
+
+## 🚀 v3.5.0 (2025-08-07)
+
+### ✨ Features
+- **🔐 Google Sign-In Modal Flow:** Implemented updated authentication flow with Google Sign-In and `LoginBottomSheet` featuring an animated blurry overlay.
+- **🍞 Toast System Upgrade:** Replaced `@masumdev/rn-toast` with `react-native-toast-message` and implemented a custom `useToast` hook.
+
+### 🔧 Improvements
+- **📊 Free Plan Quota:** Updated default image quota handling for free plan users in `userService` and `authStore`.
+- **🧹 State Reset:** Reset favorite and popular images cleanly on `clearImages` action.
+- **📦 Build Config:** Updated `versionCode` to `14` in `build.gradle` and `app.config.ts`.
+
+---
+
+## 🚀 v3.4.0 (2025-07-28)
+
+### ✨ Features
+- **🚩 Image Flagging:** Added flagging and reporting functionality for images in `ImageViewer` with full multi-language localization.
+
+### 🔧 Improvements
+- **♿ Accessibility & Styling:** Improved styling and accessibility in `ImageViewer`.
+
+---
+
+## 🚀 v3.3.0 (2025-07-27)
+
+### 🔧 Improvements
+- **🎨 Dynamic Login Branding:** Replaced `SparklesIcon` with dynamic theme-aware favicon in `LoginScreen`.
+- **🎭 Style Management:** Enhanced styles management in `generationStore` and updated `onToggle` handling in `AdvancedSettingsScreen`.
+- **🌐 Localization & Cleanup:** Updated localization in `LoginScreen` and `SettingsScreen`, and removed unused `onImageDeleted` prop from `ImageViewer`.
+
+---
+
+## 🚀 v3.2.0 (2025-07-22)
+
+### ✨ Features
+- **⭐ Favorites Screen & Gallery Layout:** Implemented dedicated `FavoriteScreen` and `GalleryLayout`.
+- **❤️ Inline Favorite Toggle:** Integrated favorite toggle functionality directly in `ImageCard` and refined `HomeScreen` layout.
+
+### 🔧 Improvements
+- **🖼️ ImageViewer:** Simplified aspect ratio handling and enhanced creator display with user avatar and name.
+- **⚡ Generation Logic:** Refactored image generation logic, added utility functions, and streamlined response handling.
+- **🔄 Loading State:** Updated loading state management for favorite images in `imageStore` and `FavoriteScreen`.
+
+---
+
+## 🚀 v3.1.1 (2025-07-16)
+
+### 🔧 Improvements
+- **⚡ List Performance:** Enabled `removeClippedSubviews` across multiple screens for smoother scrolling and improved build configurations.
+- **📱 Android 13+ Permissions:** Removed unnecessary `READ_MEDIA_IMAGES` permission from `AndroidManifest.xml`.
+
+---
+
+## 🚀 v3.1.0 (2025-07-15)
+
+### ✨ Features
+- **⚙️ Settings Screen:** Added dedicated `SettingsScreen` and integrated it into app navigation.
+- **🔒 Plan Limits & Lock Indicators:** Added `LockIcon` component and enforced plan limits in `AdvancedSettingsScreen`.
+- **🔍 Community Filter Menu:** Added filter functionality with a filter menu in `CommunityScreen`.
+- **🔐 Image Privacy Toggle:** Added privacy toggle functionality in `ImageViewer` and updated privacy state in `imageStore`.
+- **🖼️ Fullscreen Image Viewer:** Integrated `react-native-image-viewing` for fullscreen image display and connected `generationStore` in `ImageViewer` for reusing prompts and settings.
+- **⭐ App Rating:** Implemented localized in-app rating prompts and improved keyboard handling in profile screens.
+
+### 🔧 Improvements
+- **📐 Types & Services:** Consolidated generation settings, standardized API response handling in `imageService` and `userService`, and cleaned up unused console logs.
+- **❤️ Favorite Count Display:** Updated favorite indicator to consistently display favorite count and icon in `GalleryScreen`.
+- **🤖 CI/CD Workflow:** Updated GitHub Actions Android build workflow (`upload-artifact@v4`, package.json version extraction, and dependency installation).
+
+---
+
+## 🌟 v3.0.0 (2025-07-10) - Major v3 Overhaul
+
+### ✨ Features
+- **🌍 Multi-Language Localization:** Added full localization support and language selection across 13 languages (`en`, `ar`, `de`, `es`, `fr`, `hi`, `id`, `mr`, `pa`, `pt`, `ta`, `te`, `zh`).
+- **🔔 Push Notifications:** Implemented FCM token management and notification API/service via Firebase Messaging & Notifee.
+- **👥 Community Feed:** Added community image feed translations, `UserAvatar` component, and improved image deletion logic.
+- **🔒 Image Privacy Settings:** Added privacy settings for image generation with multi-language support.
+- **👤 Enhanced Profiles:** Added `bio` field to `EditProfileScreen` and account deletion reason selection with email restriction handling.
+- **💀 Skeleton Loaders & Haptics:** Replaced `ImageSkeleton` with skeleton loaders inside `ImageCard` and added haptic feedback and animations across screens.
+
+### 🔧 Improvements
+- **🔌 Backend API Integration:** Refactored `userService` and stores (`authStore`, `generationStore`) to integrate with backend APIs for user data management.
+- **🎨 Theme & Branding:** Refactored theme management and updated light/dark favicons.
+- **🧹 Code Quality:** Removed unused dependencies, optimized `useEffect` hooks, enabled console log removal in Babel production config, and updated `GalleryScreen` header styling.
+
+---
+
 ## 🚀 v2.0.0 (2025-05-19) - Major Update 🌟
 
 ### ✨ Features
